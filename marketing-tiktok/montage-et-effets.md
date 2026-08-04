@@ -1,89 +1,91 @@
-# Montage & Effets — Guide complet
+# Montage & Effets — Guide cinématique
 
-Guide pour produire les 6 vidéos Lissafi (9:16, ~30 s) avec un rendu propre et **vivant** — pensé pour la rétention, pas pour la perfection.
+Guide pour produire les 6 histoires Lissafi (9:16, 45-60 s) avec un rendu **émotionnel et professionnel**.
+L'objectif n'est pas « beau », c'est « ressenti » : le montage doit accompagner l'émotion de la voix.
 
 ---
 
-## 1. Le principe de montage
+## 1. L'ordre de montage (CapCut)
 
-**Un changement visuel toutes les 2-3 secondes.** Si un plan reste statique plus de 4 secondes, la personne part. À chaque phrase de la voix, quelque chose bouge : un cut, un zoom, un texte, un son.
+1. **La voix off en premier** — elle est le cœur de l'histoire.
+2. Couper les blancs, garder les respirations voulues (un `...` dans le texte = une pause à préserver).
+3. **Poser les images** (marché / produit) sur les mots qu'elles illustrent.
+4. **Textes discrets** aux moments clés — jamais tout le temps, jamais en concurrence avec la voix.
+5. **Sons d'ambiance** (marché, silence) + **musique** qui suit l'arc émotionnel.
+6. **Étalonnage** doux (teinte verte/chaude, contrastes profonds).
 
-Ordre dans CapCut :
-1. **Voix off en premier** (le squelette).
-2. Couper les blancs au début/fin de chaque phrase.
-3. **Screen recording** aligné sur la voix (les actions tombent sur les mots).
-4. **Textes en bursts** synchronisés phrase par phrase.
-5. **Sons FX** aux moments exacts.
-6. **Musique** basse, ducking auto.
+## 2. Le plan de tournage — images du marché (sans visage)
 
-## 2. Le rythme des 6 beats
+Un tournage de 30-45 minutes au marché, tôt le matin ou en fin d'après-midi, suffit pour toutes les vidéos. Filme :
 
-| Temps | Beat | Ce qui se passe |
+| Plan | Ce qu'on voit | Pour quelle vidéo |
 |---|---|---|
-| 0–2 s | **Pattern interrupt** | Textes choc : « LE CAHIER À LA RETRAITE », « 12 500 F », « TU AS LE SUCRE ? », « LE RÉSEAU COUPE »… |
-| 3–10 s | **Tension / histoire** | La voix raconte, l'écran prouve. Pas de description de la démo. |
-| 11–20 s | **Preuve / démo** | La vraie manipulation de l'app. |
-| 20–25 s | **Twist / punch** | Le moment choc (hors-ligne, 27 F, la dette barrée). C'est CE qu'on partage. |
-| 25–28 s | **Question engageante** | « Le cahier ou le téléphone ? » — pour les commentaires. |
-| 28–31 s | **CTA + brand** | « Écris LISSAFI en commentaire 👇 » + logo. |
+| **L'aube** | Le marché qui s'éveille, les toiles, la lumière | 1 (début) |
+| **Les mains** | Des mains qui comptent des billets, qui rendent la monnaie | 1, 2, 4, 5 |
+| **Le cahier** | Un cahier posé sur un sac, des pages tournées, une page vide | 1, 2, 3 |
+| **Le client** | Un client qui attend, qui demande quelque chose, qui repart | 3, 5 |
+| **La foule** | Les allées, le mouvement, au ralenti | 1, 4 |
+| **Le réseau** | Un téléphone à l'écran qui perd la connexion | 4 |
+| **La poignée de main** | Une dette qui se règle, la confiance | 2, 5 |
 
-## 3. Effets par vidéo
+**Conseils** : stabilise (mains ou mini-trépied), filme en 4K, prends plus que nécessaire, et enregistre le **son du marché** séparément (il sert d'ambiance).
 
-| Vidéo | Effet signature |
+## 3. Le montage de chaque vidéo (les 4 temps émotionnels)
+
+| Temps | Émotion | Montage |
+|---|---|---|
+| **1. Point de départ** | Familiarité | Plans larges du marché, rythme calme, musique douce |
+| **2. Peur / douleur** | Tension | Plans serrés (mains, cahier), phrases qui s'accélèrent, musique qui monte, silences lourds |
+| **3. Découverte** | Soulagement / joie | Le screen recording arrive en force, rythme rapide, musique qui s'éclaire, flash sur le moment clé |
+| **4. Action** | Confiance | Carte finale vert Lissafi + logo, texte CTA, musique qui se pose |
+
+**Règle d'or** : le montage suit la voix. Si la voix ralentit, on ralentit. Si elle monte, on coupe plus vite.
+
+## 4. Les moments émotionnels à appuyer (par vidéo)
+
+- **Vidéo 1** : le silence après « une mémoire qui oublie » ; l'écran du téléphone qui apparaît après « une idée un peu folle ».
+- **Vidéo 2** : le silence après « on aurait pu l'éviter » — le plan du cahier s'attarde ; la coche « payé » est le petit bonheur.
+- **Vidéo 3** : le bruit sourd sur « il part » ; le plan du client qui s'en va au ralenti.
+- **Vidéo 4** : le bruit de coupure quand le réseau meurt ; le flash quand « la vente continue ».
+- **Vidéo 5** : la bulle WhatsApp qui pop ; le zoom sur le sourire (mains/visages flous si besoin) quand « il sourit ».
+- **Vidéo 6** : le compteur qui tape « 27 F/jour » ; le sachet d'eau qui apparaît avec un pop.
+
+## 5. Texte à l'écran — style « marque »
+
+- **Discret et élégant**, pas criard : serif fin pour les phrases émotionnelles, sans-serif gras pour les chiffres et l'app.
+- Palette : vert Lissafi `#2E8B57`, crème `#FAF9F5`, sombre profond `#14211A`.
+- Apparaît **en fondu ou slide doux**, jamais de pop agressif sur les moments émotionnels.
+- En **bursts de 2-3 mots** seulement sur les moments produit ; sur les moments émotion, une phrase entière peut rester 3-4 s.
+- Sous-titres auto TikTok activés en plus.
+
+## 6. Son & musique
+
+- **Ambiance du marché** au début de chaque vidéo (immersion immédiate).
+- **Musique à arc** : choisir un titre qui commence doux et monte. Les titres « cinematic / emotional » conviennent. Volume bas sous la voix, ducking auto.
+- **Silences voulus** : 1-2 secondes de silence sur les moments forts = l'émotion respire. Ne pas avoir peur du vide.
+
+## 7. Sons FX (précis, à poser sur l'action)
+
+| Son | Moment |
 |---|---|
-| 1 | Flash + shake sur « MÊME SANS RÉSEAU » |
-| 2 | Silence d'1 s après « trois semaines plus tard » + coche animée |
-| 3 | Bulle de dialogue « TU AS LE SUCRE ? » + badge rouge de rupture |
-| 4 | Bruit de coupure 📶→📴 + icône avion + vibreur |
-| 5 | Bulles WhatsApp qui pop une à une + son de message |
-| 6 | Compteur animé « 10 000 ÷ 365 = 27 F » + sachet d'eau |
+| **Bip** de scan | Chaque scan |
+| **Cha-ching** | Le total s'affiche |
+| **Coche / ding** | Dette barrée, alerte levée |
+| **Notification WhatsApp** | Bulles du client, envoi du ticket |
+| **Coupure / distorsion** | Le réseau qui meurt (vidéo 4) |
+| **Bruit sourd** | « Il part » (vidéo 3) |
+| **Pop léger** | Apparitions produit |
 
-## 4. Zoom écran (l'effet qui sauve les screen recordings)
-
-- Le screen recording brut est plat : **zoom lent progressif** (1.05 → 1.12) sur toute la durée.
-- **Zoom ciblé** (2 keyframes) sur : le scan, le total, les montants, la dette barrée.
-- C'est ça qui donne l'impression qu'une caméra suit l'action.
-
-## 5. Textes à l'écran
-
-- **Bursts de 2-3 mots**, jamais une phrase entière 5 s.
-- **Pop-in** (scale 0 → 100 %, ~250 ms) à chaque apparition → mini pattern interrupt.
-- **Style identique partout** : police épaisse (Montserrat Bold / Impact), blanc, fond vert Lissafi `#2E8B57` ou pastille sombre semi-transparente. = signature de série.
-- Sur la 1ʳᵉ seconde, le texte porte le hook tout seul (30-40 % regardent muet).
-
-## 6. Sons FX
-
-| Son | Où |
-|---|---|
-| **Bip** de scan | À chaque scan (v. 1, 4) |
-| **Cha-ching** / caisse | Total affiché (v. 1, 4) |
-| **Ding** | Étapes du prix (v. 6) |
-| **Notification WhatsApp** | Bulles + envoi ticket (v. 5) |
-| **Coche** | Dette barrée (v. 2), alerte levée (v. 3) |
-| **Coupure / distorsion** | Le réseau qui meurt (v. 4) |
-| **Whoosh** | Changement de beat (partout) |
-
-## 7. La double voix (v. 3 et 5)
-
-- Génère la 2ᵉ voix (le client) dans ElevenLabs, exporte séparément.
-- Monte les répliques du client juste avant ta réplique. Le dialogue rend la scène vivante.
-- Volume : voix du client un poil plus basse ou plus lointaine = naturel.
-
-## 8. Musique & sous-titres
-
-- **Son tendance** du moment (Musiques → Tendances), volume ~20-25 % sous la voix, **ducking auto**.
-- **Sous-titres auto TikTok** activés en plus des textes overlay.
-
-## 9. Export
+## 8. Export
 
 - 1080 × 1920 (9:16), 30 fps, bitrate max.
 
-## 10. Publication & suivi
+## 9. Publication & suivi
 
-- **Bio** : « LISSAFI 🇳🇪 — La caisse qui tient dans ta poche. Fait au Niger. Pour le Niger. »
-- **Légende** : la question engageante en fin + 4 hashtags (`#niger` `#niamey` `#commerce` `#lissafi`).
-- **Commentaire épinglé** dès la publication : « Écris LISSAFI et je t'envoie le lien 📲 »
-- **Répondre à tous les commentaires dans les 2 h** → pousse l'algorithme.
+- **Bio** : « LISSAFI 🇳🇪 — Le commerce nigérien entre dans le futur. Fait au Niger. Pour le Niger. »
+- **Légende** : l'histoire en une phrase + 4 hashtags (`#niger` `#niamey` `#commerce` `#lissafi`).
+- **Commentaire épinglé** : « Écris LISSAFI et je t'envoie le lien 📲 »
+- **Répondre à tous les commentaires dans les 2 h.**
 - **DM** à chaque personne qui écrit « LISSAFI » : lien APK + proposition d'essai gratuit.
-- **Rythme** : vidéo 1 les jours 1-2, puis 1 vidéo tous les 2-3 jours.
-- **Test des hooks** : garde le même corps de vidéo et ré-upload avec un hook différent si la 1ʳᵉ version ne performe pas (ça peut gagner 20-40 % de rétention).
+- **Rythme** : vidéo 1 les jours 1-2, puis 1 histoire tous les 3 jours.
+- **Si une vidéo ne performe pas** : garde le corps, change l'ouverture (test de hook). Une ré-ouverture peut gagner 20-40 % de rétention.

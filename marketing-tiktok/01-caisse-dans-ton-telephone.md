@@ -1,56 +1,64 @@
-# Vidéo 1 — Le cahier prend sa retraite
+# Vidéo 1 — Le rêve : toute une boutique dans un téléphone
 
-**Format viral** : réfutateur — affirmation choc, puis preuve par la démo.
-**Bénéfice** : ton téléphone = une caisse enregistreuse. Zéro achat.
-**Émotion** : étonnement → « truc de fou » → fierté.
-**Mots-clés (5 premières secondes)** : cahier, marché, téléphone.
+**L'histoire** : le marché s'éveille, la mémoire des commerçants s'efface dans un cahier, et une idée un peu folle naît.
+**Arc émotionnel** : familiarité → tristesse (la mémoire qui s'efface) → espoir (l'idée) → fierté → action.
+**Durée** : ~50 s.
+**Mots-clés** : cahier, marché, téléphone, boutique.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Le cahier du marché vient de prendre sa retraite.
-Son remplaçant ? Ce téléphone.
-Il scanne. Il calcule. Il rend la monnaie. Il garde les crédits.
-Et le truc de fou : il marche même sans réseau.
-Pas besoin d'une grosse machine.
-C'est le téléphone que t'as déjà dans ta poche.
-Le cahier ou le téléphone ? Dis-le en commentaire.
-Lissafi. Gratuit pour tester.
+Tous les matins, le marché s'éveille.
+Des vendeurs, des étals, des mains qui comptent et recomptent.
+Et au milieu de tout ça... un cahier.
+Le cahier, c'est la mémoire de toute une vie de commerce.
+Mais une mémoire qui oublie. Qui se perd. Qui s'efface.
+Une page arrachée, et des francs disparaissent. Un cahier perdu, et c'est toute une vie qui s'en va.
+
+Alors, un jour, on a eu une idée. Une idée un peu folle.
+Et si on mettait toute cette boutique... dans un téléphone ?
+Lissafi est né.
+Une caisse enregistreuse qui tient dans la poche.
+Qui scanne. Qui calcule. Qui se souvient de tout.
+Même sans réseau.
+
+Aujourd'hui, un commerçant n'a plus peur d'oublier.
+Il a Lissafi.
+Et demain... ça pourrait être toi.
+
+Écris LISSAFI en commentaire, et je t'envoie le lien.
+Gratuit pour tester.
 ```
 
-**~57 mots → ~29 s.**
+**Lecture émotionnelle** : commence doucement, presque en contemplant (*« Tous les matins, le marché s'éveille »*). Le mot *« cahier »* se dit avec un peu de gravité. Ralentis et laisse tomber le poids sur *« qui s'efface »* et *« toute une vie qui s'en va »* — c'est la tristesse du début. Puis la voix se redresse, curieuse : *« Une idée un peu folle »* (un sourire dans la voix). *« Lissafi est né »* se dit avec fierté, comme une annonce. La fin *« ça pourrait être toi »* se fait chaleureuse, intime. Le CTA est clair, posé, confiant.
 
-**Lecture émotionnelle** : lance la 1ʳᵉ phrase posée mais avec un sourire (elle est provocante). *« Son remplaçant ? »* — laisse la question flotter un instant avant *« Ce téléphone »*. Le *« il scanne, il calcule, il rend la monnaie »* doit marteler, rythme égal. Ralentis sur *« le truc de fou »* et fais monter la surprise sur *« même sans réseau »*. La fin *« C'est le téléphone que t'as déjà »* sonne chaleureux, presque complice. Termine net.
+## ✍️ Textes à l'écran (discrets, élégants)
 
-## ✍️ Texte à l'écran (bursts, synchronisés)
+- « LE MARCHÉ S'ÉVEILLE » *(fond sombre, typographie fine)*
+- « UN CAHIER. TOUTE UNE VIE. » *(s'attarde, laisse l'émotion)*
+- « ET SI TOUT ÇA TENAI DANS UN TÉLÉPHONE ? »
+- « LISSAFI. » *(grand, vert Lissafi, s'imprime)*
+- « MÊME SANS RÉSEAU. »
+- « DEMAIN, ÇA POURRAIT ÊTRE TOI. »
+- « Écris LISSAFI en commentaire 👇 »
 
-- **0-2 s** : « LE CAHIER » → « À LA RETRAITE »
-- **3-5 s** : « LE REMPLAÇANT ? » → « CE TÉLÉPHONE »
-- **6-12 s** : « Scan → le prix » / « Total auto » / « Monnaie » / « Crédits »
-- **13-17 s** : « MÊME SANS RÉSEAU » (gros, flash)
-- **18-22 s** : « T'AS DÉJÀ LA MACHINE. DANS TA POCHE. »
-- **23-27 s** : « Le cahier ou le téléphone ? 👇 »
-- **28-31 s** : « Écris LISSAFI en commentaire 👇 »
+## 🎬 Visuel
 
-## 🎬 Visuel (screen recording)
+1. **Images du marché** (à filmer sans visage) : des étals, des mains qui comptent des billets, un cahier posé sur un sac, la foule au ralenti.
+2. La page d'un cahier qu'on tourne, puis le téléphone qui apparaît dans une main.
+3. **Montage produit** : scan → bip → total → monnaie → crédit → mode avion. Coupé net, rythmé.
+4. Carte finale vert Lissafi + logo.
 
-1. **Frame 1** : une image/emoji de cahier barré OU le mot « RETRAITE » qui claque (pattern interrupt immédiat).
-2. Le téléphone apparaît : vrai scan avec *bip*, 2-3 produits, total.
-3. Monnaie : on tape 5000, « rendre 450 » s'affiche.
-4. Un crédit noté puis barré.
-5. **Moment choc** : mode avion → la vente continue.
-6. Carte finale vert Lissafi + logo.
+## 🎨 Effets, sons, musique
 
-## 🎨 Effets & sons
-
-- **Whoosh** à chaque changement de beat.
-- **Bip** de scan, **cha-ching** au total.
-- **Flash + shake** sur « MÊME SANS RÉSEAU ».
-- Zoom lent sur l'écran pendant la démo.
+- **Son d'ambiance du marché** au début (bruit de foule, voix, marchandises) — ça immerge.
+- **Musique qui monte** doucement, qui devient émouvante au moment du cahier, puis lumineuse à l'arrivée de Lissafi.
+- **Bip** de scan, **cha-ching** au total — précis, propres.
+- **Silence d'une seconde** après « une mémoire qui oublie » (le poids des mots).
 
 ## 📝 Légende
 
-> Le cahier a fait son temps 📒 Le remplaçant tient dans ta poche. Le cahier ou le téléphone, toi ? 👇
+> Tous les matins, le marché s'éveille. Et au milieu, un cahier. Lissafi est né pour qu'aucun commerçant ne perde plus jamais sa mémoire. Écris LISSAFI en commentaire pour tester gratuitement 👇
 > #niger #niamey #commerce #lissafi

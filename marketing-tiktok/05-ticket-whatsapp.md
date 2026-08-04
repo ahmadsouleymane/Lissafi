@@ -1,58 +1,66 @@
-# Vidéo 5 — Le ticket WhatsApp
+# Vidéo 5 — Le client qui hésite, et la confiance construite
 
-**Format viral** : chat reveal — des bulles WhatsApp qui s'affichent une à une. Très visuel, très partageable.
-**Bénéfice** : le client reçoit son ticket direct sur WhatsApp, preuve qu'il ne peut pas perdre.
-**Émotion** : méfiance du client → soulagement → fierté de faire pro.
-**Mots-clés (5 premières secondes)** : ticket, preuve, WhatsApp.
+**L'histoire** : un client qui hésite devant une grosse somme, la question muette dans ses yeux — puis le ticket qui tombe sur son WhatsApp et transforme la relation.
+**Arc émotionnel** : méfiance → inquiétude → geste magique → soulagement → fierté → action.
+**Durée** : ~50 s.
+**Mots-clés** : client, ticket, preuve, WhatsApp, confiance.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-« Vous avez un ticket ? » ... « Attendez. »
-Le client veut une preuve. Surtout quand c'est une grosse somme.
-Je finis la vente sur Lissafi. Et pouf.
-Le ticket part direct sur WhatsApp.
-Il reçoit tout : ce qu'il a pris, le total, la monnaie.
-Il peut pas le perdre. Il l'a sur son téléphone.
-Et moi ? J'ai l'air d'un pro. Sans papier. Sans rien.
-Tes clients te demandent des preuves ? Commente.
+Un client qui vous fait confiance, c'est précieux.
+Mais parfois, il faut plus que des mots.
+
+Il y a ce client qui hésite. Une grosse somme. Il vous regarde...
+et vous voyez la question dans ses yeux :
+« et si je n'ai pas de preuve ? »
+
+Alors, avec Lissafi, la réponse est simple.
+La vente se termine, et en une seconde... le ticket part sur son WhatsApp.
+Les produits. Le total. La monnaie. Tout.
+
+Il reçoit ça, il regarde son téléphone... et il sourit.
+Parce qu'il a sa preuve. Il la garde. Il ne peut pas la perdre.
+Et vous, à cet instant, vous n'êtes plus un vendeur parmi d'autres.
+Vous êtes un vrai commerce. Moderne. Fiable.
+
+La confiance, ça se construit. Même à coups de tickets.
+
+Lissafi, c'est le progrès à portée de main.
+Écris LISSAFI en commentaire. Gratuit pour tester.
 ```
 
-**~63 mots → ~30 s.**
+**Lecture émotionnelle** : commence doucement, complice (*« Un client qui vous fait confiance, c'est précieux »*). Le doute du client se lit dans une voix plus prudente sur *« et si je n'ai pas de preuve ? »*. Le *« en une seconde »* est rapide, magique. Sur *« il regarde son téléphone… et il sourit »*, la voix se réchauffe, presque attendrie — c'est le moment de joie. *« Vous êtes un vrai commerce. Moderne. Fiable. »* se dit avec fierté, un mot à la fois. La fin *« la confiance, ça se construit »* est sage, posée. Le CTA est chaleureux.
 
-**Lecture émotionnelle** : joue les deux rôles. *« Vous avez un ticket ? »* = voix du client, prudente. *« Attendez. »* = toi, bref, sûr de toi. Puis parle au spectateur en complice : *« Le client veut une preuve. »* Le *« Et pouf »* doit être léger et amusant — le geste magique. *« Il peut pas le perdre. Il l'a sur son téléphone. »* rassuré, net. Et *« Et moi ? J'ai l'air d'un pro. Sans papier. Sans rien. »* — fierté malicieuse, comme si tu montrais un tour de magie. Termine avec la question.
+> 💡 **Option 2 voix (recommandée)** : génère *« et si je n'ai pas de preuve ? »* avec une 2ᵉ voix (client, hésitant) dans ElevenLabs et monte la réplique séparément. Le doute devient audible.
 
-> 💡 **Option 2 voix (recommandée)** : la réplique *« Vous avez un ticket ? »* avec une 2ᵉ voix (client, hésitant) rend la scène immédiatement vivante. Le *« Attendez. »* reste ta voix.
+## ✍️ Textes à l'écran (bulles WhatsApp + cartes)
 
-## ✍️ Texte à l'écran (bulles WhatsApp, une à une)
+- Bulle client : « Et si je n'ai pas de preuve ? » *(fond sombre, bulle qui pop)*
+- « UNE GROSSE SOMME. IL HÉSITE. »
+- « LA VENTE SE TERMINE. » → « POUF. »
+- Bulle ticket : « 3 produits » / « Total : 12 000 F » / « Monnaie : 0 F » *(chiffres réels)*
+- « IL REGARDE SON TÉLÉPHONE… ET IL SOURIT. »
+- « UN VRAI COMMERCE. MODERNE. FIABLE. »
+- « Écris LISSAFI en commentaire 👇 »
 
-- **0-2 s** : bulle client : « Vous avez un ticket ? »
-- **2-4 s** : bulle toi : « Attendez. »
-- **5-9 s** : « UNE PREUVE. SURTOUT POUR LES GROSSES SOMMES. »
-- **10-14 s** : « Vente finie → **pouf** »
-- **15-20 s** : bulles ticket : « 3 produits » / « Total : 12 000 F » / « Monnaie : 0 F » *(chiffres réels)*
-- **21-25 s** : « IL PEUT PAS LE PERDRE » → « Il l'a sur son téléphone »
-- **26-31 s** : « T'as l'air d'un pro 😎 » / « Écris LISSAFI en commentaire 👇 »
+## 🎬 Visuel
 
-## 🎬 Visuel (chat reveal + screen recording)
+1. **Frame 1** : fond sombre, une bulle WhatsApp « Et si je n'ai pas de preuve ? » qui s'affiche — personne ne s'y attend.
+2. **Montage produit** : une vente se termine → bouton « Ticket WhatsApp » → le ticket se déroule → le partage WhatsApp s'ouvre → la bulle arrive chez le client.
+3. Image du marché : un vendeur et un client qui sourient (mains serrées, pas de visage si besoin).
+4. Carte finale.
 
-1. **Frame 1** : fond sombre + bulle WhatsApp qui s'affiche « Vous avez un ticket ? » — pattern interrupt (personne ne s'y attend).
-2. On passe à l'app : une vente se termine → bouton « Ticket WhatsApp ».
-3. Le ticket généré apparaît (image propre : produits, total, monnaie).
-4. Le partage WhatsApp s'ouvre → envoi.
-5. On montre le téléphone du « client » qui reçoit la bulle (bubble qui pop).
-6. Carte finale.
+## 🎨 Effets, sons, musique
 
-## 🎨 Effets & sons
-
-- **Pop** de chaque bulle WhatsApp (le son de message, très reconnaissable).
+- **Pop + son de message WhatsApp** pour chaque bulle qui apparaît.
+- **Musique légère, chaleureuse** qui monte au moment du sourire.
 - Le ticket qui « se déroule » comme un reçu d'imprimante.
-- Zoom sur la bulle du client qui arrive.
-- Le **son de notification WhatsApp** au moment de l'envoi.
+- **Zoom** sur la bulle du client qui arrive.
 
 ## 📝 Légende
 
-> « Vous avez un ticket ? » … Maintenant, oui. Il part direct sur WhatsApp 💬 Et toi, tes clients demandent des preuves ? 👇
+> Un client qui hésite, une grosse somme, une question muette : « et si je n'ai pas de preuve ? » Avec Lissafi, le ticket part sur WhatsApp, et la confiance se construit. Écris LISSAFI en commentaire 👇
 > #niger #niamey #commerce #lissafi

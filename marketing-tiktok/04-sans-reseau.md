@@ -1,55 +1,66 @@
-# Vidéo 4 — Le réseau coupe
+# Vidéo 4 — Le réseau qui meurt, et le commerce qui continue
 
-**Format viral** : drame — tension en plein encaissement, résolue par la révélation.
-**Bénéfice** : la caisse continue même sans réseau.
-**Émotion** : panique (le réseau qui meurt) → soulagement → fierté taquine.
-**Mots-clés (5 premières secondes)** : encaissement, réseau, coupe.
+**L'histoire** : le silence terrible du réseau qui coupe en plein encaissement, la sensation d'être bloqué — puis la révélation que la caisse n'a jamais dépendu d'internet.
+**Arc émotionnel** : tension → panique → frustration → émerveillement → fierté → action.
+**Durée** : ~50 s.
+**Mots-clés** : réseau, coupe, encaissement, vente, internet.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-En plein encaissement... le réseau coupe.
-Trois clients attendent. Le réseau revient pas. C'est là que tout le monde flippe.
-Sauf si ta caisse s'appelle Lissafi.
-On coupe tout. Mode avion. Et la vente continue. Scan. Total. Monnaie.
-Une caisse, ça a pas besoin d'internet. Ça a besoin de toi.
-Le réseau coupe au marché ? Moi, je vends.
-T'as déjà perdu une vente comme ça ? Commente.
+Il y a des moments où tout s'arrête.
+En pleine vente, en plein marché, alors que trois clients attendent...
+le réseau coupe.
+
+On connaît tous ce silence. Ce petit « non, pas maintenant ».
+Les écrans qui se figent.
+Et cette sensation terrible d'être bloqué, au milieu de sa propre boutique,
+incapable de faire ce qu'on fait tous les jours.
+
+J'ai connu ça. J'ai perdu des ventes comme ça, à cause d'un réseau capricieux.
+Et un jour, je me suis dit : une caisse, ça ne devrait pas dépendre d'internet.
+Une caisse, ça dépend du commerçant.
+
+Lissafi fonctionne sans réseau. Complètement.
+On coupe tout. Et la vente continue. Scan, total, monnaie.
+Et quand le réseau revient... tout se synchronise tout seul.
+
+Au marché, le réseau coupe. Moi, je vends.
+Le commerce ne s'arrête plus.
+
+Écris LISSAFI en commentaire. Gratuit pour tester.
 ```
 
-**~66 mots → ~30 s.**
+**Lecture émotionnelle** : commence lentement, en tension (*« Il y a des moments où tout s'arrête »*). Le *« le réseau coupe »* se dit sec, presque résigné — un mot après l'autre. La panique monte sur *« les écrans qui se figent »*. *« J'ai perdu des ventes comme ça »* avec un peu de frustration, de colère rentrée. Puis le moment de clarté : *« une caisse, ça dépend du commerçant »* — la voix s'éclaircit, comme une évidence. La démo se dit avec émerveillement (*« la vente continue »*). La fin *« moi, je vends »* est une petite fierté, presque un sourire. Le CTA est calme, confiant.
 
-**Lecture émotionnelle** : ouvre *« En plein encaissement… »* en pleine énergie, puis casse la voix sur *« le réseau coupe »* — un mot après l'autre, sec. Monte la tension : *« Trois clients attendent. Le réseau revient pas. »* (phrases qui s'accélèrent) et lâche *« C'est là que tout le monde flippe »* comme une évidence. Le virage : *« Sauf si ta caisse s'appelle Lissafi »* — voix assurée, presque maligne. La démo se dit avec calme et soulagement (*« Et la vente continue. »*). Termine avec la petite fierté taquine : *« Moi, je vends. »* et la question sincère.
+## ✍️ Textes à l'écran
 
-## ✍️ Texte à l'écran (bursts, synchronisés)
+- « EN PLEINE VENTE… LE RÉSEAU COUPE. » *(avec bruit de coupure)*
+- « LE SILENCE. LES ÉCRANS SE FIGENT. »
+- « BLOQUÉ, AU MILIEU DE SA PROPRE BOUTIQUE. »
+- « J'AI PERDU DES VENTES COMME ÇA. »
+- « UNE CAISSE, ÇA DÉPEND DU COMMERÇANT. »
+- « MODE AVION. ET LA VENTE CONTINUE. » *(flash, la révélation)*
+- « LE RÉSEAU COUPE ? MOI, JE VENDS. »
+- « Écris LISSAFI en commentaire 👇 »
 
-- **0-2 s** : « LE RÉSEAU COUPE » *(bruit de coupure)*
-- **3-6 s** : « 3 CLIENTS ATTENDENT » → « PERSONNE FLIPPE ? »
-- **7-10 s** : « SAUF SI TA CAISSE S'APPELLE LISSAFI »
-- **11-16 s** : « 📴 Mode avion » → « LA VENTE CONTINUE » / « Scan. Total. Monnaie. »
-- **17-21 s** : « UNE CAISSE, ÇA A BESOIN DE TOI »
-- **22-25 s** : « LE RÉSEAU COUPE ? MOI, JE VENDS. »
-- **26-31 s** : « T'as déjà perdu une vente ? 👇 » / « Écris LISSAFI en commentaire 👇 »
+## 🎬 Visuel
 
-## 🎬 Visuel (screen recording)
+1. **Images du marché** : un vendeur qui regarde son téléphone, l'icône réseau qui tombe, la foule qui attend.
+2. **Montage produit** : panier plein, prêt à encaisser → on active le mode avion **devant la caméra** → on encaisse : scan, total, monnaie → on réactive le réseau, la synchro se fait.
+3. Carte finale.
 
-1. **Frame 1** : l'icône réseau qui bascule de pleine à vide, en gros (📶 → 📴) avec un **glitch visuel** — pattern interrupt immédiat.
-2. On est en plein panier, 3 articles, prêt à encaisser.
-3. **Moment choc** : on active le mode avion *devant la caméra* (l'icône avion s'affiche).
-4. On encaisse quand même : total, monnaie. Tout marche.
-5. On réactive le réseau : la synchro se fait toute seule (indicateur).
-6. Carte finale.
+## 🎨 Effets, sons, musique
 
-## 🎨 Effets & sons
-
-- **Bruit de coupure / distorsion** quand le réseau meurt (moment marquant).
-- **Flash + shake** sur « LE RÉSEAU COUPE ».
-- L'icône avion qui s'affiche en gros avec un **vibreur**.
-- Son **caisse** qui continue pendant que l'icône avion est visible (le contraste fait le choc).
+- **Bruit de coupure / distorsion** quand le réseau meurt — c'est le moment le plus marquant, il doit surprendre.
+- **Silence** pendant que les écrans « se figent » (tension).
+- **Flash + shake** sur « MODE AVION. ET LA VENTE CONTINUE. » — la révélation.
+- **Cha-ching** qui retentit pendant que l'icône avion est visible (le contraste).
+- Musique tendue au début, qui se libère à la révélation.
 
 ## 📝 Légende
 
-> Le réseau qui coupe au mauvais moment ? C'est là que tout le monde flippe 📴 Sauf avec Lissafi. T'as déjà vécu ça ? 👇
+> Le silence que tout commerçant connaît : le réseau qui coupe en plein encaissement. Lissafi continue. Le commerce ne s'arrête plus. Écris LISSAFI en commentaire pour tester 👇
 > #niger #niamey #commerce #lissafi

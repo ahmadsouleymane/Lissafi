@@ -1,57 +1,65 @@
-# Vidéo 6 — Devine le prix
+# Vidéo 6 — La peur du prix, et la joie de l'accessibilité
 
-**Format viral** : jeu — suspense interactif, la réponse est le twist.
-**Bénéfice** : gratuit pour tester, puis 10 000 F/an = **27 F/jour**.
-**Émotion** : curiosité → choc (c'est petit) → joie (sachet d'eau) → réflexion.
-**Mots-clés (5 premières secondes)** : coûte, Lissafi, prix.
+**L'histoire** : la question que tout le monde pose — « ça doit coûter cher » — et la vérité qui soulage : 27 francs par jour, moins qu'un sachet d'eau.
+**Arc émotionnel** : appréhension → surprise → joie → réflexion → fierté → action.
+**Durée** : ~50 s.
+**Mots-clés** : prix, coûte, Lissafi, sachet d'eau, jour.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Devine combien coûte Lissafi par an. Vas-y, devine.
-Dix mille francs. Pour l'année.
-Et gratuit pour tester. Zéro franc.
-Divisé par 365 ? Vingt-sept francs par jour.
-Vingt-sept. C'est moins qu'un sachet d'eau.
-Et ça, ça t'évite de perdre combien par mois ? Franchement.
-Le cahier te coûte plus cher que Lissafi.
-Écris LISSAFI en commentaire, j'envoie le lien.
+On me demande souvent : « ça doit coûter cher, une appli comme ça ? »
+Et je comprends. Vraiment.
+On a tous appris à se méfier. On est habitués à ce que les bonnes choses soient chères.
+À ce que le progrès... ait un prix.
+
+Alors laissez-moi vous dire la vérité.
+Lissafi est gratuit pour tester. Zéro franc.
+Et quand vous voulez tout débloquer ? Dix mille francs par an.
+Attendez... ça fait vingt-sept francs par jour.
+Vingt-sept francs. C'est moins qu'un sachet d'eau.
+
+Et le cahier, lui, il ne coûte rien.
+Mais chaque mois, il vous fait perdre de l'argent.
+Alors demandez-vous : qui coûte le plus cher ? Le cahier, ou Lissafi ?
+
+Le progrès ne devrait pas être réservé à une élite.
+Il devrait être pour tous ceux qui travaillent dur.
+Lissafi, c'est ça. Pour chaque commerçant.
+
+Écris LISSAFI en commentaire. Testez, c'est gratuit.
 ```
 
-**~57 mots → ~29 s.**
+**Lecture émotionnelle** : commence avec un sourire complice, presque taquin (*« On me demande souvent… »*). La méfiance se dit avec douceur (*« on est habitués à ce que les bonnes choses soient chères »*), pas avec cynisme. Le *« Attendez… ça fait vingt-sept francs par jour »* est le moment de surprise — ralentis, laisse le calcul se faire. *« Vingt-sept francs »* se dit tout seul, léger. *« C'est moins qu'un sachet d'eau »* avec un sourire dans la voix. La question *« qui coûte le plus cher ? »* est posée calmement, pour faire réfléchir. La fin sur l'élite et « pour chaque commerçant » est fière, généreuse. Le CTA est ouvert, chaleureux : *« Testez, c'est gratuit »*.
 
-**Lecture émotionnelle** : commence complice et un peu taquin (*« Vas-y, devine »* — on joue ensemble). Annonce *« Dix mille francs »* avec un petit silence avant *« pour l'année »* (laisse le chiffre surprendre). *« Divisé par 365 ? »* montante, puis *« vingt-sept francs par jour »* en ralentissant pour que le calcul s'imprime. *« Vingt-sept. »* tout seul, sec — le poids du chiffre. *« C'est moins qu'un sachet d'eau »* avec un sourire dans la voix. La phrase sur le cahier doit faire réfléchir, posée. Finis direct.
+## ✍️ Textes à l'écran
 
-## ✍️ Texte à l'écran (bursts, synchronisés)
+- « ÇA DOIT COÛTER CHER, NON ? »
+- « ON EST HABITUÉS À CE QUE LE PROGRÈS AIT UN PRIX. »
+- « GRATUIT POUR TESTER. ZÉRO FRANC. »
+- « 10 000 F / AN » *(apparaît, gros)*
+- Compteur animé : « 10 000 ÷ 365 = **27 F / JOUR** »
+- « 🚰 27 F. MOINS QU'UN SACHET D'EAU. »
+- « LE CAHIER NE COÛTE RIEN… ET VOUS COÛTE TOUT. »
+- « LISSAFI. POUR CHAQUE COMMERÇANT. » → « Écris LISSAFI en commentaire 👇 »
 
-- **0-2 s** : « DEVINE. VAS-Y. 👇 »
-- **3-5 s** : « 10 000 F » (gros) → « PAR AN »
-- **6-8 s** : « GRATUIT POUR TESTER » → « 0 F »
-- **9-12 s** : compteur animé : « 10 000 ÷ 365 = 27 F / JOUR »
-- **13-16 s** : « VINGT-SEPT » (géant) → « 🚰 < un sachet d'eau »
-- **17-21 s** : « Combien tu perds par mois ? … Beaucoup plus. »
-- **22-25 s** : « LE CAHIER TE COÛTE PLUS CHER »
-- **26-31 s** : « Écris LISSAFI en commentaire 👇 »
+## 🎬 Visuel
 
-## 🎬 Visuel (cartes animées + screen recording)
+1. **Frame 1** : carte sombre « ÇA DOIT COÛTER CHER, NON ? » — la question que tout le monde a en tête.
+2. **Montage produit / cartes animées** : « 0 F » → « 10 000 F / an » → compteur qui tape « 27 F/jour » → l'image d'un **sachet d'eau**.
+3. Carte « Le cahier ne coûte rien… et vous coûte tout » (passage en vert Lissafi).
+4. Carte finale + logo.
 
-1. **Frame 1** : gros point d'interrogation ou « DEVINE » qui claque — personne ne sait de quoi il s'agit, tout le monde reste.
-2. Carte prix : « 10 000 F / an » apparaît.
-3. **Animation du calcul** : un compteur tape « 10 000 ÷ 365 = 27 F ».
-4. L'image d'un **sachet d'eau** à côté de « 27 F » (le choc visuel).
-5. La carte « Le cahier te coûte plus cher ».
-6. Carte finale + logo.
+## 🎨 Effets, sons, musique
 
-## 🎨 Effets & sons
-
-- **Compteur animé** qui tape les chiffres (satisfaction visuelle).
+- **Compteur animé** qui tape les chiffres du calcul (satisfaction visuelle).
 - **Ding** à chaque étape du prix.
-- Zoom dramatique sur « 27 F » puis apparition du sachet d'eau avec un petit **pop**.
-- La carte « Le cahier » : passage au vert Lissafi.
+- **Zoom dramatique** sur « 27 F », puis le sachet d'eau qui apparaît avec un **pop**.
+- Musique douce et positive, qui s'éclaire à la révélation.
 
 ## 📝 Légende
 
-> 27 F par jour. Moins qu'un sachet d'eau 🚰 Gratuit pour tester. Et ton cahier, lui, il te coûte combien ? 👇
+> « Ça doit coûter cher » … 27 francs par jour. Moins qu'un sachet d'eau. Le progrès pour chaque commerçant. Écris LISSAFI en commentaire, testez c'est gratuit 👇
 > #niger #niamey #commerce #lissafi

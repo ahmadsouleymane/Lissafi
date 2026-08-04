@@ -1,56 +1,68 @@
-# Vidéo 2 — La dette oubliée
+# Vidéo 2 — La peur de perdre de l'argent, et la paix retrouvée
 
-**Format viral** : confession — une histoire vécue avec un chiffre précis, boucle ouverte, résolue.
-**Bénéfice** : plus jamais un crédit oublié → plus jamais un franc perdu.
-**Émotion** : confession (gêne) → peur (presque perdu) → soulagement.
-**Mots-clés (5 premières secondes)** : client, devait, cahier.
+**L'histoire** : la peur la plus silencieuse du commerçant — l'oubli des crédits — racontée à travers une histoire de famille, jusqu'à la paix du soir.
+**Arc émotionnel** : familiarité → peur → émotion (l'histoire du père) → soulagement → confiance → action.
+**Durée** : ~55 s.
+**Mots-clés** : client, devait, cahier, crédit, peur.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Un client me devait 12 500 F. Je l'ai su trois semaines plus tard.
-Je l'avais noté sur le cahier. Le cahier, j'ai arrêté de l'ouvrir.
-Résultat ? J'ai failli perdre 12 500 F.
-Depuis, tout est sur Lissafi. Le nom. Le montant. La date.
-Quand il paie, je barre. Le soir, je vois tout d'un coup.
-Plus jamais un franc oublié.
-Toi, on te doit combien en ce moment ? Dis-le en commentaire.
+Il y a une peur que tous les commerçants connaissent.
+Ce n'est pas le vol. Ce n'est pas la concurrence.
+C'est l'oubli.
+
+Quand un client vous dit « je te paie demain »... et que demain devient une semaine.
+Et que la semaine devient un mois.
+Et que votre cahier, lui, n'a plus rien noté.
+
+J'ai vu mon père perdre de l'argent comme ça.
+Des francs qui disparaissaient dans un cahier qu'on n'ouvre plus.
+Et la pire des sensations... ce n'est pas de perdre l'argent.
+C'est de savoir qu'on aurait pu l'éviter.
+
+Depuis que tout est sur Lissafi, plus jamais ça.
+Le nom. Le montant. La date.
+Quand le client paie, on barre. Et le soir, on sait exactement ce qu'on a.
+Et on dort tranquille.
+
+Lissafi, c'est la paix du soir.
+C'est la fin de la peur.
+
+Écris LISSAFI en commentaire.
+Gratuit pour tester.
 ```
 
-**~62 mots → ~30 s.**
+**Lecture émotionnelle** : commence posé, grave (*« Il y a une peur que tous les commerçants connaissent »*). Monte doucement sur le mécanisme de l'oubli, phrase après phrase, comme une spirale (*« une semaine… un mois… »*). Sur *« j'ai vu mon père perdre de l'argent »*, la voix devient plus basse, plus personnelle — c'est le moment émotion le plus fort, presque fragile. *« On aurait pu l'éviter »* avec un peu d'amertume. Puis la voix s'apaise, se réchauffe : *« et on dort tranquille »* sonne comme un vrai soulagement. *« La paix du soir »* se dit lentement, avec gratitude. Le CTA est doux, sans pression.
 
-**Lecture émotionnelle** : commence bas, presque gêné — c'est un aveu, pas une pub (*« Un client me devait 12 500 F… »*). Marque un silence après *« trois semaines plus tard »* (laisse le chiffre frapper). *« Résultat ? »* avec une pointe d'amertume. La voix se redresse et se réchauffe sur *« Depuis, tout est sur Lissafi »*. Le *« quand il paie, je barre »* sonne satisfait, propre. *« Plus jamais un franc oublié »* ferme et rassuré. La question finale invite, sincère.
+## ✍️ Textes à l'écran
 
-> 💡 *12 500 F est un exemple. Remplace-le par un montant réel que tu as déjà failli perdre — un vrai chiffre rend la confession vraie.*
+- « UNE PEAU QUE TOUS LES COMMERÇANTS CONNAISSENT »
+- « L'OUBLI. » *(s'imprime seul, fond sombre)*
+- « "JE TE PAIE DEMAIN"… UNE SEMAINE… UN MOIS… »
+- « LE CAHIER N'A PLUS RIEN NOTÉ. »
+- « MON PÈRE A PERDU DE L'ARGENT COMME ÇA. » *(carte émotion, s'attarde)*
+- « LISSAFI : LE NOM. LE MONTANT. LA DATE. »
+- « LE SOIR, ON DORT TRANQUILLE. »
+- « Écris LISSAFI en commentaire 👇 »
 
-## ✍️ Texte à l'écran (bursts, synchronisés)
+## 🎬 Visuel
 
-- **0-2 s** : « 12 500 F » (gros) → « OUBLIÉS 3 SEMAINES »
-- **3-6 s** : « LE CAHIER » → « J'AI ARRÊTÉ DE L'OUVRIR »
-- **7-10 s** : « RÉSULTAT ? » → « J'AI FAILLI LES PERDRE »
-- **11-16 s** : « Sur Lissafi : NOM + MONTANT + DATE »
-- **17-21 s** : « Payé → barré ✔ » / « Le soir, tout est clair »
-- **22-25 s** : « PLUS JAMAIS UN FRANC OUBLIÉ »
-- **26-31 s** : « On te doit combien ? 👇 » / « Écris LISSAFI en commentaire 👇 »
+1. **Images du marché** : un vendeur qui serre la main, une dette qui se règle, des billets échangés.
+2. Un **cahier** qu'on feuillette, une page vide, une page déchirée.
+3. **Montage produit** : l'écran Crédits — une dette notée, puis barrée avec une coche, le soir la liste claire.
+4. Carte finale.
 
-## 🎬 Visuel (screen recording)
+## 🎨 Effets, sons, musique
 
-1. **Frame 1** : gros texte « 12 500 F » qui claque (pas d'intro, direct).
-2. L'écran Crédits : une vraie dette à un nom, montant affiché.
-3. On enregistre le paiement → la dette tombe à zéro → **coche animée**.
-4. Vue du soir : la liste où tout est clair.
-5. Carte finale.
-
-## 🎨 Effets & sons
-
-- Son **coche** / **ding** quand la dette est barrée.
-- Zoom dramatique sur le montant 12 500 F.
-- **Silence d'une seconde** après *« trois semaines plus tard »* (le poids du chiffre).
-- Coupure franche entre les beats.
+- **Musique émouvante** qui monte pendant l'histoire du père, puis s'éclaire au moment de Lissafi.
+- **Son de coche / ding** quand la dette est barrée (un petit bonheur audible).
+- **Silence** après « c'est de savoir qu'on aurait pu l'éviter » — laisse l'émotion respirer.
+- Zoom lent sur le cahier, puis sur l'écran de l'app.
 
 ## 📝 Légende
 
-> 12 500 F. Trois semaines. Et personne n'avait remarqué 💸 Depuis, tout est sur Lissafi. On te doit combien, toi ? 👇
+> La peur la plus silencieuse d'un commerçant, c'est l'oubli. J'ai vu mon père perdre de l'argent comme ça. Lissafi, c'est la paix du soir. Écris LISSAFI en commentaire pour tester gratuitement 👇
 > #niger #niamey #commerce #lissafi

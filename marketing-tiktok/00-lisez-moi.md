@@ -1,63 +1,64 @@
 # Marketing TikTok — LISSAFI 🇳🇪
 
-Série de 6 vidéos pour faire le buzz sur Lissafi (« la caisse qui tient dans ta poche »).
-Voix off générée par **ElevenLabs** (text-to-speech), visuel en screen recording, sans visage.
+Série de 6 vidéos pour faire le buzz sur Lissafi, racontées comme des **histoires humaines**.
+Voix off générée par **ElevenLabs**, visuel en screen recording + images du marché (sans visage).
 
 ---
 
 ## Contenu du dossier
 
-| Fichier | Vidéo | Format viral |
+| Fichier | Vidéo | L'histoire racontée |
 |---|---|---|
-| `01-caisse-dans-ton-telephone.md` | 1 — Le cahier prend sa retraite | **Réfutateur** : affirmation choc → preuve |
-| `02-credits-clients.md` | 2 — La dette oubliée | **Confession** : histoire vécue, chiffre précis |
-| `03-stock.md` | 3 — « Tu as le sucre ? » | **POV** : scène relatable, panique du vendeur |
-| `04-sans-reseau.md` | 4 — Le réseau coupe | **Drame** : tension en plein encaissement |
-| `05-ticket-whatsapp.md` | 5 — Le ticket WhatsApp | **Chat reveal** : bulles WhatsApp qui s'affichent |
-| `06-prix.md` | 6 — Devine le prix | **Jeu** : suspense interactif |
-| `montage-et-effets.md` | — | Guide complet montage, effets, publication |
+| `01-caisse-dans-ton-telephone.md` | 1 | Le rêve : toute une boutique dans un téléphone |
+| `02-credits-clients.md` | 2 | La peur de perdre de l'argent, et la paix retrouvée |
+| `03-stock.md` | 3 | Le jour où j'ai perdu une vente, et la certitude |
+| `04-sans-reseau.md` | 4 | Le réseau qui meurt, et le commerce qui continue |
+| `05-ticket-whatsapp.md` | 5 | Le client qui hésite, et la confiance construite |
+| `06-prix.md` | 6 | La peur du prix, et la joie de l'accessibilité |
+| `montage-et-effets.md` | — | Guide montage cinématique, sons, musique, publication |
 
-## La méthode virale (à lire avant tout)
+## L'orientation du compte
 
-### Le hook (0–1,5 s) — c'est lui qui décide de tout
-- Il doit être un **pattern interrupt** : une affirmation surprenante, un chiffre précis, une scène en plein milieu, un bruit ou un texte choc.
-- **Jamais** : « Salut les amis », « Aujourd'hui je vais te montrer », « Laisse-moi te présenter ».
-- Il doit marcher **muet** : le texte à l'écran de la 1ʳᵉ seconde porte le hook aussi fort que la voix (30-40 % regardent sans le son).
-- **Mot-clé dans les 5 premières secondes** : TikTok transcrit l'audio et indexe la recherche. « cahier », « téléphone », « marché », « réseau », « stock » sont tes mots-clés.
+Lissafi ne vend pas une application. Lissafi raconte une **mission** :
+**« le commerce nigérien entre dans le futur »** — la caisse enregistreuse qui tient dans la poche de chaque commerçant.
 
-### La rétention (2–30 s)
-- **Un changement visuel toutes les 2-3 secondes** : cut, zoom, texte qui apparaît, son FX. Une scène statique 4-5 s = la personne part.
-- **Texte à l'écran en bursts de 2-3 mots**, synchronisé phrase par phrase avec la voix. Jamais une phrase entière affichée 5 s.
-- **Twist à ~80 %** : le moment choc se place vers la fin (hors-ligne, le chiffre 27 F, la dette barrée) → les gens re-regardent.
-- **60-75 mots pour 30 s.** Moins = mieux. Chaque mot inutile = un swipe.
-- Objectif : **≥ 70 % de visionnage complet** avant que l'algorithme pousse large.
+Chaque vidéo = **une histoire** que le spectateur ressent, pas un catalogue de fonctionnalités.
 
-### Le CTA
-- **Une seule action.** Pas de « like + commente + partage + suis ».
-- **Question engageante** que TOUT LE MONDE peut répondre (« Le cahier ou le téléphone ? ») → plus de commentaires.
-- La consigne « Écris LISSAFI en commentaire » passe en **texte à l'écran** et dans le **commentaire épinglé**.
+## La méthode : chaque script est une histoire
 
-## Mode d'emploi ElevenLabs (pour une voix vivante)
+Structure émotionnelle en 4 temps, présente dans TOUTES les vidéos :
 
-Le rendu sonne mort si la voix est neutre OU si le texte est neutre. Les deux se règlent.
+1. **LE POINT DE DÉPART** — une situation que le spectateur connaît par cœur (le cahier, le client, le réseau). On plante le décor avec des phrases complètes.
+2. **LA PEUR / LA DOULEUR** — le moment où ça fait mal. Le doute, l'oubli, la vente perdue, la peur de perdre de l'argent. C'est le cœur émotionnel.
+3. **LA DÉCOUVERTE** — l'arrivée de Lissafi. La lumière. Le soulagement. La joie.
+4. **L'ACTION** — la fin donne une envie claire : commenter LISSAFI. Toujours la même, toujours simple.
 
-1. **Choisis une voix expressive**, pas une voix « corporate » neutre. Préfère les voix étiquetées *Conversational*, *Narrative* ou avec un accent africain francophone. Teste 3-4 voix avant d'arrêter.
-2. **Réglages** : Stability **25-35** (plus bas = plus d'émotion), Style Exaggeration **80-90** (rend les montées et les chutes expressives).
+## Le ton à respecter
+
+- **Un narrateur chaleureux**, comme quelqu'un qui raconte une histoire à un ami, le soir.
+- **Tutoiement** (« tu »), phrases complètes, ponctuation qui fait respirer (les `...` sont des hésitations, pas des coupures).
+- **L'émotion prime sur la démo.** On ne décrit jamais ce qu'on voit à l'écran ; on raconte ce qu'on ressent.
+- **Zéro formule de pub** : pas de « simple », pas de « efficace », pas de « révolutionnaire ».
+
+## Mode d'emploi ElevenLabs (pour une voix qui raconte)
+
+1. **Choisis une voix de storytelling** : étiquetée *Narrative*, *Documentary* ou *Conversational*, expressive. Pas une voix de lecture neutre. Teste 3-4 voix avant d'arrêter.
+2. **Réglages** : Stability **30-40** (laisse la voix onduler), Style Exaggeration **70-85** (rend les émotions audibles).
 3. **Ponctuation = émotion** :
 
 | Signe | Effet produit |
 |---|---|
-| `...` | Pause, hésitation, suspense |
-| `!` | Choc, punch (1-2 max par vidéo) |
-| `?` | Question, accroche |
-| Phrase courte | Tension, rythme |
-| Retour à la ligne | Pause naturelle, respiration |
+| `...` | Hésitation, doute, respiration |
+| `?` | Question, suspension |
+| `!` | Joie, surprise, soulagement (avec parcimonie) |
+| Phrase longue | L'émotion qui coule, le récit |
+| Phrase courte | Le choc, l'essentiel |
+| Retour à la ligne | Pause dramatique |
 
-4. **Pour les vidéos avec dialogue (3 et 5)** : génère la voix principale ET une 2ᵉ voix (le client) dans ElevenLabs, puis coupe-colle les répliques dans le montage. Ça change tout en termes de vie.
-5. **Pas d'emojis ni de crochets** dans le texte TTS : ils seraient lus à voix haute.
-6. **Si ça déborde 31 s** : coupe les phrases du milieu. Jamais le hook, jamais le punch.
+4. **Pour les répliques (voix du client)** : génère une 2ᵉ voix dans ElevenLabs et monte les répliques séparément — le dialogue rend l'histoire vivante.
+5. **Pas d'emojis ni de crochets** dans le texte TTS (ils seraient lus).
+6. **Durée** : ces histoires font 45-60 s. C'est voulu — elles ont le temps de faire ressentir. Si une lecture dépasse, coupe les phrases du milieu, jamais le début émotionnel, jamais le CTA.
 
-## La règle d'or
+## Les mots-clés à garder (TikTok indexe la parole)
 
-**On ne raconte jamais ce qu'on voit à l'écran.** La voix crée la tension, l'écran montre la preuve.
-Si la voix décrit la démo, la vidéo meurt. Si la voix raconte une histoire et que l'écran prouve, elle vit.
+dans les 5 premières secondes : « cahier », « marché », « téléphone », « réseau », « vente », « client » — le spectateur doit entendre le sujet dès le début.
