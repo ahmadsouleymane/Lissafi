@@ -2,10 +2,7 @@ package com.lissafi.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lissafi.app.data.entity.Client
-import com.lissafi.app.data.entity.Product
-import com.lissafi.app.data.entity.Sale
-import com.lissafi.app.data.entity.SaleItem
+import com.lissafi.app.data.entity.*
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.PremiumManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +26,15 @@ data class CartState(
     val total: Int = 0
 )
 
+data class LastSale(
+    val items: List<CartItem>,
+    val total: Int,
+    val amountPaid: Int,
+    val changeGiven: Int,
+    val isCredit: Boolean,
+    val date: Long
+)
+
 class CartViewModel(
     private val repository: LissafiRepository,
     private val premiumManager: PremiumManager
@@ -36,6 +42,18 @@ class CartViewModel(
 
     private val _state = MutableStateFlow(CartState())
     val state: StateFlow<CartState> = _state.asStateFlow()
+
+    private val _lastSaleChange = MutableStateFlow(0)
+    val lastSaleChange: StateFlow<Int> = _lastSaleChange.asStateFlow()
+
+    private val _scanResult = MutableStateFlow<String?>(null)
+    val scanResult: StateFlow<String?> = _scanResult.asStateFlow()
+
+    private val _lastSale = MutableStateFlow<LastSale?>(null)
+    val lastSale: StateFlow<LastSale?> = _lastSale.asStateFlow()
+
+    fun clearScanResult() { _scanResult.value = null }
+    fun clearLastSale() { _lastSale.value = null }
 
     init {
         viewModelScope.launch {
@@ -53,6 +71,9 @@ class CartViewModel(
             val product = repository.getProduct(barcode)
             if (product != null) {
                 addToCart(product)
+                _scanResult.value = "OK:${product.name}"
+            } else {
+                _scanResult.value = "NOT_FOUND:$barcode"
             }
         }
     }
@@ -64,20 +85,17 @@ class CartViewModel(
             val index = currentItems.indexOf(existing)
             currentItems[index] = existing.copy(quantity = existing.quantity + 1)
         } else {
-            currentItems.add(
-                CartItem(
-                    barcode = product.barcode,
-                    name = product.name,
-                    price = product.sellPrice,
-                    quantity = 1.0
-                )
-            )
+            currentItems.add(CartItem(product.barcode, product.name, product.sellPrice, 1.0))
         }
         _state.value = _state.value.copy(items = currentItems, total = computeTotal(currentItems))
     }
 
     fun addProductDirectly(product: Product) {
         viewModelScope.launch {
+            // Vérifier la limite gratuite AVANT d'ajouter (bug corrigé)
+            if (!premiumManager.isPremium() && !premiumManager.canAddProduct()) {
+                return@launch // Limite atteinte, ignoré
+            }
             addToCart(product)
             repository.upsertProduct(product)
             loadRecentProducts()
@@ -87,11 +105,8 @@ class CartViewModel(
     fun updateQuantity(index: Int, quantity: Double) {
         val items = _state.value.items.toMutableList()
         if (index in items.indices) {
-            if (quantity <= 0) {
-                items.removeAt(index)
-            } else {
-                items[index] = items[index].copy(quantity = quantity)
-            }
+            if (quantity <= 0) items.removeAt(index)
+            else items[index] = items[index].copy(quantity = quantity)
             _state.value = _state.value.copy(items = items, total = computeTotal(items))
         }
     }
@@ -114,36 +129,71 @@ class CartViewModel(
 
     fun clearCart() {
         _state.value = _state.value.copy(
-            items = emptyList(),
-            total = 0,
-            isCredit = false,
-            selectedClient = null
+            items = emptyList(), total = 0,
+            isCredit = false, selectedClient = null
         )
     }
 
-    suspend fun encaisser(amountPaid: Int): Long {
-        val state = _state.value
+    /**
+     * Encaisser une vente.
+     * - Comptant : amountPaid = montant donné par le client.
+     * - Crédit : amountPaid = 0, une DebtTransaction est créée.
+     *
+     * Retourne true si la vente est réussie.
+     */
+    suspend fun encaisser(amountPaid: Int): Boolean {
+        val s = _state.value
         val sale = Sale(
             date = System.currentTimeMillis(),
-            total = state.total,
-            amountPaid = if (state.isCredit) state.total else amountPaid,
-            changeGiven = if (state.isCredit) 0 else amountPaid - state.total,
-            isCredit = state.isCredit,
-            clientId = state.selectedClient?.id
+            total = s.total,
+            amountPaid = if (s.isCredit) s.total else amountPaid,
+            changeGiven = if (s.isCredit) 0 else amountPaid - s.total,
+            isCredit = s.isCredit,
+            clientId = s.selectedClient?.id
         )
-        val items = state.items.map { item ->
-            SaleItem(
-                barcode = item.barcode,
-                name = item.name,
-                price = item.price,
-                quantity = item.quantity,
-                saleId = 0
-            )
+        val items = s.items.map { item ->
+            SaleItem(barcode = item.barcode, name = item.name, price = item.price, quantity = item.quantity, saleId = 0)
         }
-        return repository.insertSale(sale, items)
+
+        val saleId = repository.insertSale(sale, items)
+
+        // Décrémenter le stock pour chaque produit vendu
+        for (item in s.items) {
+            try {
+                val product = repository.getProduct(item.barcode)
+                if (product != null && product.stock > 0) {
+                    repository.upsertProduct(product.copy(
+                        stock = maxOf(0, product.stock - item.quantity.toInt()),
+                        updatedAt = System.currentTimeMillis()
+                    ))
+                }
+            } catch (_: Exception) {}
+        }
+
+        // Crédit → créer la transaction de dette
+        if (s.isCredit && s.selectedClient != null) {
+            val debtTxn = DebtTransaction(
+                clientId = s.selectedClient!!.id,
+                saleId = saleId,
+                amount = s.total,
+                date = System.currentTimeMillis(),
+                note = "Vente N°$saleId"
+            )
+            repository.addDebtTransaction(debtTxn)
+        }
+
+        _lastSaleChange.value = if (s.isCredit) 0 else amountPaid - s.total
+        _lastSale.value = LastSale(
+            items = s.items.toList(),
+            total = s.total,
+            amountPaid = if (s.isCredit) 0 else amountPaid,
+            changeGiven = if (s.isCredit) 0 else amountPaid - s.total,
+            isCredit = s.isCredit,
+            date = System.currentTimeMillis()
+        )
+        return true
     }
 
-    private fun computeTotal(items: List<CartItem>): Int {
-        return items.sumOf { (it.price * it.quantity).toInt() }
-    }
+    private fun computeTotal(items: List<CartItem>): Int =
+        items.sumOf { (it.price * it.quantity).toInt() }
 }

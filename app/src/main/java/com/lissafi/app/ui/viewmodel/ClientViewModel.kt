@@ -36,7 +36,7 @@ class ClientViewModel(
     init {
         viewModelScope.launch {
             _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
-            repository.getAllClients().collect { clients ->
+            repository.clientsFlow.collect { clients ->
                 _state.value = _state.value.copy(clients = clients)
             }
         }
@@ -45,15 +45,12 @@ class ClientViewModel(
     fun search(query: String) {
         _state.value = _state.value.copy(searchQuery = query)
         viewModelScope.launch {
-            if (query.isBlank()) {
-                repository.getAllClients().collect { clients ->
-                    _state.value = _state.value.copy(clients = clients)
-                }
+            val results = if (query.isBlank()) {
+                repository.getAllClients()
             } else {
-                repository.searchClients(query).collect { clients ->
-                    _state.value = _state.value.copy(clients = clients)
-                }
+                repository.searchClients(query)
             }
+            _state.value = _state.value.copy(clients = results)
         }
     }
 
@@ -81,9 +78,8 @@ class ClientViewModel(
         viewModelScope.launch {
             val client = repository.getClient(clientId)
             _selectedClient.value = client
-            repository.getDebtTransactions(clientId).collect { txns ->
-                _transactions.value = txns
-            }
+            val txns = repository.getDebtTransactions(clientId)
+            _transactions.value = txns
         }
     }
 
@@ -96,6 +92,8 @@ class ClientViewModel(
                 note = note
             )
             repository.addDebtTransaction(txn)
+            // Reload
+            loadClient(clientId)
         }
     }
 
@@ -108,6 +106,7 @@ class ClientViewModel(
                 note = note
             )
             repository.addDebtTransaction(txn)
+            loadClient(clientId)
         }
     }
 }

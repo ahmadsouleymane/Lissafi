@@ -14,7 +14,8 @@ data class ProductListState(
     val products: List<Product> = emptyList(),
     val searchQuery: String = "",
     val isPremium: Boolean = false,
-    val isLimitReached: Boolean = false
+    val isLimitReached: Boolean = false,
+    val isSearching: Boolean = false
 )
 
 class ProductViewModel(
@@ -30,24 +31,24 @@ class ProductViewModel(
             _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
         }
         viewModelScope.launch {
-            repository.getAllProducts().collect { products ->
-                _state.value = _state.value.copy(products = products)
+            repository.productsFlow.collect { products ->
+                // Ne pas écraser si l'utilisateur est en train de chercher
+                if (!_state.value.isSearching) {
+                    _state.value = _state.value.copy(products = products)
+                }
             }
         }
     }
 
     fun search(query: String) {
-        _state.value = _state.value.copy(searchQuery = query)
+        _state.value = _state.value.copy(searchQuery = query, isSearching = query.isNotBlank())
         viewModelScope.launch {
-            if (query.isBlank()) {
-                repository.getAllProducts().collect { products ->
-                    _state.value = _state.value.copy(products = products)
-                }
+            val results = if (query.isBlank()) {
+                repository.getAllProducts()
             } else {
-                repository.searchProducts(query).collect { products ->
-                    _state.value = _state.value.copy(products = products)
-                }
+                repository.searchProducts(query)
             }
+            _state.value = _state.value.copy(products = results, isSearching = query.isNotBlank())
         }
     }
 
@@ -58,20 +59,10 @@ class ProductViewModel(
     }
 
     fun addProduct(product: Product) {
-        viewModelScope.launch {
-            repository.upsertProduct(product)
-        }
-    }
-
-    fun updateProduct(product: Product) {
-        viewModelScope.launch {
-            repository.upsertProduct(product)
-        }
+        viewModelScope.launch { repository.upsertProduct(product) }
     }
 
     fun deleteProduct(product: Product) {
-        viewModelScope.launch {
-            repository.deleteProduct(product)
-        }
+        viewModelScope.launch { repository.deleteProduct(product) }
     }
 }

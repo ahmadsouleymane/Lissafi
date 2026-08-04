@@ -1,15 +1,15 @@
 package com.lissafi.app.data.entity
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-@Entity(tableName = "debt_transactions")
+@Serializable
 data class DebtTransaction(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @ColumnInfo(name = "client_id") val clientId: String,
-    @ColumnInfo(name = "sale_id") val saleId: Long? = null,
-    @ColumnInfo(name = "amount") val amount: Int,
-    @ColumnInfo(name = "date") val date: Long,
-    @ColumnInfo(name = "note") val note: String = ""
+    val id: Long = 0,
+    @SerialName("client_id") val clientId: String,
+    @SerialName("sale_id") val saleId: Long? = null,
+    val amount: Int,
+    val date: Long,
+    val note: String = "",
+    @SerialName("user_id") val userId: String = ""
 )

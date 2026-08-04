@@ -4,4 +4,11 @@
         <item name="android:statusBarColor">@color/lissafi_green_dark</item>
         <item name="android:navigationBarColor">@color/lissafi_cream</item>
     </style>
+
+    <style name="Theme.Lissafi.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/lissafi_cream</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/lissafi_cream</item>
+        <item name="postSplashScreenTheme">@style/Theme.Lissafi</item>
+    </style>
 </resources>

@@ -1,0 +1,11 @@
+# Secrets et données locales — ne jamais committer
+.env
+lissafi.db
+*.csv
+outreach_ready.csv
+
+# n8n / python
+node_modules/
+__pycache__/
+*.pyc
+.playwright-mcp/

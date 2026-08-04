@@ -2,7 +2,7 @@ package com.lissafi.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lissafi.app.data.dao.TopProduct
+import com.lissafi.app.data.LissafiDatabase
 import com.lissafi.app.data.repository.LissafiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,11 +12,18 @@ import java.util.Calendar
 
 enum class ReportPeriod { TODAY, WEEK, MONTH }
 
+data class TopProduct(
+    val name: String,
+    val totalQty: Double,
+    val count: Int
+)
+
 data class ReportState(
     val period: ReportPeriod = ReportPeriod.TODAY,
     val totalVentes: Int = 0,
     val totalCredits: Int = 0,
     val totalComptant: Int = 0,
+    val estimatedProfit: Int = 0,
     val nbTransactions: Int = 0,
     val panierMoyen: Int = 0,
     val topProducts: List<TopProduct> = emptyList(),
@@ -41,13 +48,32 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
             val count = repository.countSalesBetween(start, end)
             val top = repository.getTopProducts(start, end)
 
+            // Calcul du bénéfice estimé (somme des ventes - somme des prix d'achat)
+            var profit = 0
+            val sales = repository.getSalesBetween(start, end)
+            for (sale in sales) {
+                if (!sale.isCredit || sale.amountPaid > 0) {
+                    val items = repository.getSaleItems(sale.id)
+                    for (item in items) {
+                        val product = repository.getProduct(item.barcode)
+                        if (product != null && product.buyPrice > 0) {
+                            profit += (item.price - product.buyPrice) * item.quantity.toInt()
+                        } else {
+                            // Pas de prix d'achat connu → on compte le prix de vente comme bénéfice
+                            profit += (item.price * item.quantity).toInt()
+                        }
+                    }
+                }
+            }
+
             _state.value = _state.value.copy(
                 totalVentes = total,
                 totalCredits = credit,
                 totalComptant = total - credit,
+                estimatedProfit = profit,
                 nbTransactions = count,
                 panierMoyen = if (count > 0) total / count else 0,
-                topProducts = top,
+                topProducts = top.map { TopProduct(it.name, it.totalQty, it.count) },
                 isLoading = false
             )
         }

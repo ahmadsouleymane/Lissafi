@@ -1,19 +1,19 @@
 package com.lissafi.app.data.entity
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-@Entity(tableName = "products")
+@Serializable
 data class Product(
-    @PrimaryKey val barcode: String,
-    @ColumnInfo(name = "name") val name: String,
-    @ColumnInfo(name = "sell_price") val sellPrice: Int,
-    @ColumnInfo(name = "buy_price") val buyPrice: Int = 0,
-    @ColumnInfo(name = "stock") val stock: Int = 0,
-    @ColumnInfo(name = "min_stock") val minStock: Int = 5,
-    @ColumnInfo(name = "category") val category: String = "",
-    @ColumnInfo(name = "has_barcode") val hasBarcode: Boolean = true,
-    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
-    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
+    val barcode: String,
+    val name: String,
+    @SerialName("sell_price") val sellPrice: Int = 0,
+    @SerialName("buy_price") val buyPrice: Int = 0,
+    val stock: Int = 0,
+    @SerialName("min_stock") val minStock: Int = 5,
+    val category: String = "",
+    @SerialName("has_barcode") val hasBarcode: Boolean = true,
+    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis(),
+    @SerialName("updated_at") val updatedAt: Long = System.currentTimeMillis(),
+    @SerialName("user_id") val userId: String = ""
 )

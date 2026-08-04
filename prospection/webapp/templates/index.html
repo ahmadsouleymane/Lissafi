@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Tableau de bord</h1>
+  <div class="stat-grid">
+    <div class="stat"><b>{{ stats.total }}</b><small>Places totales</small></div>
+    <div class="stat"><b>{{ stats.cibles }}</b><small>Cibles physiques</small></div>
+    <div class="stat"><b>{{ stats.telephones }}</b><small>Avec téléphone</small></div>
+    <div class="stat"><b>{{ stats.envoyes }}</b><small>Envoyés</small></div>
+    <div class="stat"><b>{{ stats.rdv }}</b><small>RDV</small></div>
+    <div class="stat"><b>{{ stats.refuses }}</b><small>Refusés</small></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Lancer un scrape (Google Maps — Niamey)</h2>
+  {% if scrape.running %}<p class="flash ok">⚠️ Scrape en cours…</p>{% endif %}
+  {% if scrape.last %}<p class="muted">Dernier : {{ scrape.last }}</p>{% endif %}
+  <form class="row" method="post" action="/scrape">
+    <input name="query" placeholder="ex : épicerie, restaurant, quincaillerie…" required>
+    <select name="max">
+      <option value="15">15</option>
+      <option value="25" selected>25</option>
+      <option value="50">50</option>
+    </select>
+    <button type="submit">Lancer</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Répartition par type</h2>
+  <table>
+    <tr><th>Type</th><th>Nombre</th></tr>
+    {% for t in types %}
+    <tr><td>{{ t.target_type }}</td><td>{{ t.c }}</td></tr>
+    {% else %}
+    <tr><td colspan="2" class="muted">Aucune donnée.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>Meilleurs prospects</h2>
+  <table>
+    <tr><th>Nom</th><th>Type</th><th>Téléphone</th><th>Score</th><th></th></tr>
+    {% for p in top %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.target_type or '' }}</td>
+      <td>{{ p.phone or '' }}</td>
+      <td>{{ p.score }}</td>
+      <td><a class="btn" href="/leads/{{ p.id }}">Voir</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">Aucun prospect. Lance un scrape !</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

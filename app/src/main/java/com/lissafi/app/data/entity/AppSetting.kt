@@ -1,11 +1,11 @@
 package com.lissafi.app.data.entity
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-@Entity(tableName = "app_settings")
+@Serializable
 data class AppSetting(
-    @PrimaryKey val key: String,
-    @ColumnInfo(name = "value") val value: String
+    val key: String,
+    val value: String,
+    @SerialName("user_id") val userId: String = ""
 )
