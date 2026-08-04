@@ -1,86 +1,89 @@
 # Montage & Effets — Guide complet
 
-Guide pour produire les 6 vidéos Lissafi (9:16, ~30 s) avec un rendu propre et professionnel, sans visage.
+Guide pour produire les 6 vidéos Lissafi (9:16, ~30 s) avec un rendu propre et **vivant** — pensé pour la rétention, pas pour la perfection.
 
 ---
 
-## 1. Logiciel
+## 1. Le principe de montage
 
-- **CapCut** (gratuit, mobile ou PC) — recommandé : le plus simple pour ce genre de montage.
-- Ou l'**éditeur natif TikTok** (suffisant, mais moins de contrôle sur les zooms).
-- Génération de la voix : **ElevenLabs** → exporter le fichier audio.
+**Un changement visuel toutes les 2-3 secondes.** Si un plan reste statique plus de 4 secondes, la personne part. À chaque phrase de la voix, quelque chose bouge : un cut, un zoom, un texte, un son.
 
-## 2. Ordre de montage (dans CapCut)
+Ordre dans CapCut :
+1. **Voix off en premier** (le squelette).
+2. Couper les blancs au début/fin de chaque phrase.
+3. **Screen recording** aligné sur la voix (les actions tombent sur les mots).
+4. **Textes en bursts** synchronisés phrase par phrase.
+5. **Sons FX** aux moments exacts.
+6. **Musique** basse, ducking auto.
 
-1. **Poser la voix off** en premier sur la timeline → c'est le squelette de la vidéo.
-2. Couper les blancs (silences trop longs) au début et à la fin de chaque phrase.
-3. **Ajouter le screen recording** et l'aligner sur la voix (les actions doivent tomber sur les mots).
-4. **Ajouter les textes overlay** synchronisés (le texte apparaît quand le mot est dit).
-5. **Ajouter les sons FX** (bip, caisse, notifications) aux moments exacts.
-6. **Musique** en fond, volume bas, avec ducking auto (la musique baisse sous la voix).
+## 2. Le rythme des 6 beats
 
-## 3. Les 6 temps de chaque vidéo
-
-| Temps | Beat | Ce qui se passe à l'écran |
+| Temps | Beat | Ce qui se passe |
 |---|---|---|
-| 0–3 s | Hook | L'action commence immédiatement (scan, réseau coupé…) + gros texte |
-| 3–8 s | Concept | Texte qui annonce le bénéfice + zoom sur l'écran |
-| 8–16 s | Démo | Screen recording en vrai, rythmé par la voix |
-| 16–21 s | Wow | Le moment choc : gros texte, flash, son marquant |
-| 21–26 s | Contraste | « Le cahier, c'est fini » — carte fond vert |
-| 26–31 s | CTA | Logo + « Écris LISSAFI en commentaire 👇 » |
+| 0–2 s | **Pattern interrupt** | Textes choc : « LE CAHIER À LA RETRAITE », « 12 500 F », « TU AS LE SUCRE ? », « LE RÉSEAU COUPE »… |
+| 3–10 s | **Tension / histoire** | La voix raconte, l'écran prouve. Pas de description de la démo. |
+| 11–20 s | **Preuve / démo** | La vraie manipulation de l'app. |
+| 20–25 s | **Twist / punch** | Le moment choc (hors-ligne, 27 F, la dette barrée). C'est CE qu'on partage. |
+| 25–28 s | **Question engageante** | « Le cahier ou le téléphone ? » — pour les commentaires. |
+| 28–31 s | **CTA + brand** | « Écris LISSAFI en commentaire 👇 » + logo. |
 
-## 4. Catalogue d'effets
+## 3. Effets par vidéo
 
-### Textes
-- **Pop-in** : le texte scale de 0 → 100 % avec une légère élasticité (250 ms).
-- **Style identique partout** : police épaisse (type Montserrat Bold / Impact), blanc, fond **vert Lissafi `#2E8B57`** ou dégradé semi-transparent sombre.
-- Un style unique = une **signature de série** que les gens reconnaissent.
+| Vidéo | Effet signature |
+|---|---|
+| 1 | Flash + shake sur « MÊME SANS RÉSEAU » |
+| 2 | Silence d'1 s après « trois semaines plus tard » + coche animée |
+| 3 | Bulle de dialogue « TU AS LE SUCRE ? » + badge rouge de rupture |
+| 4 | Bruit de coupure 📶→📴 + icône avion + vibreur |
+| 5 | Bulles WhatsApp qui pop une à une + son de message |
+| 6 | Compteur animé « 10 000 ÷ 365 = 27 F » + sachet d'eau |
 
-### Zoom écran (le plus important)
-- Le screen recording brut est plat : applique un **zoom lent progressif** (1.05 → 1.12 sur la durée) pour donner de l'énergie.
-- **Zoom ciblé** sur le scan, le total, les montants (comme une caméra qui suit l'action).
-- Utilise des **keyframes** (2 points) : start zoom-out, end zoom-in.
+## 4. Zoom écran (l'effet qui sauve les screen recordings)
 
-### Transitions
-- **Coupe franche** entre les beats (pas de fondu, pas de swipe) → rythme TikTok.
-- Un **whoosh** très court (100–150 ms) sur les changements d'écran.
+- Le screen recording brut est plat : **zoom lent progressif** (1.05 → 1.12) sur toute la durée.
+- **Zoom ciblé** (2 keyframes) sur : le scan, le total, les montants, la dette barrée.
+- C'est ça qui donne l'impression qu'une caméra suit l'action.
 
-### Sons FX (à poser précisément)
+## 5. Textes à l'écran
+
+- **Bursts de 2-3 mots**, jamais une phrase entière 5 s.
+- **Pop-in** (scale 0 → 100 %, ~250 ms) à chaque apparition → mini pattern interrupt.
+- **Style identique partout** : police épaisse (Montserrat Bold / Impact), blanc, fond vert Lissafi `#2E8B57` ou pastille sombre semi-transparente. = signature de série.
+- Sur la 1ʳᵉ seconde, le texte porte le hook tout seul (30-40 % regardent muet).
+
+## 6. Sons FX
+
 | Son | Où |
 |---|---|
-| **Bip** de scan | À chaque scan (vidéos 1, 4) |
-| **Cha-ching** / caisse | Quand le total s'affiche (vidéos 1, 4) |
-| **Ding** | Changement d'étape prix (vidéo 6) |
-| **Notification WhatsApp** | Envoi du ticket (vidéo 5) |
-| **Coche** | Dette barrée (vidéo 2), alerte levée (vidéo 3) |
-| **Whoosh** | Transitions |
+| **Bip** de scan | À chaque scan (v. 1, 4) |
+| **Cha-ching** / caisse | Total affiché (v. 1, 4) |
+| **Ding** | Étapes du prix (v. 6) |
+| **Notification WhatsApp** | Bulles + envoi ticket (v. 5) |
+| **Coche** | Dette barrée (v. 2), alerte levée (v. 3) |
+| **Coupure / distorsion** | Le réseau qui meurt (v. 4) |
+| **Whoosh** | Changement de beat (partout) |
 
-### Moments chocs
-- **Vidéo 1 & 4 (hors-ligne)** : flash blanc + léger shake + gros texte sur l'icône avion / le mode avion. C'est LE moment qui se partage.
-- **Vidéo 2** : la dette « barrée » avec une coche animée.
-- **Vidéo 3** : badge rouge + son d'alerte sur la rupture de stock.
-- **Vidéo 6** : compteur animé qui tape 27 F/jour + le sachet d'eau qui apparaît.
+## 7. La double voix (v. 3 et 5)
 
-## 5. Musique
+- Génère la 2ᵉ voix (le client) dans ElevenLabs, exporte séparément.
+- Monte les répliques du client juste avant ta réplique. Le dialogue rend la scène vivante.
+- Volume : voix du client un poil plus basse ou plus lointaine = naturel.
 
-- Choisir un **son TikTok tendance du moment** (onglet Musiques → Tendances) pour que l'algorithme pousse la vidéo.
-- Volume à ~20–25 % sous la voix. Activer le **ducking auto** (la musique baisse quand la voix parle).
+## 8. Musique & sous-titres
 
-## 6. Sous-titres
+- **Son tendance** du moment (Musiques → Tendances), volume ~20-25 % sous la voix, **ducking auto**.
+- **Sous-titres auto TikTok** activés en plus des textes overlay.
 
-- Garder les **sous-titres automatiques de TikTok** activés en plus des textes overlay : accessibilité + meilleure rétention (beaucoup regardent sans le son).
+## 9. Export
 
-## 7. Export
+- 1080 × 1920 (9:16), 30 fps, bitrate max.
 
-- Format : **1080 × 1920 (9:16)**, 30 fps.
-- Bitrate maximal. Pas de filtre gras qui abîme l'écran.
+## 10. Publication & suivi
 
-## 8. Publication & suivi
-
-- **Bio à jour** : « LISSAFI 🇳🇪 — La caisse qui tient dans ta poche. Fait au Niger. Pour le Niger. »
-- **Légende + hashtags** : cf. chaque fiche (4 hashtags max : `#niger` `#niamey` `#commerce` `#lissafi`).
+- **Bio** : « LISSAFI 🇳🇪 — La caisse qui tient dans ta poche. Fait au Niger. Pour le Niger. »
+- **Légende** : la question engageante en fin + 4 hashtags (`#niger` `#niamey` `#commerce` `#lissafi`).
 - **Commentaire épinglé** dès la publication : « Écris LISSAFI et je t'envoie le lien 📲 »
-- **Répondre à TOUS les commentaires dans les 2 premières heures** → pousse l'algorithme.
-- **Contacter en DM** toutes les personnes qui écrivent « LISSAFI » : envoyer le lien de téléchargement (APK) + proposer l'essai gratuit.
-- **Poster en série** : les jours 1–2 pour la vidéo 1, puis 1 nouvelle vidéo tous les 2–3 jours. La régularité fait plus que la perfection.
+- **Répondre à tous les commentaires dans les 2 h** → pousse l'algorithme.
+- **DM** à chaque personne qui écrit « LISSAFI » : lien APK + proposition d'essai gratuit.
+- **Rythme** : vidéo 1 les jours 1-2, puis 1 vidéo tous les 2-3 jours.
+- **Test des hooks** : garde le même corps de vidéo et ré-upload avec un hook différent si la 1ʳᵉ version ne performe pas (ça peut gagner 20-40 % de rétention).

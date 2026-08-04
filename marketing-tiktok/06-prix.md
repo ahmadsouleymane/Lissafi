@@ -1,51 +1,57 @@
-# Vidéo 6 — Le prix : 27 F/jour, moins qu'un sachet d'eau
+# Vidéo 6 — Devine le prix
 
-**Bénéfice** : gratuit pour tester, puis 10 000 F/an = **27 F/jour** pour tout débloquer.
-**Émotion** : la méfiance du prix → le soulagement → l'évidence.
+**Format viral** : jeu — suspense interactif, la réponse est le twist.
+**Bénéfice** : gratuit pour tester, puis 10 000 F/an = **27 F/jour**.
+**Émotion** : curiosité → choc (c'est petit) → joie (sachet d'eau) → réflexion.
+**Mots-clés (5 premières secondes)** : coûte, Lissafi, prix.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Allez, la question qu'on me pose toujours...
-Ça coûte combien ?
-Franchement, c'est gratuit pour tester. Zéro franc.
-Et quand tu veux tout... dix mille francs par an.
-Tu réalises ? Dix mille francs. Pour l'année.
-Ça fait... vingt-sept francs par jour. Vingt-sept.
-C'est moins qu'un sachet d'eau.
-Et ça, ça t'évite de perdre combien par mois ?... Beaucoup plus.
-Franchement, le cahier, il te coûte plus cher que Lissafi.
-Écris LISSAFI en commentaire, j'envoie le lien. Teste, c'est gratuit.
+Devine combien coûte Lissafi par an. Vas-y, devine.
+Dix mille francs. Pour l'année.
+Et gratuit pour tester. Zéro franc.
+Divisé par 365 ? Vingt-sept francs par jour.
+Vingt-sept. C'est moins qu'un sachet d'eau.
+Et ça, ça t'évite de perdre combien par mois ? Franchement.
+Le cahier te coûte plus cher que Lissafi.
+Écris LISSAFI en commentaire, j'envoie le lien.
 ```
 
-**Lecture émotionnelle** : commence complice et un peu théâtral (*« Allez, la question qu'on me pose toujours… »*). Le *« Ça coûte combien ? »* doit sonner comme la question du public. Monte en démonstration sur *« dix mille francs. Pour l'année »* (insiste, laisse le chiffre frapper). Puis le tournant : *« vingt-sept francs par jour »* — ralentis, fais compter le chiffre. Termine léger et malin : *« moins qu'un sachet d'eau »*.
+**~57 mots → ~29 s.**
 
-## ✍️ Texte à l'écran
+**Lecture émotionnelle** : commence complice et un peu taquin (*« Vas-y, devine »* — on joue ensemble). Annonce *« Dix mille francs »* avec un petit silence avant *« pour l'année »* (laisse le chiffre surprendre). *« Divisé par 365 ? »* montante, puis *« vingt-sept francs par jour »* en ralentissant pour que le calcul s'imprime. *« Vingt-sept. »* tout seul, sec — le poids du chiffre. *« C'est moins qu'un sachet d'eau »* avec un sourire dans la voix. La phrase sur le cahier doit faire réfléchir, posée. Finis direct.
 
-- Hook : **« ÇA COÛTE COMBIEN ? »**
-- Concept : **« GRATUIT POUR TESTER »**
-- Démo/prix : **« 0 F pour tester »** → **« 10 000 F / an »** → **« = 27 F / jour »**
-- Wow : **« MOINS QU'UN SACHET D'EAU »**
-- Contraste : **« Le cahier, il te coûte plus cher. »**
-- CTA : **« Écris LISSAFI en commentaire 👇 »**
+## ✍️ Texte à l'écran (bursts, synchronisés)
 
-## 🎬 Visuel (screen recording + cartes)
+- **0-2 s** : « DEVINE. VAS-Y. 👇 »
+- **3-5 s** : « 10 000 F » (gros) → « PAR AN »
+- **6-8 s** : « GRATUIT POUR TESTER » → « 0 F »
+- **9-12 s** : compteur animé : « 10 000 ÷ 365 = 27 F / JOUR »
+- **13-16 s** : « VINGT-SEPT » (géant) → « 🚰 < un sachet d'eau »
+- **17-21 s** : « Combien tu perds par mois ? … Beaucoup plus. »
+- **22-25 s** : « LE CAHIER TE COÛTE PLUS CHER »
+- **26-31 s** : « Écris LISSAFI en commentaire 👇 »
 
-1. Cartes prix animées : « 0 F » (gratuit) puis « 10 000 F/an ».
-2. **Animation du calcul** : 10 000 ÷ 365 → « 27 F/jour » (compteur qui tape les chiffres).
-3. Image/emoji d'un **sachet d'eau** à côté de « 27 F » (le choc).
-4. Le cahier qui « coûte plus cher » (calcul de l'argent perdu).
+## 🎬 Visuel (cartes animées + screen recording)
+
+1. **Frame 1** : gros point d'interrogation ou « DEVINE » qui claque — personne ne sait de quoi il s'agit, tout le monde reste.
+2. Carte prix : « 10 000 F / an » apparaît.
+3. **Animation du calcul** : un compteur tape « 10 000 ÷ 365 = 27 F ».
+4. L'image d'un **sachet d'eau** à côté de « 27 F » (le choc visuel).
+5. La carte « Le cahier te coûte plus cher ».
+6. Carte finale + logo.
 
 ## 🎨 Effets & sons
 
-- **Compteur animé** qui tape les chiffres sur le calcul 27 F/jour.
-- **Son « ding »** à chaque étape du prix.
-- Zoom dramatique sur « 27 F/jour » puis le sachet d'eau apparaît.
-- Textes en gros, rythmés par la voix.
+- **Compteur animé** qui tape les chiffres (satisfaction visuelle).
+- **Ding** à chaque étape du prix.
+- Zoom dramatique sur « 27 F » puis apparition du sachet d'eau avec un petit **pop**.
+- La carte « Le cahier » : passage au vert Lissafi.
 
 ## 📝 Légende
 
-> 27 F par jour. C'est moins qu'un sachet d'eau 🚰 Et ça t'évite de perdre des sous. Écris LISSAFI en commentaire 👇
-> Franchement, ça vaut le coup, non ? 😄
+> 27 F par jour. Moins qu'un sachet d'eau 🚰 Gratuit pour tester. Et ton cahier, lui, il te coûte combien ? 👇
+> #niger #niamey #commerce #lissafi

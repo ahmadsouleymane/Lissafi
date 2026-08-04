@@ -1,53 +1,56 @@
-# Vidéo 2 — Les crédits : fini les « je paie demain » oubliés
+# Vidéo 2 — La dette oubliée
 
+**Format viral** : confession — une histoire vécue avec un chiffre précis, boucle ouverte, résolue.
 **Bénéfice** : plus jamais un crédit oublié → plus jamais un franc perdu.
-**Émotion** : agacement (les impayés qui s'oublient) → soulagement → confiance.
-*(C'est ici que l'angle « perte d'argent » rentre naturellement.)*
+**Émotion** : confession (gêne) → peur (presque perdu) → soulagement.
+**Mots-clés (5 premières secondes)** : client, devait, cahier.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Tu connais le « je te paie demain » ?...
-Franchement, au début, ça me stressait. On note dans le cahier... et puis on oublie.
-Et le client, lui aussi, il oublie.
-Et toi, tu perds des sous. Sans même t'en rendre compte.
-Avec Lissafi, dès qu'on me doit, je note direct.
-Son nom. Ce qu'il doit. La date.
-Et quand il paie... je barre. C'est propre.
-Le soir, je vois d'un coup : qui m'a payé, qui me doit encore.
+Un client me devait 12 500 F. Je l'ai su trois semaines plus tard.
+Je l'avais noté sur le cahier. Le cahier, j'ai arrêté de l'ouvrir.
+Résultat ? J'ai failli perdre 12 500 F.
+Depuis, tout est sur Lissafi. Le nom. Le montant. La date.
+Quand il paie, je barre. Le soir, je vois tout d'un coup.
 Plus jamais un franc oublié.
-C'est Lissafi. Gratuit pour tester.
-Écris LISSAFI en commentaire, j'envoie le lien.
+Toi, on te doit combien en ce moment ? Dis-le en commentaire.
 ```
 
-**Lecture émotionnelle** : commence un peu résigné, presque fatigué (*« Franchement, au début, ça me stressait »*) — ça crée de l'empathie. Puis la voix se redresse sur *« Avec Lissafi, dès qu'on me doit, je note direct »*. Le *« qui m'a payé, qui me doit encore »* doit sonner soulagé. Termine ferme et sûr de toi.
+**~62 mots → ~30 s.**
 
-## ✍️ Texte à l'écran
+**Lecture émotionnelle** : commence bas, presque gêné — c'est un aveu, pas une pub (*« Un client me devait 12 500 F… »*). Marque un silence après *« trois semaines plus tard »* (laisse le chiffre frapper). *« Résultat ? »* avec une pointe d'amertume. La voix se redresse et se réchauffe sur *« Depuis, tout est sur Lissafi »*. Le *« quand il paie, je barre »* sonne satisfait, propre. *« Plus jamais un franc oublié »* ferme et rassuré. La question finale invite, sincère.
 
-- Hook : **« IL TE DOIT DEPUIS QUAND ? »**
-- Concept : **« FINI LES "JE TE PAIE DEMAIN" OUBLIÉS »**
-- Démo : **« Note : nom + montant »** / **« Payé → barré »** / **« Le soir, tout est clair »**
-- Wow : **« PLUS JAMAIS UN FRANC OUBLIÉ »**
-- Contraste : **« Le cahier, c'est fini. »**
-- CTA : **« Écris LISSAFI en commentaire 👇 »**
+> 💡 *12 500 F est un exemple. Remplace-le par un montant réel que tu as déjà failli perdre — un vrai chiffre rend la confession vraie.*
+
+## ✍️ Texte à l'écran (bursts, synchronisés)
+
+- **0-2 s** : « 12 500 F » (gros) → « OUBLIÉS 3 SEMAINES »
+- **3-6 s** : « LE CAHIER » → « J'AI ARRÊTÉ DE L'OUVRIR »
+- **7-10 s** : « RÉSULTAT ? » → « J'AI FAILLI LES PERDRE »
+- **11-16 s** : « Sur Lissafi : NOM + MONTANT + DATE »
+- **17-21 s** : « Payé → barré ✔ » / « Le soir, tout est clair »
+- **22-25 s** : « PLUS JAMAIS UN FRANC OUBLIÉ »
+- **26-31 s** : « On te doit combien ? 👇 » / « Écris LISSAFI en commentaire 👇 »
 
 ## 🎬 Visuel (screen recording)
 
-1. Écran « Crédits clients » : la liste de ceux qui doivent (des noms, des montants).
-2. On ajoute une dette : nom du client + montant.
-3. Un client vient payer : on enregistre le remboursement → la dette tombe à zéro → barré.
-4. Le soir : la vue récap qui montre les remboursés et les restants.
+1. **Frame 1** : gros texte « 12 500 F » qui claque (pas d'intro, direct).
+2. L'écran Crédits : une vraie dette à un nom, montant affiché.
+3. On enregistre le paiement → la dette tombe à zéro → **coche animée**.
+4. Vue du soir : la liste où tout est clair.
+5. Carte finale.
 
 ## 🎨 Effets & sons
 
-- Zoom sur les montants quand une dette est notée.
-- Son **caisse / cha-ching** sur le remboursement.
-- Une **coche animée** quand la dette est barrée.
-- Transitions en coupe franche (pas de fondu).
+- Son **coche** / **ding** quand la dette est barrée.
+- Zoom dramatique sur le montant 12 500 F.
+- **Silence d'une seconde** après *« trois semaines plus tard »* (le poids du chiffre).
+- Coupure franche entre les beats.
 
 ## 📝 Légende
 
-> Le « je te paie demain » oublié, c'est de l'argent perdu 💸 Avec Lissafi, plus jamais. Écris LISSAFI en commentaire 👇
-> Et toi, on te doit combien en ce moment ? 😅
+> 12 500 F. Trois semaines. Et personne n'avait remarqué 💸 Depuis, tout est sur Lissafi. On te doit combien, toi ? 👇
+> #niger #niamey #commerce #lissafi

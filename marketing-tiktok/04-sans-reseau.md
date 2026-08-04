@@ -1,51 +1,55 @@
-# Vidéo 4 — Hors-ligne : ça marche même sans réseau
+# Vidéo 4 — Le réseau coupe
 
-**Bénéfice** : la caisse continue même quand le réseau coupe.
-**Émotion** : la panique du réseau coupé → le soulagement → la fierté.
+**Format viral** : drame — tension en plein encaissement, résolue par la révélation.
+**Bénéfice** : la caisse continue même sans réseau.
+**Émotion** : panique (le réseau qui meurt) → soulagement → fierté taquine.
+**Mots-clés (5 premières secondes)** : encaissement, réseau, coupe.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Au marché... on connaît tous le même problème.
-Le réseau. Ça coupe. Au mauvais moment. Toujours.
-Et toi, t'as trois clients qui attendent.
-Moi, j'ai testé. J'ai coupé le Wi-Fi, j'ai coupé les données.
-Et Lissafi... continue. Regarde. Scan, total, monnaie. Tout marche.
-Parce que ta caisse, elle a pas besoin d'internet. Elle a besoin de toi.
-Elle enregistre d'abord. Et dès que le réseau revient... elle se met à jour toute seule.
-Alors pendant que le réseau coupe encore au marché... moi, je vends.
-C'est Lissafi. Gratuit pour tester.
-Écris LISSAFI en commentaire, j'envoie le lien.
+En plein encaissement... le réseau coupe.
+Trois clients attendent. Le réseau revient pas. C'est là que tout le monde flippe.
+Sauf si ta caisse s'appelle Lissafi.
+On coupe tout. Mode avion. Et la vente continue. Scan. Total. Monnaie.
+Une caisse, ça a pas besoin d'internet. Ça a besoin de toi.
+Le réseau coupe au marché ? Moi, je vends.
+T'as déjà perdu une vente comme ça ? Commente.
 ```
 
-**Lecture émotionnelle** : le début doit faire ressentir l'agacement familier (*« Le réseau. Ça coupe. Au mauvais moment. Toujours. »* — phrases sèches, presque lassé). Puis de la tension sur *« t'as trois clients qui attendent »*. La voix se relâche, rassurée, sur *« Et Lissafi… continue »*. Termine avec une petite fierté taquine : *« moi, je vends. »*
+**~66 mots → ~30 s.**
 
-## ✍️ Texte à l'écran
+**Lecture émotionnelle** : ouvre *« En plein encaissement… »* en pleine énergie, puis casse la voix sur *« le réseau coupe »* — un mot après l'autre, sec. Monte la tension : *« Trois clients attendent. Le réseau revient pas. »* (phrases qui s'accélèrent) et lâche *« C'est là que tout le monde flippe »* comme une évidence. Le virage : *« Sauf si ta caisse s'appelle Lissafi »* — voix assurée, presque maligne. La démo se dit avec calme et soulagement (*« Et la vente continue. »*). Termine avec la petite fierté taquine : *« Moi, je vends. »* et la question sincère.
 
-- Hook : **« LE RÉSEAU A COUPÉ. »**
-- Concept : **« ET SI LA CAISSE MARCHAIT QUAND MÊME ? »**
-- Démo : **« Wi-Fi coupé »** / **« Données coupées »** → **« Ça marche. »**
-- Wow : **« SANS RÉSEAU. LA CAISSE CONTINUE. »**
-- Contraste : **« Le réseau coupe. Lissafi, non. »**
-- CTA : **« Écris LISSAFI en commentaire 👇 »**
+## ✍️ Texte à l'écran (bursts, synchronisés)
+
+- **0-2 s** : « LE RÉSEAU COUPE » *(bruit de coupure)*
+- **3-6 s** : « 3 CLIENTS ATTENDENT » → « PERSONNE FLIPPE ? »
+- **7-10 s** : « SAUF SI TA CAISSE S'APPELLE LISSAFI »
+- **11-16 s** : « 📴 Mode avion » → « LA VENTE CONTINUE » / « Scan. Total. Monnaie. »
+- **17-21 s** : « UNE CAISSE, ÇA A BESOIN DE TOI »
+- **22-25 s** : « LE RÉSEAU COUPE ? MOI, JE VENDS. »
+- **26-31 s** : « T'as déjà perdu une vente ? 👇 » / « Écris LISSAFI en commentaire 👇 »
 
 ## 🎬 Visuel (screen recording)
 
-1. On montre l'écran avec le réseau actif.
-2. **Moment choc** : on active le mode avion *devant la caméra* (l'icône avion s'affiche en haut).
-3. On continue la vente : scan, total, monnaie. Tout fonctionne.
-4. On réactive le réseau : la synchro se fait toute seule (indicateur de sync).
+1. **Frame 1** : l'icône réseau qui bascule de pleine à vide, en gros (📶 → 📴) avec un **glitch visuel** — pattern interrupt immédiat.
+2. On est en plein panier, 3 articles, prêt à encaisser.
+3. **Moment choc** : on active le mode avion *devant la caméra* (l'icône avion s'affiche).
+4. On encaisse quand même : total, monnaie. Tout marche.
+5. On réactive le réseau : la synchro se fait toute seule (indicateur).
+6. Carte finale.
 
 ## 🎨 Effets & sons
 
-- **Icône avion** qui s'affiche en gros à l'écran + petit **vibreur**.
-- **Flash blanc** quand le mode avion s'active, puis l'écran reste vivant → contraste fort.
-- Son **caisse** qui continue pendant que l'icône avion est visible.
-- Texte « MÊME SANS RÉSEAU » en très gros, avec un léger shake.
+- **Bruit de coupure / distorsion** quand le réseau meurt (moment marquant).
+- **Flash + shake** sur « LE RÉSEAU COUPE ».
+- L'icône avion qui s'affiche en gros avec un **vibreur**.
+- Son **caisse** qui continue pendant que l'icône avion est visible (le contraste fait le choc).
 
 ## 📝 Légende
 
-> Le réseau qui coupe au mauvais moment ? Pas de panique. Lissafi continue 📴 Écris LISSAFI en commentaire 👇
-> Ça t'est déjà arrivé de perdre une vente à cause du réseau ? 👇
+> Le réseau qui coupe au mauvais moment ? C'est là que tout le monde flippe 📴 Sauf avec Lissafi. T'as déjà vécu ça ? 👇
+> #niger #niamey #commerce #lissafi

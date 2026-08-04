@@ -1,50 +1,58 @@
-# Vidéo 3 — Le stock : tu sais ce qui te reste
+# Vidéo 3 — « Tu as le sucre ? »
 
+**Format viral** : POV / scène relatable — la panique du vendeur, vécue de l'intérieur.
 **Bénéfice** : tu connais ton stock à l'unité près, avant la rupture.
-**Émotion** : l'angoisse de la rupture (client déçu) → sérénité.
+**Émotion** : complicité → panique → soulagement.
+**Mots-clés (5 premières secondes)** : client, sucre, cahier.
 
 ---
 
 ## 🎙️ Texte VO (à coller dans ElevenLabs)
 
 ```
-Le pire moment pour un commerçant ?...
-Quand le client te demande un truc... et que toi, tu sais même plus si tu l'as encore.
-Moi, avant, je découvrais ça au dernier moment.
-Avec Lissafi, je vois mon stock direct.
-Ce qui reste. Ce qui est presque fini. Ce qu'il faut recommander.
+« Tu as le sucre ? »
+« On l'a », j'ai répondu. Et là... je savais même plus si je l'avais.
+J'ouvre mon cahier. Rien.
+Le client attend. Je fouille. Il part.
+Depuis, mon stock est sur Lissafi.
+Ce qui reste. Ce qui manque. Ce qu'il faut recommander.
 L'alerte sonne avant la rupture. Pas après.
-Plus jamais de client déçu parce que j'avais pas son produit.
-Et mon argent, il dort pas dans la marchandise qui manque.
-C'est Lissafi. Gratuit pour tester.
-Écris LISSAFI en commentaire, j'envoie le lien.
+Ton pire moment de vente ? Raconte-le en commentaire.
 ```
 
-**Lecture émotionnelle** : commence avec une pointe de gêne (*« le pire moment… »*), comme si tu revivais le mauvais souvenir. La voix s'éclaircit et s'apaise quand tu montres la solution (*« je vois mon stock direct »*). Finis posé, confiant.
+**~63 mots → ~30 s.**
 
-## ✍️ Texte à l'écran
+**Lecture émotionnelle** : joue les deux rôles. *« Tu as le sucre ? »* = voix du client, plus aiguë, rapide. *« On l'a »* = toi, confiant d'abord… puis le doute : *« Et là… je savais même plus si je l'avais »* (ralentis, hésite). Les phrases courtes *« J'ouvre mon cahier. Rien. Le client attend. Je fouille. »* doivent claquer, un rythme qui s'accélère. Puis *« Il part. »* — laisse le silence, c'est le moment le plus fort. La voix se réchauffe et s'apaise sur la solution. Finis posé.
 
-- Hook : **« T'AS PLUS SON PRODUIT ? »**
-- Concept : **« TON STOCK, À L'UNITÉ PRÈS »**
-- Démo : **« Stock : 3 restants ⚠️ »** / **« Alerte avant la rupture »** / **« À recommander »**
-- Wow : **« PLUS JAMAIS DE CLIENT DÉÇU »**
-- Contraste : **« Le cahier, c'est fini. »**
-- CTA : **« Écris LISSAFI en commentaire 👇 »**
+> 💡 **Option 2 voix (recommandée)** : génère *« Tu as le sucre ? »* avec une 2ᵉ voix dans ElevenLabs (plus aiguë, client pressé), et *« On l'a »* avec ta voix. Monte les deux répliques au début. La scène devient vivante.
+
+## ✍️ Texte à l'écran (bursts, synchronisés)
+
+- **0-2 s** : « TU AS LE SUCRE ? » *(bulle de dialogue)*
+- **3-5 s** : « ON L'A » → « …je crois ? »
+- **6-10 s** : « LE CAHIER. RIEN. » / « LE CLIENT ATTEND. » / « IL PART. »
+- **11-15 s** : « Mon stock : sur Lissafi »
+- **16-20 s** : « Stock : 3 ⚠️ » / « À recommander »
+- **21-24 s** : « L'ALERTE SONNE AVANT LA RUPTURE »
+- **25-31 s** : « Ton pire moment ? 👇 » / « Écris LISSAFI en commentaire 👇 »
 
 ## 🎬 Visuel (screen recording)
 
-1. Écran catalogue : les produits avec leur stock.
-2. Un produit passe sous le seuil → l'alerte s'affiche (badge rouge).
-3. On voit la liste « à recommander ».
-4. Réception d'une commande : le stock remonte, l'alerte disparaît.
+1. **Frame 1** : une bulle de dialogue « TU AS LE SUCRE ? » (texte style WhatsApp) — instantanément relatable.
+2. L'écran catalogue : un produit avec son stock.
+3. Un produit passe sous le seuil → **alerte rouge**.
+4. La liste « à recommander ».
+5. Réception de la commande → le stock remonte, l'alerte disparaît.
+6. Carte finale.
 
 ## 🎨 Effets & sons
 
-- **Badge rouge + son d'alerte** sur la rupture de stock.
+- **Bulle de dialogue** style chat pour les répliques (pattern interrupt).
+- **Badge rouge + son d'alerte** sur la rupture.
 - Zoom sur le chiffre du stock qui change.
-- Transition marquée sur « L'alerte sonne avant la rupture ».
+- Le *« Il part. »* : écran qui se fige un instant ou un **bruit sourd** léger.
 
 ## 📝 Légende
 
-> La pire chose ? Dire « on en a plus » devant le client 😅 Avec Lissafi, tu sais toujours ce qui te reste. Écris LISSAFI en commentaire 👇
-> T'as déjà perdu une vente comme ça ? 👇
+> « On l'a » … et on l'avait plus 😅 Ça t'est déjà arrivé ? Raconte ton pire moment de vente 👇
+> #niger #niamey #commerce #lissafi
