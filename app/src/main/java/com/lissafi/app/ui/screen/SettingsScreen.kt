@@ -57,8 +57,10 @@ fun SettingsScreen(
     val syncLabel = when (syncStatus) {
         SyncStatus.SYNCING -> "Synchronisation…"
         SyncStatus.SUCCESS -> "À jour"
-        SyncStatus.ERROR -> "Erreur de synchro"
+        SyncStatus.ERROR -> "Erreur réseau"
         SyncStatus.IDLE -> "En attente"
+        SyncStatus.NOT_CONFIGURED -> "Supabase non configuré"
+        SyncStatus.NO_SESSION -> "Connecte-toi pour synchroniser"
     }
 
     Column(
@@ -378,7 +380,11 @@ fun SettingsScreen(
                         icon = LissafiIcons.Sync,
                         label = "Synchronisation",
                         value = syncLabel,
-                        valueColor = if (syncStatus == SyncStatus.ERROR) Secondary else OnBackground
+                        valueColor = when (syncStatus) {
+                            SyncStatus.ERROR, SyncStatus.NOT_CONFIGURED -> Secondary
+                            SyncStatus.NO_SESSION -> TextSecondary
+                            else -> OnBackground
+                        }
                     )
                     InfoRow(
                         icon = LissafiIcons.Version,

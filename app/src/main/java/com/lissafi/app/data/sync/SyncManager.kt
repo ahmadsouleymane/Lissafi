@@ -25,7 +25,9 @@ enum class SyncStatus {
     IDLE,
     SYNCING,
     SUCCESS,
-    ERROR
+    ERROR,
+    NOT_CONFIGURED,
+    NO_SESSION
 }
 
 /**
@@ -107,10 +109,12 @@ class SyncManager(
     suspend fun syncAll() {
         if (!api.isConfigured) {
             Log.d(TAG, "Supabase non configuré, synchro ignorée")
+            _status.value = SyncStatus.NOT_CONFIGURED
             return
         }
         if (!SupabaseManager.hasValidSession(context)) {
             Log.w(TAG, "Session invalide (user_id manquant ou non-UUID) — synchro ignorée")
+            _status.value = SyncStatus.NO_SESSION
             return
         }
 
