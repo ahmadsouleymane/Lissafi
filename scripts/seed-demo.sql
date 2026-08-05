@@ -37,9 +37,9 @@ BEGIN
   SELECT id INTO uid FROM auth.users WHERE email = 'demo@lissafi.app';
   IF uid IS NULL THEN
     INSERT INTO auth.users
-      (email, encrypted_password, email_confirmed_at, confirmed_at, aud, role)
+      (email, encrypted_password, email_confirmed_at, aud, role)
     VALUES
-      ('demo@lissafi.app', crypt('demo123456', gen_salt('bf')), now(), now(), 'authenticated', 'authenticated')
+      ('demo@lissafi.app', crypt('demo123456', gen_salt('bf')), now(), 'authenticated', 'authenticated')
     RETURNING id INTO uid;
   END IF;
 
@@ -47,7 +47,6 @@ BEGIN
   UPDATE auth.users
      SET encrypted_password = crypt('demo123456', gen_salt('bf')),
          email_confirmed_at = COALESCE(email_confirmed_at, now()),
-         confirmed_at       = COALESCE(confirmed_at, now()),
          aud                = 'authenticated',
          role               = 'authenticated'
    WHERE email = 'demo@lissafi.app';
