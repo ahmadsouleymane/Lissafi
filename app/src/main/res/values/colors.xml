@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="lissafi_green">#2E8B57</color>
+    <color name="lissafi_primary">#1A7F4F</color>
     <color name="lissafi_orange">#F4A460</color>
     <color name="lissafi_cream">#FAF9F5</color>
     <color name="lissafi_green_dark">#226B42</color>
