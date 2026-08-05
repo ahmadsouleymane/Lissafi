@@ -151,7 +151,7 @@ fun CaisseScreen(
             // ── EN-TÊTE — minimal transparent, logo à gauche du titre ──
             LissafiHeader(
                 title = "LISSAFI",
-                subtitle = "$todayString · ${if (state.total > 0) "En cours" else "Prêt"}",
+                subtitle = todayString,
                 titleLogo = {
                     // Logo — cercle Primary avec icône boutique
                     Box(
@@ -466,23 +466,7 @@ fun CaisseScreen(
             }
         }
 
-        // ── FAB SCANNER ──
-        FloatingActionButton(
-            onClick = { showScannerScreen = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 80.dp)
-                .size(56.dp),
-            shape = CircleShape,
-            containerColor = Primary,
-            contentColor = OnPrimary
-        ) {
-            Icon(
-                imageVector = LissafiIcons.Scanner,
-                contentDescription = "Scanner",
-                modifier = Modifier.size(24.dp)
-            )
-        }
+        // ── SCANNER ÉCRAN ──
     }
 
     // ── BOTTOM SHEETS ──
