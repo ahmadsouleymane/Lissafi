@@ -409,22 +409,37 @@ git commit -m "feat(ui): nouvelle palette et typographie Inter"
 ### Task 2: Dépendances Lucide + Vico
 
 **Files:**
+- Modify: `gradle/libs.versions.toml`
 - Modify: `app/build.gradle.kts`
 
 **Interfaces:**
-- Produces: `lucide-compose` disponible pour les icônes dans tous les écrans
-- Produces: `vico` disponible pour les graphiques dans l'écran Activité
+- Produces: `icons-lucide-android` disponible — icônes via `composables.icons.Lucide.X` (ImageVector)
+- Produces: `vico:compose-m3` disponible — graphiques dans l'écran Activité
 
-- [ ] **Step 1: Ajouter les dépendances dans build.gradle.kts**
+- [ ] **Step 1: Ajouter les dépendances dans le version catalog**
 
-Lire `app/build.gradle.kts` pour trouver le bloc `dependencies`, puis ajouter :
+Le projet utilise `gradle/libs.versions.toml`. Ajouter dans `[versions]` :
+
+```toml
+lucideIcons = "1.1.0"
+vico = "2.1.3"
+```
+
+Dans `[libraries]` :
+
+```toml
+composables-lucide = { group = "com.composables", name = "icons-lucide-android", version.ref = "lucideIcons" }
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
+```
+
+Puis dans le bloc `dependencies` de `app/build.gradle.kts` :
 
 ```kotlin
-// Icônes Lucide (style Vercel/Linear)
-implementation("io.github.nicholasgasior:lucide-compose:1.0.0")
+// Icônes Lucide (style Vercel/Linear) — ImageVectors via composables.icons.Lucide
+implementation(libs.composables.lucide)
 
 // Graphiques Vico
-implementation("com.patrykandpatrick.vico:compose-m3:2.1.0")
+implementation(libs.vico.compose.m3)
 ```
 
 - [ ] **Step 2: Build de vérification (téléchargement des dépendances)**
@@ -492,6 +507,8 @@ import androidx.compose.ui.unit.sp
 import com.lissafi.app.data.sync.SyncStatus
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.theme.*
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
 
 // ============================================================
 // ESPACEMENT — Grille 4dp
@@ -510,56 +527,60 @@ object LissafiSpacing {
 
 // ============================================================
 // ICÔNES — Mapping Lucide
+// API : com.composables.icons.lucide.Lucide — chaque icône est une
+// propriété d'extension `val Lucide.Store: ImageVector`.
+// Import requis : `import com.composables.icons.lucide.Lucide`
+// + `import com.composables.icons.lucide.*` (ou par icône).
 // ============================================================
 object LissafiIcons {
     // Navigation
-    val Caisse     = lucide.icons.LucideIcons.Store
-    val Produits   = lucide.icons.LucideIcons.Package
-    val Clients    = lucide.icons.LucideIcons.Users
-    val Activite   = lucide.icons.LucideIcons.BarChart3
-    val Reglages   = lucide.icons.LucideIcons.Settings2
-    val Retour     = lucide.icons.LucideIcons.ArrowLeft
+    val Caisse     = Lucide.Store
+    val Produits   = Lucide.Package
+    val Clients    = Lucide.Users
+    val Activite   = Lucide.ChartColumnBig   // ex BarChart3 (renommée)
+    val Reglages   = Lucide.Settings2
+    val Retour     = Lucide.ArrowLeft
 
     // Actions
-    val Scanner    = lucide.icons.LucideIcons.Scan
-    val Ajouter    = lucide.icons.LucideIcons.Plus
-    val Rechercher = lucide.icons.LucideIcons.Search
-    val Fermer     = lucide.icons.LucideIcons.X
-    val Valider    = lucide.icons.LucideIcons.Check
-    val Modifier   = lucide.icons.LucideIcons.Pencil
-    val Supprimer  = lucide.icons.LucideIcons.Trash2
-    val Partager   = lucide.icons.LucideIcons.Share2
-    val Imprimer   = lucide.icons.LucideIcons.Printer
+    val Scanner    = Lucide.Scan
+    val Ajouter    = Lucide.Plus
+    val Rechercher = Lucide.Search
+    val Fermer     = Lucide.X
+    val Valider    = Lucide.Check
+    val Modifier   = Lucide.Pencil
+    val Supprimer  = Lucide.Trash2
+    val Partager   = Lucide.Share2
+    val Imprimer   = Lucide.Printer
 
     // Finance
-    val Encaisser  = lucide.icons.LucideIcons.Banknote
-    val Credit     = lucide.icons.LucideIcons.CreditCard
-    val Rembourser = lucide.icons.LucideIcons.Undo2
-    val Marge      = lucide.icons.LucideIcons.DollarSign
-    val Panier     = lucide.icons.LucideIcons.ShoppingCart
+    val Encaisser  = Lucide.Banknote
+    val Credit     = Lucide.CreditCard
+    val Rembourser = Lucide.Undo2
+    val Marge      = Lucide.DollarSign
+    val Panier     = Lucide.ShoppingCart
 
     // Entités
-    val Produit    = lucide.icons.LucideIcons.Package
-    val Client     = lucide.icons.LucideIcons.User
-    val Boutique   = lucide.icons.LucideIcons.Building2
-    val Telephone  = lucide.icons.LucideIcons.Phone
-    val Email      = lucide.icons.LucideIcons.Mail
-    val Motdepasse = lucide.icons.LucideIcons.Lock
-    val Logout     = lucide.icons.LucideIcons.LogOut
+    val Produit    = Lucide.Package
+    val Client     = Lucide.User
+    val Boutique   = Lucide.Building2
+    val Telephone  = Lucide.Phone
+    val Email      = Lucide.Mail
+    val Motdepasse = Lucide.Lock
+    val Logout     = Lucide.LogOut
 
     // Statut
-    val Sync       = lucide.icons.LucideIcons.Cloud
-    val SyncOk     = lucide.icons.LucideIcons.CloudCheck
-    val SyncErr    = lucide.icons.LucideIcons.CloudAlert
-    val Alerte     = lucide.icons.LucideIcons.AlertTriangle
-    val Succes     = lucide.icons.LucideIcons.CheckCircle2
-    val Erreur     = lucide.icons.LucideIcons.AlertCircle
-    val Tendance   = lucide.icons.LucideIcons.TrendingUp
-    val Baisse     = lucide.icons.LucideIcons.TrendingDown
-    val Recents    = lucide.icons.LucideIcons.Clock
-    val Info       = lucide.icons.LucideIcons.Info
-    val Version    = lucide.icons.LucideIcons.FileText
-    val Conditions = lucide.icons.LucideIcons.ScrollText
+    val Sync       = Lucide.Cloud
+    val SyncOk     = Lucide.CircleCheck     // ex CloudCheck
+    val SyncErr    = Lucide.CloudOff        // ex CloudAlert
+    val Alerte     = Lucide.TriangleAlert   // ex AlertTriangle
+    val Succes     = Lucide.CircleCheck     // ex CheckCircle2
+    val Erreur     = Lucide.CircleAlert     // ex AlertCircle
+    val Tendance   = Lucide.TrendingUp
+    val Baisse     = Lucide.TrendingDown
+    val Recents    = Lucide.Clock
+    val Info       = Lucide.Info
+    val Version    = Lucide.FileText
+    val Conditions = Lucide.ScrollText
 }
 
 // ============================================================

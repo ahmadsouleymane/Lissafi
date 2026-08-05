@@ -61,6 +61,12 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.activity.compose)
+
+    // Icônes Lucide (style Vercel/Linear) — ImageVectors via composables.icons.Lucide
+    implementation(libs.composables.lucide)
+
+    // Graphiques Vico (écran Activité)
+    implementation(libs.vico.compose.m3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
