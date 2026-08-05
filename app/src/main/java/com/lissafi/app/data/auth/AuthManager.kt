@@ -50,10 +50,18 @@ class AuthManager(private val context: Context) {
                 when {
                     response.status.value in 200..299 -> {
                         val auth = response.body<SignUpResponse>()
-                        if (auth.access_token.isNotEmpty()) {
+                        // Session retournée uniquement si la confirmation email est
+                        // désactivée côté Supabase (Auto Confirm) → connexion immédiate.
+                        val loggedIn = auth.access_token.isNotEmpty()
+                        if (loggedIn) {
                             SupabaseManager.saveSession(context, auth.access_token, auth.refresh_token, auth.id, auth.email)
                         }
-                        AuthResult.Success("Inscription réussie ! Vérifie tes emails.")
+                        val message = if (loggedIn) {
+                            "Compte créé, bienvenue !"
+                        } else {
+                            "Compte créé ! Vérifie tes emails puis connecte-toi."
+                        }
+                        AuthResult.Success(message)
                     }
                     response.status.value == 429 -> AuthResult.Error("Trop de tentatives. Réessaie plus tard.")
                     else -> AuthResult.Error("Erreur d'inscription. Vérifie tes informations.")
