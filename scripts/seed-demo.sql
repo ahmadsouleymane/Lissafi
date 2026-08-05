@@ -37,9 +37,9 @@ BEGIN
   SELECT id INTO uid FROM auth.users WHERE email = 'demo@lissafi.app';
   IF uid IS NULL THEN
     INSERT INTO auth.users
-      (email, encrypted_password, email_confirmed_at, aud, role)
+      (id, email, encrypted_password, email_confirmed_at, aud, role)
     VALUES
-      ('demo@lissafi.app', crypt('demo123456', gen_salt('bf')), now(), 'authenticated', 'authenticated')
+      (gen_random_uuid(), 'demo@lissafi.app', crypt('demo123456', gen_salt('bf')), now(), 'authenticated', 'authenticated')
     RETURNING id INTO uid;
   END IF;
 
