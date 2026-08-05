@@ -153,13 +153,13 @@ fun CaisseScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             // ── EN-TÊTE — minimal transparent, logo à gauche du titre ──
             LissafiHeader(
-                title = "LISSAFI",
+                title = "",
                 subtitle = todayString,
                 titleLogo = {
                     Image(
                         painter = painterResource(id = R.drawable.logo_header),
                         contentDescription = "Lissafi",
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(26.dp)
                     )
                     Spacer(Modifier.width(10.dp))
                 },
