@@ -533,15 +533,25 @@ private fun RepayDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Avertissement si le montant dépasse la dette
+                if (amt > currentDebt) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Le montant reçu dépasse la dette de ${FormatUtils.formatFCFA(currentDebt)}. Le remboursement sera plafonné.",
+                        fontSize = 12.sp,
+                        color = Error,
+                        lineHeight = 16.sp
+                    )
+                }
             }
         },
         confirmButton = {
             PrimaryActionButton(
                 text = "ENREGISTRER LE PAIEMENT",
                 onClick = {
-                    if (amt > 0) onSave(amt)
+                    if (amt > 0) onSave(if (amt > currentDebt) currentDebt else amt)
                 },
-                enabled = amt > 0
+                enabled = amt > 0 && amt <= currentDebt
             )
         },
         dismissButton = {
