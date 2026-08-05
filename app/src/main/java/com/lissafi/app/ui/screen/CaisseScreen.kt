@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,9 +34,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lissafi.app.LissafiApp
+import com.lissafi.app.R
 import com.lissafi.app.data.entity.Client
 import com.lissafi.app.data.entity.Product
 import com.lissafi.app.data.sync.SyncStatus
@@ -153,21 +156,11 @@ fun CaisseScreen(
                 title = "LISSAFI",
                 subtitle = todayString,
                 titleLogo = {
-                    // Logo — cercle Primary avec icône boutique
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(Primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = LissafiIcons.Boutique,
-                            contentDescription = null,
-                            tint = OnPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_header),
+                        contentDescription = "Lissafi",
+                        modifier = Modifier.height(32.dp)
+                    )
                     Spacer(Modifier.width(10.dp))
                 },
                 titleFontSize = 18.sp,

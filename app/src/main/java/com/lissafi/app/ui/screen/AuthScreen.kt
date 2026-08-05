@@ -1,6 +1,7 @@
 package com.lissafi.app.ui.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -49,6 +51,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lissafi.app.R
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.SegmentedControl
@@ -83,34 +86,13 @@ fun AuthScreen(viewModel: AuthViewModel) {
         ) {
             // ── BRANDING ──
             Spacer(Modifier.height(24.dp))
-            Box(
+            // Logo Lissafi — symbole + nom + tagline
+            Image(
+                painter = painterResource(id = R.drawable.logo_auth),
+                contentDescription = "Lissafi",
                 modifier = Modifier
-                    .size(88.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = LissafiIcons.Boutique,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(44.dp)
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = "LISSAFI",
-                color = Primary,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 4.sp
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "Ta caisse, simplement",
-                color = TextSecondary,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
             )
 
             Spacer(Modifier.height(28.dp))
