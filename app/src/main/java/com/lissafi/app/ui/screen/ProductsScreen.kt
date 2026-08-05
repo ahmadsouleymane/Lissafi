@@ -29,6 +29,7 @@ import com.lissafi.app.ui.components.EmptyState
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
+import com.lissafi.app.ui.components.PremiumLimitDialog
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.StatusBadge
@@ -36,7 +37,6 @@ import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Error
 import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
-import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
 import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
@@ -62,6 +62,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
     var filter by remember { mutableStateOf(ProductFilter.TOUS) }
 
@@ -79,10 +80,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
     ) {
         LissafiHeader(
             title = "Produits",
-            subtitle = if (alertCount > 0)
-                "${state.products.size} produits · $alertCount alertes stock"
-            else
-                "${state.products.size} produits",
+            subtitle = null,
             onBack = onBack
         )
 
@@ -134,6 +132,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
                 onAction = {
                     scope.launch {
                         if (viewModel.canAddProduct()) showAddDialog = true
+                        else showPremiumDialog = true
                     }
                 }
             )
@@ -152,15 +151,6 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
                         }
                     )
                 }
-                if (!state.isPremium) {
-                    item {
-                        PremiumLimitCard(
-                            current = state.products.size,
-                            limit = 10,
-                            onClickUpgrade = {}
-                        )
-                    }
-                }
                 item {
                     Spacer(Modifier.height(8.dp))
                     PrimaryActionButton(
@@ -169,11 +159,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
                         onClick = {
                             scope.launch {
                                 if (viewModel.canAddProduct()) showAddDialog = true
-                                else Toast.makeText(
-                                    context,
-                                    "10 produits max en version gratuite. Passe Premium !",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                else showPremiumDialog = true
                             }
                         }
                     )
@@ -192,6 +178,18 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
                 viewModel.addProduct(it)
                 showAddDialog = false
             }
+        )
+    }
+
+    if (showPremiumDialog) {
+        // Limite atteinte → pop-up premium (remplace le Toast)
+        PremiumLimitDialog(
+            message = "Passe à Lissafi Premium pour ajouter autant de produits que tu veux. Sans limite.",
+            onUpgrade = {
+                // TODO : brancher la navigation vers la page Premium / Admin
+                showPremiumDialog = false
+            },
+            onDismiss = { showPremiumDialog = false }
         )
     }
 
@@ -321,66 +319,6 @@ private fun ProductCard(
             destructive = true,
             iconTint = Error
         )
-    }
-}
-
-// ============================================================
-// CARTE LIMITE PREMIUM
-// ============================================================
-@Composable
-private fun PremiumLimitCard(
-    current: Int,
-    limit: Int,
-    onClickUpgrade: () -> Unit
-) {
-    LissafiCard(
-        modifier = Modifier.padding(vertical = 8.dp),
-        borderColor = Secondary.copy(alpha = 0.3f)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Secondary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = LissafiIcons.Alerte,
-                    contentDescription = null,
-                    tint = Secondary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "$current / $limit produits en gratuit",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = Secondary
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "Passe Premium pour des produits illimités.",
-                    fontSize = 12.sp,
-                    color = TextSecondary
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Button(
-                onClick = onClickUpgrade,
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Secondary)
-            ) {
-                Text("Premium", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
     }
 }
 

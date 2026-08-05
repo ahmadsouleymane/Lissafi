@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lissafi.app.data.sync.SyncStatus
@@ -115,6 +116,7 @@ fun LissafiCard(
     cornerRadius: Int = 16,
     onClick: (() -> Unit)? = null,
     borderColor: Color = Border,
+    containerColor: Color = Surface,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius.dp)
@@ -123,7 +125,7 @@ fun LissafiCard(
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = Surface),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, borderColor)
     ) { content() }
@@ -139,12 +141,16 @@ fun LissafiHeader(
     subtitle: String? = null,
     leadingIcon: ImageVector? = null,
     onBack: (() -> Unit)? = null,
-    actions: @Composable RowScope.() -> Unit = {}
+    actions: @Composable RowScope.() -> Unit = {},
+    titleLogo: (@Composable () -> Unit)? = null,
+    titleFontSize: TextUnit = 20.sp,
+    titleFontWeight: FontWeight = FontWeight.SemiBold
 ) {
     TopAppBar(
         title = {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    titleLogo?.let { it() }
                     if (leadingIcon != null) {
                         Icon(
                             imageVector = leadingIcon,
@@ -157,8 +163,8 @@ fun LissafiHeader(
                     Text(
                         text = title,
                         color = OnBackground,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
+                        fontWeight = titleFontWeight,
+                        fontSize = titleFontSize,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -723,6 +729,50 @@ fun ConfirmDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(text = "Annuler", color = TextSecondary, fontSize = 14.sp)
+            }
+        }
+    )
+}
+
+// ============================================================
+// DIALOGUE LIMITE PREMIUM — limite atteinte
+// ============================================================
+@Composable
+fun PremiumLimitDialog(
+    message: String,
+    onUpgrade: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
+        icon = {
+            Icon(
+                imageVector = LissafiIcons.Boutique,
+                contentDescription = null,
+                tint = Secondary,
+                modifier = Modifier.size(34.dp)
+            )
+        },
+        title = {
+            Column {
+                Text(text = "Limite atteinte", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(text = message, fontSize = 12.sp, color = TextSecondary)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onUpgrade,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Secondary)
+            ) {
+                Text("Voir Premium", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Plus tard", color = TextSecondary, fontSize = 14.sp)
             }
         }
     )

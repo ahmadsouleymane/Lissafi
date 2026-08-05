@@ -55,7 +55,6 @@ import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.SegmentedControl
-import com.lissafi.app.ui.components.SyncIndicator
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
@@ -149,13 +148,31 @@ fun CaisseScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── EN-TÊTE — minimal transparent ──
+            // ── EN-TÊTE — minimal transparent, logo à gauche du titre ──
             LissafiHeader(
                 title = "LISSAFI",
                 subtitle = "$todayString · ${if (state.total > 0) "En cours" else "Prêt"}",
+                titleLogo = {
+                    // Logo — cercle Primary avec icône boutique
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = LissafiIcons.Boutique,
+                            contentDescription = null,
+                            tint = OnPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                },
+                titleFontSize = 18.sp,
+                titleFontWeight = FontWeight.Bold,
                 actions = {
-                    SyncIndicator(status = syncStatus)
-                    Spacer(Modifier.width(4.dp))
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = LissafiIcons.Reglages,
@@ -181,14 +198,35 @@ fun CaisseScreen(
 
             // ── RECHERCHE PRODUIT + dropdown inline ──
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                SearchField(
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                        showSearchResults = it.isNotBlank()
-                    },
-                    placeholder = "Chercher un produit…"
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Bouton scanner — ouvre le scanner de codes-barres
+                    IconButton(
+                        onClick = { showScannerScreen = true },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Primary.copy(alpha = 0.10f))
+                    ) {
+                        Icon(
+                            imageVector = LissafiIcons.Scanner,
+                            contentDescription = "Scanner un code-barres",
+                            tint = Primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    SearchField(
+                        value = searchQuery,
+                        onValueChange = {
+                            searchQuery = it
+                            showSearchResults = it.isNotBlank()
+                        },
+                        placeholder = "Chercher un produit…",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 if (showSearchResults) {
                     ProductSearchDropdown(
                         query = searchQuery,
@@ -301,11 +339,17 @@ fun CaisseScreen(
                 cornerRadius = 16
             ) {
                 if (state.items.isEmpty()) {
-                    EmptyState(
-                        icon = LissafiIcons.Scanner,
-                        title = "Panier vide",
-                        message = "Scanne un code-barres ou cherche un produit"
-                    )
+                    // État vide centré dans la zone disponible
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyState(
+                            icon = LissafiIcons.Scanner,
+                            title = "Panier vide",
+                            message = "Scanne un code-barres ou cherche un produit"
+                        )
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),

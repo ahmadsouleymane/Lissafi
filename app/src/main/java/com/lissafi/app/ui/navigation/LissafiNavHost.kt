@@ -111,7 +111,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             ) {
                 NavigationBar(
                     containerColor = Surface,
-                    tonalElevation = 0.dp
+                    tonalElevation = 3.dp // léger relief
                 ) {
                     bottomNavItems.forEach { item ->
                         val selected = currentRoute == item.route
@@ -143,7 +143,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Primary,
                                 selectedTextColor = Primary,
-                                indicatorColor = Primary.copy(alpha = 0.10f),
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                                 unselectedIconColor = TextSecondary,
                                 unselectedTextColor = TextSecondary
                             )

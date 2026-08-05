@@ -1,5 +1,6 @@
 package com.lissafi.app.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,20 +13,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lissafi.app.LissafiApp
 import com.lissafi.app.data.auth.AuthManager
+import com.lissafi.app.data.sync.SyncStatus
 import com.lissafi.app.service.FormatUtils
+import com.lissafi.app.ui.components.InfoRow
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
+import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Surface
@@ -44,6 +51,15 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var showShopDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val app = remember { context.applicationContext as LissafiApp }
+    val syncStatus by app.syncManager.status.collectAsState()
+    val syncLabel = when (syncStatus) {
+        SyncStatus.SYNCING -> "Synchronisation…"
+        SyncStatus.SUCCESS -> "À jour"
+        SyncStatus.ERROR -> "Erreur de synchro"
+        SyncStatus.IDLE -> "En attente"
+    }
 
     Column(
         modifier = Modifier
@@ -62,51 +78,61 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // ── STATUT PREMIUM ──
-            LissafiCard {
-                Row(
+            // ── STATUT PREMIUM — CTA clair pour la version gratuite ──
+            LissafiCard(
+                containerColor = if (state.isPremium) Primary.copy(alpha = 0.08f) else Secondary.copy(alpha = 0.08f)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(16.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (state.isPremium) Primary.copy(alpha = 0.1f)
-                                else Secondary.copy(alpha = 0.1f)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (state.isPremium) LissafiIcons.Boutique else LissafiIcons.Alerte,
-                            contentDescription = null,
-                            tint = if (state.isPremium) Primary else Secondary,
-                            modifier = Modifier.size(24.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (state.isPremium) Primary.copy(alpha = 0.1f)
+                                    else Secondary.copy(alpha = 0.1f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (state.isPremium) LissafiIcons.Boutique else LissafiIcons.Alerte,
+                                contentDescription = null,
+                                tint = if (state.isPremium) Primary else Secondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (state.isPremium)
+                                    "Premium actif"
+                                else
+                                    "Version gratuite — limitée à 10 produits et 10 clients",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            if (state.isPremium && state.premiumExpiry != null) {
+                                Text(
+                                    text = "Expire le ${FormatUtils.formatDate(state.premiumExpiry!!)}",
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+                    }
+                    // Version gratuite → bouton d'upgrade vers Admin
+                    if (!state.isPremium) {
+                        Spacer(Modifier.height(12.dp))
+                        SecondaryActionButton(
+                            text = "Passer à Premium",
+                            onClick = onNavigateToAdmin,
+                            height = 48
                         )
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (state.isPremium) "Premium actif" else "Version gratuite",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Text(
-                            text = if (state.isPremium && state.premiumExpiry != null)
-                                "Expire le ${FormatUtils.formatDate(state.premiumExpiry!!)}"
-                            else
-                                "10 produits · 10 clients · historique 30 jours",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                    StatusBadge(
-                        text = if (state.isPremium) "Premium" else "Gratuit",
-                        color = if (state.isPremium) Primary else Secondary
-                    )
                 }
             }
 
@@ -254,7 +280,7 @@ fun SettingsScreen(
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Zone réservée au gérant",
+                            text = "Zone du gérant",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
@@ -271,6 +297,93 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(20.dp)
                             .rotate(180f) // flèche vers l'avant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── PERSONNALISATION REÇU (Premium) ──
+            SectionHeader(
+                text = "REÇU",
+                icon = LissafiIcons.Imprimer,
+                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+            )
+            LissafiCard(
+                onClick = if (state.isPremium) {
+                    // TODO : écran de personnalisation du reçu
+                    { Toast.makeText(context, "Bientôt disponible", Toast.LENGTH_SHORT).show() }
+                } else null
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (state.isPremium) Primary.copy(alpha = 0.1f)
+                                else Secondary.copy(alpha = 0.1f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = LissafiIcons.Imprimer,
+                            contentDescription = null,
+                            tint = if (state.isPremium) Primary else TextSecondary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "Personnalisation du reçu",
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        color = if (state.isPremium) OnBackground else TextSecondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (state.isPremium) {
+                        Icon(
+                            imageVector = LissafiIcons.Retour,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .rotate(180f) // flèche vers l'avant
+                        )
+                    } else {
+                        // Réservé aux abonnés
+                        StatusBadge(text = "Premium", color = Secondary)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── DONNÉES ──
+            SectionHeader(
+                text = "DONNÉES",
+                icon = LissafiIcons.Sync,
+                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+            )
+            LissafiCard {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    InfoRow(
+                        icon = LissafiIcons.Sync,
+                        label = "Synchronisation",
+                        value = syncLabel,
+                        valueColor = if (syncStatus == SyncStatus.ERROR) Secondary else OnBackground
+                    )
+                    InfoRow(
+                        icon = LissafiIcons.Version,
+                        label = "Version",
+                        value = "1.0.0"
                     )
                 }
             }

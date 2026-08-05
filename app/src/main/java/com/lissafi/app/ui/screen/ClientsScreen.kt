@@ -1,6 +1,5 @@
 package com.lissafi.app.ui.screen
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -26,6 +24,7 @@ import com.lissafi.app.ui.components.EmptyState
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
+import com.lissafi.app.ui.components.PremiumLimitDialog
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.StatusBadge
@@ -56,12 +55,11 @@ private enum class ClientFilter(val label: String) {
 @Composable
 fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(ClientFilter.TOUS) }
 
-    val totalDebt = state.clients.sumOf { it.totalDebt }
     val recentCutoff = System.currentTimeMillis() - RECENT_WINDOW_DAYS * DAY_MS
     val filtered = when (filter) {
         ClientFilter.TOUS -> state.clients
@@ -76,7 +74,7 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
     ) {
         LissafiHeader(
             title = "Clients",
-            subtitle = "${state.clients.size} clients · dette totale ${FormatUtils.formatFCFA(totalDebt)}",
+            subtitle = null,
             onBack = onBack
         )
 
@@ -128,6 +126,7 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                 onAction = {
                     scope.launch {
                         if (viewModel.canAddClient()) showAddDialog = true
+                        else showPremiumDialog = true
                     }
                 }
             )
@@ -144,43 +143,6 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                         onClick = { onClientClick(client.id) }
                     )
                 }
-                if (!state.isPremium) {
-                    item {
-                        LissafiCard(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            borderColor = Secondary.copy(alpha = 0.3f)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Secondary.copy(alpha = 0.12f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = LissafiIcons.Alerte,
-                                        contentDescription = null,
-                                        tint = Secondary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Spacer(Modifier.width(10.dp))
-                                Text(
-                                    text = "${state.clients.size}/10 clients en gratuit — Passe Premium",
-                                    color = Secondary,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
                 item {
                     Spacer(Modifier.height(8.dp))
                     PrimaryActionButton(
@@ -189,11 +151,7 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                         onClick = {
                             scope.launch {
                                 if (viewModel.canAddClient()) showAddDialog = true
-                                else Toast.makeText(
-                                    context,
-                                    "10 clients max en gratuit. Passe Premium !",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                else showPremiumDialog = true
                             }
                         }
                     )
@@ -210,6 +168,18 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                 viewModel.addClient(name, phone)
                 showAddDialog = false
             }
+        )
+    }
+
+    if (showPremiumDialog) {
+        // Limite atteinte → pop-up premium (remplace le Toast)
+        PremiumLimitDialog(
+            message = "Passe à Lissafi Premium pour ajouter autant de clients que tu veux. Sans limite.",
+            onUpgrade = {
+                // TODO : brancher la navigation vers la page Premium / Admin
+                showPremiumDialog = false
+            },
+            onDismiss = { showPremiumDialog = false }
         )
     }
 }
