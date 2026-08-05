@@ -18,8 +18,9 @@ android {
 
     packaging {
         jniLibs {
-            // APK distribué hors Play Store → packaging legacy OK
-            // Les libs ML Kit (barhopper, image_processing) ne supportent pas encore 16 KB pages
+            // APK distribué hors Play Store → packaging legacy (libs compressées,
+            // APK plus léger pour les téléchargements sur réseau mobile).
+            // Les libs ML Kit 17.3+ et CameraX 1.4.2+ sont alignées 16 KB.
             useLegacyPackaging = true
         }
     }
