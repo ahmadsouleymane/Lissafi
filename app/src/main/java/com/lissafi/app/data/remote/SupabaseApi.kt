@@ -33,8 +33,20 @@ class SupabaseApi(private val context: Context) {
     private val token get() = SupabaseManager.getAccessToken(context)
     val isConfigured: Boolean get() = true
     val currentUserId: String get() = SupabaseManager.currentUserId(context) ?: ""
+    val hasValidSession: Boolean get() = SupabaseManager.hasValidSession(context)
 
     private fun restUrl(table: String) = "$baseUrl/rest/v1/$table"
+
+    /**
+     * Bloque toute écriture si la session locale est invalide (user_id manquant
+     * ou non-UUID). Empêche d'envoyer des INSERT que le typage UUID et la RLS
+     * de Supabase rejetteraient de toute façon (erreurs 22P02 / 42501).
+     */
+    private fun ensureValidUser() {
+        if (!hasValidSession) {
+            throw SupabaseException("Session invalide : user_id manquant ou non-UUID")
+        }
+    }
 
     /** Lève une exception si la réponse Supabase n'est pas un succès. */
     private fun ensureSuccess(response: HttpResponse, action: String) {
@@ -67,6 +79,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun upsertProduct(product: Product) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         val response = http.post(restUrl("products")) {
             header("apikey", anonKey)
             token?.let { header("Authorization", "Bearer $it") }
@@ -78,6 +91,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun upsertProducts(products: List<Product>) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         if (products.isEmpty()) return@withContext
         val response = http.post(restUrl("products")) {
             header("apikey", anonKey)
@@ -90,6 +104,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun deleteProduct(barcode: String) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         val response = http.delete(restUrl("products")) {
             header("apikey", anonKey)
             token?.let { header("Authorization", "Bearer $it") }
@@ -101,6 +116,7 @@ class SupabaseApi(private val context: Context) {
     // ==================== VENTES ====================
 
     suspend fun insertSale(sale: Sale, items: List<SaleItem>): Long = withContext(Dispatchers.IO) {
+        ensureValidUser()
         val t = token
         Log.d("LissafiSupabase", "Insert sale - userId: ${sale.userId}, total: ${sale.total}")
         val response = http.post(restUrl("sales")) {
@@ -174,6 +190,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun upsertClient(c: Client) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         val response = http.post(restUrl("clients")) {
             header("apikey", anonKey)
             token?.let { header("Authorization", "Bearer $it") }
@@ -185,6 +202,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun upsertClients(clients: List<Client>) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         if (clients.isEmpty()) return@withContext
         val response = http.post(restUrl("clients")) {
             header("apikey", anonKey)
@@ -210,6 +228,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun addDebtTransaction(transaction: DebtTransaction) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         // Dédoublonnage : si une transaction identique (client + montant + date) existe
         // déjà sur le serveur, on ne la réinsère pas (re-push idempotent).
         val existing = getDebtTransactions(transaction.clientId)
@@ -261,6 +280,7 @@ class SupabaseApi(private val context: Context) {
     }
 
     suspend fun setSetting(key: String, value: String) = withContext(Dispatchers.IO) {
+        ensureValidUser()
         val response = http.post(restUrl("app_settings")) {
             header("apikey", anonKey)
             token?.let { header("Authorization", "Bearer $it") }

@@ -128,7 +128,9 @@ class LissafiRepository(
 
     private fun syncToRemote(block: suspend () -> Unit) {
         scope.launch {
-            if (!api.isConfigured) return@launch
+            // Session invalide (user_id non-UUID ou token absent) : on n'écrit rien
+            // sur Supabase — les INSERT seraient rejetés par le typage UUID + RLS.
+            if (!api.isConfigured || !api.hasValidSession) return@launch
             try {
                 block()
             } catch (e: Exception) {

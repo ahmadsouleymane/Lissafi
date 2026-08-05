@@ -17,6 +17,11 @@ object SupabaseManager {
     private const val KEY_USER_ID = "supabase_user_id"
     private const val KEY_USER_EMAIL = "supabase_user_email"
 
+    /** Format UUID attendu par les colonnes user_id de Supabase. */
+    private val UUID_REGEX = Regex(
+        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+
     const val DEFAULT_URL = "https://fnyuhpfzkvunscuylvqv.supabase.co"
     const val DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZueXVocGZ6a3Z1bnNjdXlsdnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4Mjk3NDgsImV4cCI6MjEwMTQwNTc0OH0.A1lcEsXv8FDsYb4yd3lohd7CtyQy9K5VMXl7QsBuY1Q"
 
@@ -74,6 +79,22 @@ object SupabaseManager {
     }
 
     fun isLoggedIn(context: Context): Boolean = getAccessToken(context) != null
+
+    /**
+     * Vrai si l'identifiant stocké est un UUID valide (le format exigé par
+     * les colonnes `user_id` de Supabase). Filtre les sessions corrompues
+     * comme "test-user-1" qui font échouer les INSERT (typé UUID) et la RLS.
+     */
+    fun isValidUserId(id: String?): Boolean =
+        id != null && UUID_REGEX.matches(id)
+
+    /**
+     * Une session n'est exploitable que si elle porte un token ET un user_id
+     * au format UUID. Empêche d'envoyer des écritures invalides quand la
+     * session locale est corrompue ou obsolète.
+     */
+    fun hasValidSession(context: Context): Boolean =
+        getAccessToken(context) != null && isValidUserId(currentUserId(context))
 
     fun currentUserId(context: Context): String? {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_USER_ID, null)

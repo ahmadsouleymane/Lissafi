@@ -10,6 +10,7 @@ import com.lissafi.app.data.LissafiDatabase
 import com.lissafi.app.data.entity.*
 import com.lissafi.app.data.remote.SupabaseApi
 import com.lissafi.app.data.remote.SupabaseException
+import com.lissafi.app.data.remote.SupabaseManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,6 +107,10 @@ class SyncManager(
     suspend fun syncAll() {
         if (!api.isConfigured) {
             Log.d(TAG, "Supabase non configuré, synchro ignorée")
+            return
+        }
+        if (!SupabaseManager.hasValidSession(context)) {
+            Log.w(TAG, "Session invalide (user_id manquant ou non-UUID) — synchro ignorée")
             return
         }
 
