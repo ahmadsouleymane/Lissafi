@@ -147,7 +147,7 @@ fun SettingsScreen(
                             fontSize = 14.sp
                         )
                         Text(
-                            text = state.shopPhone.ifBlank { "Téléphone non renseigné" },
+                            text = state.shopPhone.ifBlank { "—" },
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -213,7 +213,7 @@ fun SettingsScreen(
                         }
                     ) {
                         Text(
-                            text = "Quitter",
+                            text = "Déconnexion",
                             color = Error,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold

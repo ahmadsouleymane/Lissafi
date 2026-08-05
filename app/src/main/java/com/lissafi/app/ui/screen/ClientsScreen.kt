@@ -118,9 +118,9 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
         if (filtered.isEmpty()) {
             EmptyState(
                 icon = LissafiIcons.Client,
-                title = if (state.searchQuery.isBlank()) "Aucun client pour l'instant" else "Aucun résultat",
+                title = if (state.searchQuery.isBlank()) "Aucun client" else "Aucun résultat",
                 message = if (state.searchQuery.isBlank())
-                    "Ajoute tes clients avant de leur faire crédit. Tu pourras ensuite suivre leurs dettes d'un coup d'œil."
+                    "Ajoute ton premier client pour vendre à crédit !"
                 else
                     "Aucun client ne correspond à « ${state.searchQuery} ».",
                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp),

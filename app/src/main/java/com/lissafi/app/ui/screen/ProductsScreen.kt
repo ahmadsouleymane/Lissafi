@@ -124,9 +124,9 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
         if (filtered.isEmpty()) {
             EmptyState(
                 icon = LissafiIcons.Produit,
-                title = if (state.searchQuery.isBlank()) "Aucun produit pour l'instant" else "Aucun résultat",
+                title = if (state.searchQuery.isBlank()) "Aucun produit" else "Aucun résultat",
                 message = if (state.searchQuery.isBlank())
-                    "Touche « Ajouter un produit » pour créer ton premier produit. Ensuite, tu pourras le vendre en 2 secondes."
+                    "Ajoute ton premier article !"
                 else
                     "Aucun produit ne correspond à « ${state.searchQuery} ». Vérifie l'orthographe.",
                 modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
@@ -228,8 +228,8 @@ private fun ProductCard(
     }
     val stockLabel = when {
         !product.hasBarcode -> "Sans code-barres"
-        product.stock == 0 -> "Rupture de stock"
-        product.stock <= product.minStock -> "Stock bas (${product.stock})"
+        product.stock == 0 -> "Rupture"
+        product.stock <= product.minStock -> "Stock bas"
         else -> "En stock · ${product.stock}"
     }
 

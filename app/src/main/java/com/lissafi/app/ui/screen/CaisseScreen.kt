@@ -304,7 +304,7 @@ fun CaisseScreen(
                     EmptyState(
                         icon = LissafiIcons.Scanner,
                         title = "Panier vide",
-                        message = "Scanne un code-barres ou cherche un produit pour commencer."
+                        message = "Scanne un code-barres ou cherche un produit"
                     )
                 } else {
                     LazyColumn(
