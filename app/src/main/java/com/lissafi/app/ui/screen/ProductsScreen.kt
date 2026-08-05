@@ -9,9 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,25 +26,35 @@ import com.lissafi.app.ui.components.AmountField
 import com.lissafi.app.ui.components.AmountText
 import com.lissafi.app.ui.components.ConfirmDialog
 import com.lissafi.app.ui.components.EmptyState
-import com.lissafi.app.ui.components.HelpHint
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
+import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SearchField
-import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
-import com.lissafi.app.ui.theme.Danger
-import com.lissafi.app.ui.theme.LissafiCream
-import com.lissafi.app.ui.theme.LissafiGreen
-import com.lissafi.app.ui.theme.LissafiOrange
-import com.lissafi.app.ui.theme.LissafiWhite
-import com.lissafi.app.ui.theme.Neutral400
-import com.lissafi.app.ui.theme.Neutral500
+import com.lissafi.app.ui.theme.Background
+import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.OnPrimary
+import com.lissafi.app.ui.theme.Primary
+import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
+import com.lissafi.app.ui.theme.SurfaceAlt
+import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.theme.Warning
-import com.lissafi.app.ui.theme.White
 import com.lissafi.app.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
+
+// ============================================================
+// FILTRE LOCAL DE LA LISTE — ne touche pas au ViewModel
+// ============================================================
+private enum class ProductFilter(val label: String) {
+    TOUS("Tous"),
+    EN_STOCK("En stock"),
+    ALERTE("Alerte stock")
+}
+
+private fun isStockAlert(p: Product): Boolean =
+    p.stock == 0 || p.stock <= p.minStock
 
 @Composable
 fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
@@ -56,38 +63,27 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
+    var filter by remember { mutableStateOf(ProductFilter.TOUS) }
+
+    val alertCount = state.products.count { isStockAlert(it) }
+    val filtered = when (filter) {
+        ProductFilter.TOUS -> state.products
+        ProductFilter.EN_STOCK -> state.products.filter { it.stock > 0 }
+        ProductFilter.ALERTE -> state.products.filter { isStockAlert(it) }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LissafiCream)
+            .background(Background)
     ) {
         LissafiHeader(
-            title = "Catalogue",
-            subtitle = "Tes produits et tes stocks",
-            leadingIcon = Icons.Filled.Inventory2,
-            onBack = onBack,
-            actions = {
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            if (viewModel.canAddProduct()) showAddDialog = true
-                            else Toast.makeText(
-                                context,
-                                "10 produits max en version gratuite. Passe Premium !",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Ajouter un produit",
-                        tint = LissafiWhite,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-            }
+            title = "Produits",
+            subtitle = if (alertCount > 0)
+                "${state.products.size} produits · $alertCount alertes stock"
+            else
+                "${state.products.size} produits",
+            onBack = onBack
         )
 
         SearchField(
@@ -97,12 +93,40 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         )
 
-        if (state.products.isEmpty()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ProductFilter.values().forEach { f ->
+                FilterChip(
+                    selected = filter == f,
+                    onClick = { filter = f },
+                    label = {
+                        Text(
+                            text = f.label,
+                            fontSize = 12.sp,
+                            fontWeight = if (filter == f) FontWeight.Medium else FontWeight.Normal
+                        )
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Primary,
+                        selectedLabelColor = OnPrimary,
+                        containerColor = SurfaceAlt,
+                        labelColor = TextSecondary
+                    )
+                )
+            }
+        }
+
+        if (filtered.isEmpty()) {
             EmptyState(
-                icon = Icons.Outlined.Inventory2,
+                icon = LissafiIcons.Produit,
                 title = if (state.searchQuery.isBlank()) "Aucun produit pour l'instant" else "Aucun résultat",
                 message = if (state.searchQuery.isBlank())
-                    "Touche le bouton + en haut à droite pour ajouter ton premier produit. Ensuite, tu pourras le vendre en 2 secondes."
+                    "Touche « Ajouter un produit » pour créer ton premier produit. Ensuite, tu pourras le vendre en 2 secondes."
                 else
                     "Aucun produit ne correspond à « ${state.searchQuery} ». Vérifie l'orthographe.",
                 modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
@@ -118,7 +142,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                items(state.products, key = { it.barcode }) { product ->
+                items(filtered, key = { it.barcode }) { product ->
                     ProductCard(
                         product = product,
                         onEdit = { editingProduct = product },
@@ -137,7 +161,24 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
                         )
                     }
                 }
-                item { Spacer(Modifier.height(16.dp)) }
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    PrimaryActionButton(
+                        text = "Ajouter un produit",
+                        icon = LissafiIcons.Ajouter,
+                        onClick = {
+                            scope.launch {
+                                if (viewModel.canAddProduct()) showAddDialog = true
+                                else Toast.makeText(
+                                    context,
+                                    "10 produits max en version gratuite. Passe Premium !",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    )
+                }
+                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
@@ -180,8 +221,8 @@ private fun ProductCard(
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val stockColor = when {
-        !product.hasBarcode -> Neutral400
-        product.stock == 0 -> Danger
+        !product.hasBarcode -> TextSecondary
+        product.stock == 0 -> Error
         product.stock <= product.minStock -> Warning
         else -> Success
     }
@@ -203,13 +244,13 @@ private fun ProductCard(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
-                    .background(LissafiGreen.copy(alpha = 0.1f)),
+                    .background(Primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Inventory2,
+                    imageVector = LissafiIcons.Produit,
                     contentDescription = null,
-                    tint = LissafiGreen,
+                    tint = Primary,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -229,7 +270,7 @@ private fun ProductCard(
                     Text(
                         text = product.category,
                         fontSize = 11.sp,
-                        color = Neutral400
+                        color = TextSecondary
                     )
                 }
             }
@@ -240,24 +281,24 @@ private fun ProductCard(
                     Text(
                         text = "Achat ${FormatUtils.formatFCFA(product.buyPrice)}",
                         fontSize = 11.sp,
-                        color = Neutral400
+                        color = TextSecondary
                     )
                 }
                 Spacer(Modifier.height(4.dp))
                 Row {
                     IconButton(onClick = onEdit, modifier = Modifier.size(34.dp)) {
                         Icon(
-                            imageVector = Icons.Filled.Edit,
+                            imageVector = LissafiIcons.Modifier,
                             contentDescription = "Modifier",
-                            tint = Neutral500,
+                            tint = TextSecondary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
                     IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(34.dp)) {
                         Icon(
-                            imageVector = Icons.Filled.Delete,
+                            imageVector = LissafiIcons.Supprimer,
                             contentDescription = "Supprimer",
-                            tint = Danger.copy(alpha = 0.7f),
+                            tint = Error.copy(alpha = 0.7f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -276,9 +317,9 @@ private fun ProductCard(
                 showDeleteConfirm = false
             },
             onDismiss = { showDeleteConfirm = false },
-            icon = Icons.Filled.Delete,
+            icon = LissafiIcons.Supprimer,
             destructive = true,
-            iconTint = Danger
+            iconTint = Error
         )
     }
 }
@@ -292,12 +333,9 @@ private fun PremiumLimitCard(
     limit: Int,
     onClickUpgrade: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = LissafiOrange.copy(alpha = 0.1f))
+    LissafiCard(
+        modifier = Modifier.padding(vertical = 8.dp),
+        borderColor = Secondary.copy(alpha = 0.3f)
     ) {
         Row(
             modifier = Modifier
@@ -305,30 +343,40 @@ private fun PremiumLimitCard(
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Filled.Star,
-                contentDescription = null,
-                tint = LissafiOrange,
-                modifier = Modifier.size(22.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Secondary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LissafiIcons.Alerte,
+                    contentDescription = null,
+                    tint = Secondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "$current / $limit produits en gratuit",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = LissafiOrange
+                    color = Secondary
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Passe Premium pour des produits illimités.",
                     fontSize = 12.sp,
-                    color = Neutral500
+                    color = TextSecondary
                 )
             }
+            Spacer(Modifier.width(8.dp))
             Button(
                 onClick = onClickUpgrade,
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LissafiOrange)
+                colors = ButtonDefaults.buttonColors(containerColor = Secondary)
             ) {
                 Text("Premium", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
@@ -363,9 +411,9 @@ fun ProductFormDialog(
         shape = RoundedCornerShape(26.dp),
         icon = {
             Icon(
-                imageVector = Icons.Filled.Inventory2,
+                imageVector = LissafiIcons.Produit,
                 contentDescription = null,
-                tint = LissafiGreen,
+                tint = Primary,
                 modifier = Modifier.size(34.dp)
             )
         },
@@ -374,7 +422,7 @@ fun ProductFormDialog(
                 Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 if (subtitle != null) {
                     Spacer(Modifier.height(4.dp))
-                    Text(text = subtitle, fontSize = 12.sp, color = Neutral500)
+                    Text(text = subtitle, fontSize = 12.sp, color = TextSecondary)
                 }
             }
         },
@@ -409,7 +457,7 @@ fun ProductFormDialog(
                 AnimatedVisibility(showPriceWarning) {
                     Text(
                         text = "Le prix d'achat est plus élevé que le prix de vente — tu vendras à perte.",
-                        color = Danger,
+                        color = Error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 4.dp)
                     )
@@ -437,7 +485,7 @@ fun ProductFormDialog(
                 Spacer(Modifier.height(6.dp))
                 TextButton(onClick = { hasBarcode = !hasBarcode }) {
                     Icon(
-                        imageVector = if (hasBarcode) Icons.Filled.QrCodeScanner else Icons.Filled.Edit,
+                        imageVector = if (hasBarcode) LissafiIcons.Scanner else LissafiIcons.Produit,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -493,7 +541,7 @@ fun ProductFormDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annuler", color = Neutral500) }
+            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
         }
     )
 }

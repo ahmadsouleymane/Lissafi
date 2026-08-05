@@ -2,50 +2,56 @@ package com.lissafi.app.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.composables.icons.lucide.ChevronRight
+import com.composables.icons.lucide.Lucide
 import com.lissafi.app.data.entity.Client
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.AmountText
 import com.lissafi.app.ui.components.EmptyState
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
+import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SearchField
-import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
-import com.lissafi.app.ui.theme.Danger
-import com.lissafi.app.ui.theme.LissafiCream
-import com.lissafi.app.ui.theme.LissafiGreen
-import com.lissafi.app.ui.theme.LissafiOrange
-import com.lissafi.app.ui.theme.LissafiWhite
-import com.lissafi.app.ui.theme.Neutral400
-import com.lissafi.app.ui.theme.Neutral500
+import com.lissafi.app.ui.theme.Background
+import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.OnPrimary
+import com.lissafi.app.ui.theme.Primary
+import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
+import com.lissafi.app.ui.theme.SurfaceAlt
+import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.theme.Warning
-import com.lissafi.app.ui.theme.White
 import com.lissafi.app.ui.viewmodel.ClientViewModel
 import kotlinx.coroutines.launch
 
 private const val DAY_MS = 24 * 60 * 60 * 1000L
+private const val RECENT_WINDOW_DAYS = 30
+
+// ============================================================
+// FILTRE LOCAL DE LA LISTE — ne touche pas au ViewModel
+// ============================================================
+private enum class ClientFilter(val label: String) {
+    TOUS("Tous"),
+    AVEC_DETTE("Avec dette"),
+    RECENTS("Récents")
+}
 
 @Composable
 fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, onBack: () -> Unit) {
@@ -53,91 +59,65 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
+    var filter by remember { mutableStateOf(ClientFilter.TOUS) }
+
     val totalDebt = state.clients.sumOf { it.totalDebt }
+    val recentCutoff = System.currentTimeMillis() - RECENT_WINDOW_DAYS * DAY_MS
+    val filtered = when (filter) {
+        ClientFilter.TOUS -> state.clients
+        ClientFilter.AVEC_DETTE -> state.clients.filter { it.totalDebt > 0 }
+        ClientFilter.RECENTS -> state.clients.filter { it.updatedAt >= recentCutoff }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LissafiCream)
+            .background(Background)
     ) {
         LissafiHeader(
             title = "Clients",
-            subtitle = "Qui te doit de l'argent",
-            leadingIcon = Icons.Filled.People,
-            onBack = onBack,
-            actions = {
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            if (viewModel.canAddClient()) showAddDialog = true
-                            else Toast.makeText(context, "10 clients max en gratuit. Passe Premium !", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PersonAdd,
-                        contentDescription = "Ajouter un client",
-                        tint = LissafiWhite,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-            }
+            subtitle = "${state.clients.size} clients · dette totale ${FormatUtils.formatFCFA(totalDebt)}",
+            onBack = onBack
         )
-
-        // ── RÉSUMÉ DES DETTES ──
-        if (totalDebt > 0) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = LissafiOrange.copy(alpha = 0.1f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Payments,
-                            contentDescription = null,
-                            tint = LissafiOrange,
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Total à recevoir",
-                                color = LissafiOrange,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "${state.clients.count { it.totalDebt > 0 }} client(s) vous doivent",
-                                color = Neutral500,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                    AmountText(amount = totalDebt, fontSize = 24, color = LissafiOrange)
-                }
-            }
-        }
 
         SearchField(
             value = state.searchQuery,
             onValueChange = { viewModel.search(it) },
             placeholder = "Rechercher un client…",
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         )
 
-        if (state.clients.isEmpty()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ClientFilter.values().forEach { f ->
+                FilterChip(
+                    selected = filter == f,
+                    onClick = { filter = f },
+                    label = {
+                        Text(
+                            text = f.label,
+                            fontSize = 12.sp,
+                            fontWeight = if (filter == f) FontWeight.Medium else FontWeight.Normal
+                        )
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Primary,
+                        selectedLabelColor = OnPrimary,
+                        containerColor = SurfaceAlt,
+                        labelColor = TextSecondary
+                    )
+                )
+            }
+        }
+
+        if (filtered.isEmpty()) {
             EmptyState(
-                icon = Icons.Outlined.People,
+                icon = LissafiIcons.Client,
                 title = if (state.searchQuery.isBlank()) "Aucun client pour l'instant" else "Aucun résultat",
                 message = if (state.searchQuery.isBlank())
                     "Ajoute tes clients avant de leur faire crédit. Tu pourras ensuite suivre leurs dettes d'un coup d'œil."
@@ -156,16 +136,7 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                if (state.searchQuery.isBlank()) {
-                    item {
-                        SectionHeader(
-                            text = "DETTES ACTIVES",
-                            icon = Icons.Filled.People,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
-                        )
-                    }
-                }
-                items(state.clients) { client ->
+                items(filtered) { client ->
                     val daysSince = (System.currentTimeMillis() - client.updatedAt) / DAY_MS
                     ClientCard(
                         client = client,
@@ -175,12 +146,9 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                 }
                 if (!state.isPremium) {
                     item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = LissafiOrange.copy(alpha = 0.1f))
+                        LissafiCard(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            borderColor = Secondary.copy(alpha = 0.3f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -188,16 +156,24 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                                     .padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Star,
-                                    contentDescription = null,
-                                    tint = LissafiOrange,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Secondary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = LissafiIcons.Alerte,
+                                        contentDescription = null,
+                                        tint = Secondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                                 Spacer(Modifier.width(10.dp))
                                 Text(
                                     text = "${state.clients.size}/10 clients en gratuit — Passe Premium",
-                                    color = LissafiOrange,
+                                    color = Secondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -205,7 +181,24 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                         }
                     }
                 }
-                item { Spacer(Modifier.height(16.dp)) }
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    PrimaryActionButton(
+                        text = "Ajouter un client",
+                        icon = LissafiIcons.Ajouter,
+                        onClick = {
+                            scope.launch {
+                                if (viewModel.canAddClient()) showAddDialog = true
+                                else Toast.makeText(
+                                    context,
+                                    "10 clients max en gratuit. Passe Premium !",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    )
+                }
+                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
@@ -234,7 +227,7 @@ private fun ClientCard(
     // L'urgence ne concerne que les clients qui doivent encore de l'argent
     val (badge, badgeColor) = when {
         !hasDebt -> null to Success
-        daysSince > 21 -> "Urgent" to Danger
+        daysSince > 21 -> "Urgent" to Error
         daysSince > 7 -> "À relancer" to Warning
         else -> null to Success
     }
@@ -247,7 +240,7 @@ private fun ClientCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Avatar avec code couleur selon le retard (uniquement s'il y a une dette)
-            val avatarColor = badgeColor.takeIf { badge != null } ?: LissafiGreen
+            val avatarColor = badgeColor.takeIf { badge != null } ?: Primary
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -256,7 +249,7 @@ private fun ClientCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Person,
+                    imageVector = LissafiIcons.Client,
                     contentDescription = null,
                     tint = avatarColor,
                     modifier = Modifier.size(24.dp)
@@ -271,38 +264,50 @@ private fun ClientCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = if (client.phone.isNotBlank()) client.phone
+                    else "Vu ${FormatUtils.formatDateShort(client.updatedAt)}",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (hasDebt && badge != null) {
+                    Spacer(Modifier.height(4.dp))
                     StatusBadge(text = badge, color = badgeColor)
-                } else {
+                } else if (!hasDebt) {
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Vu ${FormatUtils.formatDateShort(client.updatedAt)}",
-                        fontSize = 12.sp,
-                        color = Neutral400
+                        text = "À jour · ${FormatUtils.formatDateShort(client.updatedAt)}",
+                        fontSize = 11.sp,
+                        color = TextSecondary
                     )
                 }
             }
+            Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
-                if (hasDebt) {
-                    Text(
-                        text = "Doit",
-                        fontSize = 11.sp,
-                        color = Neutral400
-                    )
-                    AmountText(
-                        amount = client.totalDebt,
-                        fontSize = 18,
-                        color = if (daysSince > 21) Danger else LissafiOrange
-                    )
-                } else {
-                    StatusBadge(text = "À jour", color = Success)
-                }
+                Text(
+                    text = "Dette",
+                    fontSize = 11.sp,
+                    color = TextSecondary
+                )
+                Spacer(Modifier.height(2.dp))
+                AmountText(
+                    amount = client.totalDebt,
+                    fontSize = 18,
+                    color = when {
+                        !hasDebt -> TextSecondary
+                        daysSince > 21 -> Error
+                        else -> Secondary
+                    }
+                )
             }
             Spacer(Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Filled.ChevronRight,
+                imageVector = Lucide.ChevronRight,
                 contentDescription = null,
-                tint = Neutral400,
+                tint = TextSecondary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -325,9 +330,9 @@ private fun AddClientDialog(
         shape = RoundedCornerShape(26.dp),
         icon = {
             Icon(
-                imageVector = Icons.Filled.PersonAdd,
+                imageVector = LissafiIcons.Client,
                 contentDescription = null,
-                tint = LissafiGreen,
+                tint = Primary,
                 modifier = Modifier.size(34.dp)
             )
         },
@@ -338,7 +343,7 @@ private fun AddClientDialog(
                 Text(
                     text = "Le nom suffit pour commencer.",
                     fontSize = 12.sp,
-                    color = Neutral500
+                    color = TextSecondary
                 )
             }
         },
@@ -365,7 +370,7 @@ private fun AddClientDialog(
         },
         confirmButton = {
             PrimaryActionButton(
-                text = "AJOUTER LE CLIENT",
+                text = "ENREGISTRER",
                 onClick = {
                     if (name.isNotBlank()) onSave(name.trim(), phone.trim())
                 },
@@ -373,7 +378,7 @@ private fun AddClientDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annuler", color = Neutral500) }
+            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
         }
     )
 }
