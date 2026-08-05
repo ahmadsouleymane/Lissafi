@@ -132,7 +132,7 @@ fun ReportsScreen(
                             value = state.totalComptant,
                             icon = LissafiIcons.Encaisser,
                             color = Primary,
-                            percentage = if (state.totalVentes > 0) state.totalComptant * 100 / state.totalVentes else 0,
+                            percentage = if (state.totalVentes > 0) (state.totalComptant.toLong() * 100 / state.totalVentes).toInt() else 0,
                             modifier = Modifier.weight(1f)
                         )
                         KpiTile(
@@ -140,7 +140,7 @@ fun ReportsScreen(
                             value = state.totalCredits,
                             icon = LissafiIcons.Credit,
                             color = Secondary,
-                            percentage = if (state.totalVentes > 0) state.totalCredits * 100 / state.totalVentes else 0,
+                            percentage = if (state.totalVentes > 0) (state.totalCredits.toLong() * 100 / state.totalVentes).toInt() else 0,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -155,7 +155,7 @@ fun ReportsScreen(
                             value = state.estimatedProfit,
                             icon = LissafiIcons.Marge,
                             color = Success,
-                            percentage = if (state.totalVentes > 0) state.estimatedProfit * 100 / state.totalVentes else 0,
+                            percentage = if (state.totalVentes > 0) (state.estimatedProfit.toLong() * 100 / state.totalVentes).toInt() else 0,
                             modifier = Modifier.weight(1f)
                         )
                         KpiTile(
@@ -206,7 +206,7 @@ fun ReportsScreen(
                                 )
                                 InfoRow(
                                     icon = LissafiIcons.Encaisser,
-                                    label = "Déjà encaissé",
+                                    label = "Ventes comptant",
                                     value = FormatUtils.formatFCFA(state.totalComptant),
                                     valueColor = Primary
                                 )
