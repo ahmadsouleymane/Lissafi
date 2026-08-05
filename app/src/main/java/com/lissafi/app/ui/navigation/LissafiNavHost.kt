@@ -1,39 +1,15 @@
 package com.lissafi.app.ui.navigation
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.animation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -45,20 +21,10 @@ import com.lissafi.app.LissafiApp
 import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.PremiumManager
-import com.lissafi.app.ui.screen.AdminScreen
-import com.lissafi.app.ui.screen.AuthScreen
-import com.lissafi.app.ui.screen.CaisseScreen
-import com.lissafi.app.ui.screen.ClientDetailScreen
-import com.lissafi.app.ui.screen.ClientsScreen
-import com.lissafi.app.ui.screen.ProductsScreen
-import com.lissafi.app.ui.screen.ReportsScreen
-import com.lissafi.app.ui.screen.SettingsScreen
-import com.lissafi.app.ui.viewmodel.AuthViewModel
-import com.lissafi.app.ui.viewmodel.CartViewModel
-import com.lissafi.app.ui.viewmodel.ClientViewModel
-import com.lissafi.app.ui.viewmodel.ProductViewModel
-import com.lissafi.app.ui.viewmodel.ReportViewModel
-import com.lissafi.app.ui.viewmodel.SettingsViewModel
+import com.lissafi.app.ui.components.LissafiIcons
+import com.lissafi.app.ui.screen.*
+import com.lissafi.app.ui.theme.*
+import com.lissafi.app.ui.viewmodel.*
 
 object Routes {
     const val AUTH          = "auth"
@@ -66,28 +32,23 @@ object Routes {
     const val PRODUCTS      = "products"
     const val CLIENTS       = "clients"
     const val CLIENT_DETAIL = "client_detail/{clientId}"
-    const val REPORTS       = "reports"
+    const val ACTIVITY      = "activity"
     const val SETTINGS      = "settings"
     const val ADMIN         = "admin"
 
     fun clientDetail(id: String) = "client_detail/$id"
 }
 
-private val bottomBarRoutes = setOf(
-    Routes.CAISSE, Routes.PRODUCTS, Routes.CLIENTS,
-    Routes.REPORTS, Routes.SETTINGS
-)
-
 private val bottomNavItems = listOf(
-    BottomNavItem(Routes.CAISSE,   "Caisse",     Icons.Filled.ShoppingCart),
-    BottomNavItem(Routes.PRODUCTS, "Produits",   Icons.Filled.Inventory2),
-    BottomNavItem(Routes.CLIENTS,  "Clients",    Icons.Filled.People),
-    BottomNavItem(Routes.REPORTS,  "Rapports",   Icons.Filled.BarChart),
-    BottomNavItem(Routes.SETTINGS, "Paramètres", Icons.Filled.Settings)
+    BottomNavItem(Routes.CAISSE,   "Caisse",   LissafiIcons.Caisse),
+    BottomNavItem(Routes.PRODUCTS, "Produits",  LissafiIcons.Produits),
+    BottomNavItem(Routes.CLIENTS,  "Clients",   LissafiIcons.Clients),
+    BottomNavItem(Routes.ACTIVITY, "Activité",  LissafiIcons.Activite)
 )
 
 data class BottomNavItem(val route: String, val label: String, val icon: ImageVector)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LissafiNavHost(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -99,10 +60,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val authViewModel  = remember { AuthViewModel(authManager) }
     val authState      by authViewModel.state.collectAsState()
 
-    // Vérifie si l'utilisateur est connecté (session persistée via SharedPreferences)
     val isLoggedIn = authState.isLoggedIn || app.authManager.isLoggedIn()
-
-    // Repository avec userId
     val userId = app.authManager.currentUserId() ?: ""
     val repository = remember(userId) {
         LissafiRepository(db, api).withUserId(userId)
@@ -112,12 +70,14 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in bottomBarRoutes
 
-    // Navigation post-login / post-logout
+    // Routes principales (4 onglets)
+    val mainRoutes = setOf(Routes.CAISSE, Routes.PRODUCTS, Routes.CLIENTS, Routes.ACTIVITY)
+    val showBottomBar = currentRoute in mainRoutes
+
+    // Sync
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
-            // Synchronisation automatique dès la connexion : récupère les données Supabase
             app.syncManager.syncInBackground()
             navController.navigate(Routes.CAISSE) {
                 popUpTo(Routes.AUTH) { inclusive = true }
@@ -129,9 +89,9 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         }
     }
 
-    // ViewModels
     val syncStatus by app.syncManager.status.collectAsState()
 
+    // ViewModels
     val cartViewModel: CartViewModel = remember { CartViewModel(repository, premiumManager) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(repository, premiumManager) }
     val clientViewModel: ClientViewModel = remember { ClientViewModel(repository, premiumManager) }
@@ -140,17 +100,18 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+        containerColor = Background,
+        contentWindowInsets = WindowInsets.systemBars
+            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         bottomBar = {
             AnimatedVisibility(
                 visible = showBottomBar && isLoggedIn,
-                enter = fadeIn(),
-                exit = fadeOut()
+                enter = fadeIn() + slideInVertically { it },
+                exit = fadeOut() + slideOutVertically { it }
             ) {
                 NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 3.dp
+                    containerColor = Surface,
+                    tonalElevation = 0.dp
                 ) {
                     bottomNavItems.forEach { item ->
                         val selected = currentRoute == item.route
@@ -165,20 +126,26 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(imageVector = item.icon, contentDescription = item.label) },
+                            icon = {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.label,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            },
                             label = {
                                 Text(
                                     text = item.label,
                                     fontSize = 11.sp,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                selectedIconColor = Primary,
+                                selectedTextColor = Primary,
+                                indicatorColor = Primary.copy(alpha = 0.10f),
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextSecondary
                             )
                         )
                     }
@@ -189,9 +156,10 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         NavHost(
             navController = navController,
             startDestination = if (isLoggedIn) Routes.CAISSE else Routes.AUTH,
-            modifier = Modifier.fillMaxSize().padding(innerPadding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            // Auth
             composable(Routes.AUTH) {
                 AuthScreen(viewModel = authViewModel)
             }
@@ -202,7 +170,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     syncStatus = syncStatus,
                     onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) },
                     onNavigateToClients  = { navController.navigate(Routes.CLIENTS) },
-                    onNavigateToReports  = { navController.navigate(Routes.REPORTS) },
+                    onNavigateToReports  = { navController.navigate(Routes.ACTIVITY) },
                     onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
                 )
             }
@@ -230,8 +198,8 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Routes.REPORTS) {
-                ReportsScreen(
+            composable(Routes.ACTIVITY) {
+                ReportsScreen(  // sera renommé en ActivityScreen dans la Task 6
                     viewModel = reportViewModel,
                     onBack = { navController.popBackStack() }
                 )
@@ -242,9 +210,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     authManager = authManager,
                     onBack = { navController.popBackStack() },
                     onNavigateToAdmin = { navController.navigate(Routes.ADMIN) },
-                    onSignOut = {
-                        // La navigation est gérée par LaunchedEffect
-                    }
+                    onSignOut = {}
                 )
             }
             composable(Routes.ADMIN) {
