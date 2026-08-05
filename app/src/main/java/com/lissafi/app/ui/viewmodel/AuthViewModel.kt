@@ -33,6 +33,10 @@ data class AuthState(
     val isLoggedIn: Boolean = false
 )
 
+// Compte de démonstration partagé — voir scripts/seed-demo.sql
+private const val DEMO_EMAIL = "demo@lissafi.app"
+private const val DEMO_PASSWORD = "demo123456"
+
 class AuthViewModel(private val authManager: AuthManager) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
@@ -150,6 +154,31 @@ class AuthViewModel(private val authManager: AuthManager) : ViewModel() {
                         isLoading = false,
                         message = result.message,
                         isError = false
+                    )
+                }
+                is AuthResult.Error -> {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        message = result.message,
+                        isError = true
+                    )
+                }
+            }
+        }
+    }
+
+    /** Connexion au compte de démonstration pré-rempli (demo@lissafi.app). */
+    fun demoLogin() {
+        _state.value = _state.value.copy(isLoading = true, message = null)
+        viewModelScope.launch {
+            val result = authManager.signIn(DEMO_EMAIL, DEMO_PASSWORD)
+            when (result) {
+                is AuthResult.Success -> {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        message = result.message,
+                        isError = false,
+                        isLoggedIn = true
                     )
                 }
                 is AuthResult.Error -> {
