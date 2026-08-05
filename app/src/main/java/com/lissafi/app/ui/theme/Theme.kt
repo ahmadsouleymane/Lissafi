@@ -3,159 +3,171 @@ package com.lissafi.app.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
-import androidx.compose.material3.Typography
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.lissafi.app.R
 
 // ============================================================
-// TYPOGRAPHIE — Hiérarchie claire pour caisse/POS
+// TYPOGRAPHIE — Inter (Vercel, GitHub, Figma)
 // ============================================================
+
+val InterFont = FontFamily(
+    Font(R.font.inter_light, FontWeight.Light),
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
+    Font(R.font.inter_semibold, FontWeight.Bold)  // fallback Bold → SemiBold
+)
+
 val LissafiTypography = Typography(
-    // Titres d'écran — 24sp bold
+    displayLarge = TextStyle(
+        fontFamily = InterFont,
+        fontWeight = FontWeight.Light,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-0.3).sp
+    ),
     headlineLarge = TextStyle(
-        fontWeight = FontWeight.Bold,
+        fontFamily = InterFont,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = (-0.3).sp
     ),
-    // Titres de section — 20sp semibold
     headlineMedium = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.3).sp
     ),
-    // Sous-titres, totaux — 18sp semibold
     headlineSmall = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.sp
     ),
-    // Titres de carte — 16sp medium
     titleLarge = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        letterSpacing = 0.sp
     ),
-    // Labels secondaires — 14sp medium
     titleMedium = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
-    // Petits labels — 12sp medium
     titleSmall = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.1.sp
     ),
-    // Corps de texte — 16sp regular
     bodyLarge = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.1.sp
     ),
-    // Corps standard — 14sp regular
     bodyMedium = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        letterSpacing = 0.1.sp
     ),
-    // Petit texte — 12sp regular
     bodySmall = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.1.sp
     ),
-    // Boutons — 14sp semibold, tout en majuscules via le composant
     labelLarge = TextStyle(
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = InterFont,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     ),
-    // Petits boutons — 12sp medium
     labelMedium = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     ),
-    // Chips, badges — 11sp medium
     labelSmall = TextStyle(
+        fontFamily = InterFont,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     )
 )
 
 // ============================================================
-// FORMES — Coins arrondis cohérents (design mobile moderne)
+// FORMES — Plus resserrées, style SaaS
 // ============================================================
 val LissafiShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small      = RoundedCornerShape(10.dp),
-    medium     = RoundedCornerShape(14.dp),
-    large      = RoundedCornerShape(18.dp),
-    extraLarge = RoundedCornerShape(26.dp)
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 // ============================================================
-// COLOR SCHEME — Light uniquement pour le MVP
+// COLOR SCHEME — Light uniquement
 // ============================================================
 private val LissafiLightColorScheme = lightColorScheme(
-    primary            = Green600,
-    onPrimary          = White,
-    primaryContainer   = Green100,
-    onPrimaryContainer = Green900,
-    secondary          = Orange400,
-    onSecondary        = Black,
-    secondaryContainer = Orange100,
-    onSecondaryContainer = Orange900,
-    tertiary           = Orange600,
-    onTertiary         = White,
-    tertiaryContainer  = Orange50,
-    onTertiaryContainer = Orange800,
-    background         = Cream100,
-    onBackground       = Black,
-    surface            = White,
-    onSurface          = Black,
-    surfaceVariant     = SurfaceDim,
-    onSurfaceVariant   = Neutral700,
-    surfaceContainerLowest = White,
-    surfaceContainerLow    = OffWhite,
-    surfaceContainer       = SurfaceDim,
-    surfaceContainerHigh   = Cream200,
-    surfaceContainerHighest = Cream300,
-    outline            = Neutral300,
-    outlineVariant     = Neutral200,
-    error              = Danger,
-    onError            = White,
-    errorContainer     = DangerLight,
-    onErrorContainer   = DangerDark,
-    inverseSurface     = Neutral900,
-    inverseOnSurface   = White,
-    inversePrimary     = Green300,
-    scrim              = OverlayMedium
+    primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
+    secondary = Secondary,
+    onSecondary = OnSecondary,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
+    background = Background,
+    onBackground = OnBackground,
+    surface = Surface,
+    onSurface = OnSurface,
+    surfaceVariant = SurfaceAlt,
+    onSurfaceVariant = TextSecondary,
+    surfaceContainerLowest = Surface,
+    surfaceContainerLow = OffWhite,
+    surfaceContainer = SurfaceAlt,
+    surfaceContainerHigh = Color(0xFFF5F2EB),
+    surfaceContainerHighest = Color(0xFFEDE8DD),
+    outline = Border,
+    outlineVariant = Border,
+    error = Error,
+    onError = OnPrimary,
+    errorContainer = ErrorContainer,
+    onErrorContainer = Error,
+    inverseSurface = Color(0xFF1B1B1B),
+    inverseOnSurface = OnPrimary,
+    inversePrimary = Primary,
+    scrim = Scrim
 )
 
 // ============================================================
@@ -171,17 +183,17 @@ fun LissafiTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Barre de statut assortie au header vert
+            // Barre de statut assortie au fond (clair)
             @Suppress("DEPRECATION")
-            window.statusBarColor = Green800.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            window.statusBarColor = Background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography  = LissafiTypography,
-        shapes      = LissafiShapes,
-        content     = content
+        typography = LissafiTypography,
+        shapes = LissafiShapes,
+        content = content
     )
 }
