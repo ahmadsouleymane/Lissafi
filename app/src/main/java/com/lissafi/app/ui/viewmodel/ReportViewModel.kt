@@ -18,6 +18,12 @@ data class TopProduct(
     val count: Int
 )
 
+// Point de la série temporelle du chiffre d'affaires (pour la sparkline)
+data class RevenuePoint(
+    val date: Long,    // epoch millis du début du jour
+    val amount: Int    // CA total ce jour-là
+)
+
 data class ReportState(
     val period: ReportPeriod = ReportPeriod.TODAY,
     val totalVentes: Int = 0,
@@ -27,6 +33,7 @@ data class ReportState(
     val nbTransactions: Int = 0,
     val panierMoyen: Int = 0,
     val topProducts: List<TopProduct> = emptyList(),
+    val revenueSeries: List<RevenuePoint> = emptyList(),
     val isLoading: Boolean = false
 )
 
@@ -51,6 +58,14 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
             // Calcul du bénéfice estimé (somme des ventes - somme des prix d'achat)
             var profit = 0
             val sales = repository.getSalesBetween(start, end)
+
+            // Série temporelle du CA par jour (pour la sparkline de l'écran Activité).
+            // La liste des ventes est déjà en mémoire pour le calcul du profit — pas de requête en plus.
+            val revenueSeries = sales
+                .groupBy { startOfDay(it.date) }
+                .map { (day, daySales) -> RevenuePoint(day, daySales.sumOf { it.total }) }
+                .sortedBy { it.date }
+
             for (sale in sales) {
                 if (!sale.isCredit || sale.amountPaid > 0) {
                     val items = repository.getSaleItems(sale.id)
@@ -74,6 +89,7 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
                 nbTransactions = count,
                 panierMoyen = if (count > 0) total / count else 0,
                 topProducts = top.map { TopProduct(it.name, it.totalQty, it.count) },
+                revenueSeries = revenueSeries,
                 isLoading = false
             )
         }
@@ -100,5 +116,16 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
             }
         }
         return start to end
+    }
+
+    // Ramène un timestamp au début du jour (minuit) pour regrouper les ventes par jour
+    private fun startOfDay(epoch: Long): Long {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = epoch
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
 }
