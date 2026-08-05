@@ -4,13 +4,11 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,17 +26,16 @@ import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.service.PremiumManager
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
+import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
-import com.lissafi.app.ui.theme.Danger
-import com.lissafi.app.ui.theme.Green800
-import com.lissafi.app.ui.theme.LissafiCream
-import com.lissafi.app.ui.theme.LissafiGreen
-import com.lissafi.app.ui.theme.LissafiOrange
-import com.lissafi.app.ui.theme.LissafiWhite
-import com.lissafi.app.ui.theme.Neutral400
-import com.lissafi.app.ui.theme.Neutral500
-import com.lissafi.app.ui.theme.White
+import com.lissafi.app.ui.theme.Background
+import com.lissafi.app.ui.theme.Border
+import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.Primary
+import com.lissafi.app.ui.theme.Secondary
+import com.lissafi.app.ui.theme.Surface
+import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
@@ -85,19 +82,18 @@ fun AdminScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LissafiCream)
+            .background(Background)
     ) {
         LissafiHeader(
             title = "Administration",
             subtitle = "Zone du gérant",
-            leadingIcon = Icons.Filled.AdminPanelSettings,
             onBack = onBack
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             // ── STATUT ──
@@ -113,15 +109,15 @@ fun AdminScreen(
                             .size(46.dp)
                             .clip(CircleShape)
                             .background(
-                                if (state.isPremium) LissafiOrange.copy(alpha = 0.15f)
-                                else LissafiGreen.copy(alpha = 0.1f)
+                                if (state.isPremium) Primary.copy(alpha = 0.1f)
+                                else Secondary.copy(alpha = 0.1f)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (state.isPremium) Icons.Filled.Star else Icons.Filled.Shield,
+                            imageVector = if (state.isPremium) LissafiIcons.Boutique else LissafiIcons.Alerte,
                             contentDescription = null,
-                            tint = if (state.isPremium) LissafiOrange else LissafiGreen,
+                            tint = if (state.isPremium) Primary else Secondary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -136,13 +132,13 @@ fun AdminScreen(
                             Text(
                                 text = "Expire le ${FormatUtils.formatDate(state.premiumExpiry!!)}",
                                 fontSize = 13.sp,
-                                color = Neutral400
+                                color = TextSecondary
                             )
                         } else {
                             Text(
                                 text = "Produits et clients limités à 10",
                                 fontSize = 13.sp,
-                                color = Neutral400
+                                color = TextSecondary
                             )
                         }
                     }
@@ -154,7 +150,7 @@ fun AdminScreen(
             // ── ACTIVER PREMIUM ──
             SectionHeader(
                 text = "PREMIUM",
-                icon = Icons.Filled.Star,
+                icon = LissafiIcons.Boutique,
                 modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
             LissafiCard {
@@ -163,13 +159,13 @@ fun AdminScreen(
                         text = "Activer Premium",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = LissafiGreen
+                        color = Primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Entre le code d'activation pour débloquer les limites.",
                         fontSize = 12.sp,
-                        color = Neutral400
+                        color = TextSecondary
                     )
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
@@ -178,6 +174,13 @@ fun AdminScreen(
                         placeholder = { Text("Code d'activation") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Border,
+                            focusedContainerColor = Surface,
+                            unfocusedContainerColor = Surface,
+                            cursorColor = Primary
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(10.dp))
@@ -209,13 +212,13 @@ fun AdminScreen(
                         text = "Essayer Premium (7 jours)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = LissafiOrange
+                        color = Secondary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Teste toutes les fonctionnalités gratuitement.",
                         fontSize = 12.sp,
-                        color = Neutral400
+                        color = TextSecondary
                     )
                     Spacer(Modifier.height(10.dp))
                     PrimaryActionButton(
@@ -231,7 +234,7 @@ fun AdminScreen(
                                 ).show()
                             }
                         },
-                        containerColor = LissafiOrange,
+                        containerColor = Secondary,
                         height = 48
                     )
                 }
@@ -242,7 +245,7 @@ fun AdminScreen(
             // ── SYNCHRONISATION ──
             SectionHeader(
                 text = "SYNCHRONISATION",
-                icon = Icons.Filled.Cloud,
+                icon = LissafiIcons.Sync,
                 modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
             LissafiCard {
@@ -251,13 +254,13 @@ fun AdminScreen(
                         text = "Configuration Supabase",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = LissafiGreen
+                        color = Primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Permet de sauvegarder tes données sur le cloud.",
                         fontSize = 12.sp,
-                        color = Neutral400
+                        color = TextSecondary
                     )
                     Spacer(Modifier.height(12.dp))
                     var supabaseUrl by remember { mutableStateOf("") }
@@ -268,6 +271,13 @@ fun AdminScreen(
                         placeholder = { Text("URL Supabase") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Border,
+                            focusedContainerColor = Surface,
+                            unfocusedContainerColor = Surface,
+                            cursorColor = Primary
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
@@ -277,6 +287,13 @@ fun AdminScreen(
                         placeholder = { Text("Clé anonyme") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Border,
+                            focusedContainerColor = Surface,
+                            unfocusedContainerColor = Surface,
+                            cursorColor = Primary
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(10.dp))
@@ -298,7 +315,7 @@ fun AdminScreen(
             // ── INFOS ──
             SectionHeader(
                 text = "INFORMATIONS",
-                icon = Icons.Filled.Info,
+                icon = LissafiIcons.Info,
                 modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
             LissafiCard {
@@ -308,7 +325,7 @@ fun AdminScreen(
                     Text(
                         text = "Lissafi — Caisse intelligente pour petits commerçants",
                         fontSize = 12.sp,
-                        color = Neutral400
+                        color = TextSecondary
                     )
                 }
             }
@@ -331,16 +348,16 @@ private fun PinGate(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LissafiCream)
+            .background(Background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         IconButton(onClick = onBack, modifier = Modifier.align(Alignment.Start)) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = LissafiIcons.Retour,
                 contentDescription = "Retour",
-                tint = Neutral400
+                tint = TextSecondary
             )
         }
 
@@ -348,13 +365,13 @@ private fun PinGate(
             modifier = Modifier
                 .size(84.dp)
                 .clip(CircleShape)
-                .background(LissafiGreen.copy(alpha = 0.12f)),
+                .background(Primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.Lock,
+                imageVector = LissafiIcons.Motdepasse,
                 contentDescription = null,
-                tint = LissafiGreen,
+                tint = Primary,
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -363,13 +380,13 @@ private fun PinGate(
             text = "Zone du gérant",
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
-            color = Green800
+            color = Primary
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = "Entre le code PIN pour continuer",
             fontSize = 13.sp,
-            color = Neutral500
+            color = TextSecondary
         )
         Spacer(Modifier.height(24.dp))
 
@@ -387,12 +404,12 @@ private fun PinGate(
             ),
             isError = pinError,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = LissafiGreen,
-                unfocusedBorderColor = Neutral400,
-                errorBorderColor = Danger,
-                focusedContainerColor = White,
-                unfocusedContainerColor = White,
-                cursorColor = LissafiGreen
+                focusedBorderColor = Primary,
+                unfocusedBorderColor = TextSecondary,
+                errorBorderColor = Error,
+                focusedContainerColor = Surface,
+                unfocusedContainerColor = Surface,
+                cursorColor = Primary
             ),
             modifier = Modifier.width(200.dp)
         )
@@ -400,7 +417,7 @@ private fun PinGate(
         AnimatedVisibility(pinError) {
             Text(
                 text = "Code incorrect, réessaie.",
-                color = Danger,
+                color = Error,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(top = 8.dp)

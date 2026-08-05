@@ -1,19 +1,17 @@
 package com.lissafi.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,17 +19,17 @@ import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
+import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
-import com.lissafi.app.ui.theme.Danger
-import com.lissafi.app.ui.theme.LissafiCream
-import com.lissafi.app.ui.theme.LissafiGreen
-import com.lissafi.app.ui.theme.LissafiOrange
-import com.lissafi.app.ui.theme.LissafiWhite
-import com.lissafi.app.ui.theme.Neutral400
-import com.lissafi.app.ui.theme.Neutral500
-import com.lissafi.app.ui.theme.White
+import com.lissafi.app.ui.theme.Background
+import com.lissafi.app.ui.theme.Border
+import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.Primary
+import com.lissafi.app.ui.theme.Secondary
+import com.lissafi.app.ui.theme.Surface
+import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -50,25 +48,22 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LissafiCream)
+            .background(Background)
     ) {
         LissafiHeader(
-            title = "Paramètres",
+            title = "Réglages",
             subtitle = "Ta boutique et ton compte",
-            leadingIcon = Icons.Filled.Settings,
             onBack = onBack
         )
 
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
             // ── STATUT PREMIUM ──
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (state.isPremium) LissafiOrange.copy(alpha = 0.12f) else White
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
+            LissafiCard {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -80,15 +75,15 @@ fun SettingsScreen(
                             .size(46.dp)
                             .clip(CircleShape)
                             .background(
-                                if (state.isPremium) LissafiOrange.copy(alpha = 0.15f)
-                                else LissafiGreen.copy(alpha = 0.1f)
+                                if (state.isPremium) Primary.copy(alpha = 0.1f)
+                                else Secondary.copy(alpha = 0.1f)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (state.isPremium) Icons.Filled.Star else Icons.Filled.Shield,
+                            imageVector = if (state.isPremium) LissafiIcons.Boutique else LissafiIcons.Alerte,
                             contentDescription = null,
-                            tint = if (state.isPremium) LissafiOrange else LissafiGreen,
+                            tint = if (state.isPremium) Primary else Secondary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -105,14 +100,13 @@ fun SettingsScreen(
                             else
                                 "10 produits · 10 clients · historique 30 jours",
                             fontSize = 12.sp,
-                            color = Neutral400
+                            color = TextSecondary
                         )
                     }
-                    if (!state.isPremium) {
-                        StatusBadge(text = "Gratuit", color = LissafiOrange)
-                    } else {
-                        StatusBadge(text = "Premium", color = LissafiOrange)
-                    }
+                    StatusBadge(
+                        text = if (state.isPremium) "Premium" else "Gratuit",
+                        color = if (state.isPremium) Primary else Secondary
+                    )
                 }
             }
 
@@ -120,8 +114,8 @@ fun SettingsScreen(
 
             // ── MA BOUTIQUE ──
             SectionHeader(
-                text = "MA BOUTIQUE",
-                icon = Icons.Filled.Store,
+                text = "BOUTIQUE",
+                icon = LissafiIcons.Boutique,
                 modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
             )
             LissafiCard(onClick = { showShopDialog = true }) {
@@ -135,13 +129,13 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(LissafiGreen.copy(alpha = 0.1f)),
+                            .background(Primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Store,
+                            imageVector = LissafiIcons.Boutique,
                             contentDescription = null,
-                            tint = LissafiGreen,
+                            tint = Primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -155,13 +149,13 @@ fun SettingsScreen(
                         Text(
                             text = state.shopPhone.ifBlank { "Téléphone non renseigné" },
                             fontSize = 12.sp,
-                            color = Neutral400
+                            color = TextSecondary
                         )
                     }
                     Icon(
-                        imageVector = Icons.Filled.Edit,
+                        imageVector = LissafiIcons.Modifier,
                         contentDescription = "Modifier la boutique",
-                        tint = LissafiGreen,
+                        tint = Primary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -171,8 +165,8 @@ fun SettingsScreen(
 
             // ── MON COMPTE ──
             SectionHeader(
-                text = "MON COMPTE",
-                icon = Icons.Filled.Person,
+                text = "COMPTE",
+                icon = LissafiIcons.Client,
                 modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
             )
             LissafiCard {
@@ -186,13 +180,13 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(LissafiGreen.copy(alpha = 0.1f)),
+                            .background(Primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Email,
+                            imageVector = LissafiIcons.Email,
                             contentDescription = null,
-                            tint = LissafiGreen,
+                            tint = Primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -207,7 +201,7 @@ fun SettingsScreen(
                         Text(
                             text = "Connecté à Lissafi",
                             fontSize = 12.sp,
-                            color = Neutral400
+                            color = TextSecondary
                         )
                     }
                     TextButton(
@@ -220,7 +214,7 @@ fun SettingsScreen(
                     ) {
                         Text(
                             text = "Quitter",
-                            color = Danger,
+                            color = Error,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -233,7 +227,7 @@ fun SettingsScreen(
             // ── ADMINISTRATION ──
             SectionHeader(
                 text = "ADMINISTRATION",
-                icon = Icons.Filled.AdminPanelSettings,
+                icon = LissafiIcons.Motdepasse,
                 modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
             )
             LissafiCard(onClick = onNavigateToAdmin) {
@@ -247,13 +241,13 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(LissafiGreen.copy(alpha = 0.1f)),
+                            .background(Primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.AdminPanelSettings,
+                            imageVector = LissafiIcons.Motdepasse,
                             contentDescription = null,
-                            tint = LissafiGreen,
+                            tint = Primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -267,14 +261,16 @@ fun SettingsScreen(
                         Text(
                             text = "Premium, synchronisation, réglages avancés",
                             fontSize = 12.sp,
-                            color = Neutral400
+                            color = TextSecondary
                         )
                     }
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        imageVector = LissafiIcons.Retour,
                         contentDescription = null,
-                        tint = LissafiGreen,
-                        modifier = Modifier.size(20.dp)
+                        tint = Primary,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(180f) // flèche vers l'avant
                     )
                 }
             }
@@ -312,9 +308,9 @@ private fun ShopInfoDialog(
         shape = RoundedCornerShape(26.dp),
         icon = {
             Icon(
-                imageVector = Icons.Filled.Store,
+                imageVector = LissafiIcons.Boutique,
                 contentDescription = null,
-                tint = LissafiGreen,
+                tint = Primary,
                 modifier = Modifier.size(34.dp)
             )
         },
@@ -325,7 +321,7 @@ private fun ShopInfoDialog(
                 Text(
                     text = "Ces informations apparaîtront sur tes reçus.",
                     fontSize = 12.sp,
-                    color = Neutral400
+                    color = TextSecondary
                 )
             }
         },
@@ -337,6 +333,13 @@ private fun ShopInfoDialog(
                     label = { Text("Nom de la boutique") },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Border,
+                        focusedContainerColor = Surface,
+                        unfocusedContainerColor = Surface,
+                        cursorColor = Primary
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(10.dp))
@@ -346,6 +349,13 @@ private fun ShopInfoDialog(
                     label = { Text("Téléphone") },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Border,
+                        focusedContainerColor = Surface,
+                        unfocusedContainerColor = Surface,
+                        cursorColor = Primary
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -357,7 +367,7 @@ private fun ShopInfoDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annuler", color = Neutral500) }
+            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
         }
     )
 }
