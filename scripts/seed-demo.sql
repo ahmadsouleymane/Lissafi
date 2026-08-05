@@ -37,26 +37,35 @@ BEGIN
   SELECT id INTO uid FROM auth.users WHERE email = 'demo@lissafi.app';
   IF uid IS NULL THEN
     INSERT INTO auth.users
-      (id, email, encrypted_password, email_confirmed_at, aud, role)
+      (id, email, encrypted_password, email_confirmed_at, aud, role,
+       raw_app_meta_data, raw_user_meta_data)
     VALUES
-      (gen_random_uuid(), 'demo@lissafi.app', crypt('demo123456', gen_salt('bf')), now(), 'authenticated', 'authenticated')
+      (gen_random_uuid(), 'demo@lissafi.app', crypt('demo123456', gen_salt('bf')), now(),
+       'authenticated', 'authenticated',
+       jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+       '{}'::jsonb)
     RETURNING id INTO uid;
   END IF;
 
-  -- Mot de passe toujours remis à zéro (utile si on relance après un test)
+  -- Réparer un compte existant : mot de passe + confirmation + métadonnées
   UPDATE auth.users
      SET encrypted_password = crypt('demo123456', gen_salt('bf')),
          email_confirmed_at = COALESCE(email_confirmed_at, now()),
          aud                = 'authenticated',
-         role               = 'authenticated'
+         role               = 'authenticated',
+         raw_app_meta_data  = jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+         raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb)
    WHERE email = 'demo@lissafi.app';
 
-  -- Ligne identities (nécessaire sur les versions récentes de GoTrue)
+  -- Identity email propre (comme GoTrue) — recréée à chaque run
+  DELETE FROM auth.identities WHERE user_id = uid;
   INSERT INTO auth.identities
     (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   VALUES
-    (uid::text, uid, jsonb_build_object('sub', uid::text, 'email', 'demo@lissafi.app'), 'email', now(), now(), now())
-  ON CONFLICT DO NOTHING;
+    (uid::text, uid,
+     jsonb_build_object('sub', uid::text, 'email', 'demo@lissafi.app',
+                        'email_verified', true, 'phone_verified', false),
+     'email', now(), now(), now());
 
   RAISE NOTICE 'Compte démo : demo@lissafi.app / demo123456 (uid %)', uid;
 
