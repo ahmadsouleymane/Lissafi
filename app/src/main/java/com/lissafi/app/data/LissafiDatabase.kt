@@ -406,9 +406,11 @@ class LissafiDatabase private constructor(context: Context) :
 
     // ==================== SYNC HELPERS ====================
 
-    suspend fun getUnsyncedSales(): List<Sale> = withContext(Dispatchers.IO) {
+    suspend fun getUnsyncedSales(userId: String = ""): List<Sale> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Sale>()
-        readableDatabase.rawQuery("SELECT * FROM sales WHERE synced = 0 ORDER BY date ASC", null).use { cursor ->
+        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId) else null
+        readableDatabase.rawQuery("SELECT * FROM sales WHERE synced = 0 $where ORDER BY date ASC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toSale())
         }
         list

@@ -56,7 +56,7 @@ class SupabaseApi(private val context: Context) {
     private val baseUrl get() = SupabaseManager.getUrl(context)
     private val anonKey get() = SupabaseManager.getAnonKey(context)
     private val token get() = SupabaseManager.getAccessToken(context)
-    val isConfigured: Boolean get() = true
+    val isConfigured: Boolean get() = SupabaseManager.getUrl(context).isNotBlank() && SupabaseManager.getAnonKey(context).isNotBlank()
     val currentUserId: String get() = SupabaseManager.currentUserId(context) ?: ""
     val hasValidSession: Boolean get() = SupabaseManager.hasValidSession(context)
 
@@ -155,8 +155,8 @@ class SupabaseApi(private val context: Context) {
             t?.let { header("Authorization", "Bearer $it") }
             header("Prefer", "return=representation")
             contentType(ContentType.Application.Json)
-            // id = 0 → champ omis par le sérialiseur → le serveur génère l'id (BIGSERIAL)
-            setBody(sale.copy(id = 0))
+            // encodeDefaults=false → id=0 (valeur par défaut) n'est pas sérialisé → le serveur génère l'id (BIGSERIAL)
+            setBody(sale)
         }
         ensureSuccess(response, "insertSale")
         val inserted = response.body<List<Sale>>().firstOrNull()

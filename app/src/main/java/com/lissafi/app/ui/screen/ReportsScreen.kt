@@ -39,7 +39,7 @@ import com.lissafi.app.ui.viewmodel.ReportPeriod
 import com.lissafi.app.ui.viewmodel.ReportState
 import com.lissafi.app.ui.viewmodel.ReportViewModel
 import com.lissafi.app.ui.viewmodel.RevenuePoint
-import com.lissafi.app.ui.viewmodel.TopProduct
+import com.lissafi.app.data.LissafiDatabase.TopProduct
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer

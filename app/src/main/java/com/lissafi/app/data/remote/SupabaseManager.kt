@@ -36,6 +36,7 @@ object SupabaseManager {
                         ignoreUnknownKeys = true
                         isLenient = true
                         coerceInputValues = true
+                        encodeDefaults = false  // ne sérialise pas id=0, laisse le BIGSERIAL du serveur générer l'id
                     })
                 }
             }.also { httpClient = it }

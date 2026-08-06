@@ -35,21 +35,6 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.*
 
 // ============================================================
-// ESPACEMENT — Grille 4dp
-// ============================================================
-object LissafiSpacing {
-    val XXS = 2.dp
-    val XS = 4.dp
-    val SM = 8.dp
-    val MD = 12.dp
-    val LG = 16.dp
-    val XL = 20.dp
-    val XXL = 24.dp
-    val XXXL = 32.dp
-    val screen = 16.dp
-}
-
-// ============================================================
 // ICÔNES — Mapping Lucide
 // API : com.composables.icons.lucide.Lucide — chaque icône est une
 // propriété d'extension `val Lucide.Store: ImageVector`.
@@ -87,10 +72,8 @@ object LissafiIcons {
     val Produit    = Lucide.Package
     val Client     = Lucide.User
     val Boutique   = Lucide.Building2
-    val Telephone  = Lucide.Phone
     val Email      = Lucide.Mail
     val Motdepasse = Lucide.Lock
-    val Logout     = Lucide.LogOut
 
     // Statut
     val Sync       = Lucide.Cloud
@@ -99,12 +82,9 @@ object LissafiIcons {
     val Alerte     = Lucide.TriangleAlert   // ex AlertTriangle
     val Succes     = Lucide.CircleCheck     // ex CheckCircle2
     val Erreur     = Lucide.CircleAlert     // ex AlertCircle
-    val Tendance   = Lucide.TrendingUp
-    val Baisse     = Lucide.TrendingDown
     val Recents    = Lucide.Clock
     val Info       = Lucide.Info
     val Version    = Lucide.FileText
-    val Conditions = Lucide.ScrollText
 }
 
 // ============================================================

@@ -177,14 +177,16 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             composable(Routes.PRODUCTS) {
                 ProductsScreen(
                     viewModel = productViewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
                 )
             }
             composable(Routes.CLIENTS) {
                 ClientsScreen(
                     viewModel = clientViewModel,
                     onClientClick = { clientId -> navController.navigate(Routes.clientDetail(clientId)) },
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
                 )
             }
             composable(
@@ -210,7 +212,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     authManager = authManager,
                     onBack = { navController.popBackStack() },
                     onNavigateToAdmin = { navController.navigate(Routes.ADMIN) },
-                    onSignOut = {}
+                    onSignOut = { authViewModel.signOut() }
                 )
             }
             composable(Routes.ADMIN) {

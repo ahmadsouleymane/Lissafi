@@ -53,7 +53,7 @@ private enum class ClientFilter(val label: String) {
 }
 
 @Composable
-fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, onBack: () -> Unit) {
+fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, onBack: () -> Unit, onNavigateToUpgrade: () -> Unit = {}) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
@@ -176,8 +176,8 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
         PremiumLimitDialog(
             message = "Passe à Lissafi Premium pour ajouter autant de clients que tu veux. Sans limite.",
             onUpgrade = {
-                // TODO : brancher la navigation vers la page Premium / Admin
                 showPremiumDialog = false
+                onNavigateToUpgrade()
             },
             onDismiss = { showPremiumDialog = false }
         )

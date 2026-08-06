@@ -43,9 +43,6 @@ class CartViewModel(
     private val _state = MutableStateFlow(CartState())
     val state: StateFlow<CartState> = _state.asStateFlow()
 
-    private val _lastSaleChange = MutableStateFlow(0)
-    val lastSaleChange: StateFlow<Int> = _lastSaleChange.asStateFlow()
-
     private val _scanResult = MutableStateFlow<String?>(null)
     val scanResult: StateFlow<String?> = _scanResult.asStateFlow()
 
@@ -88,18 +85,6 @@ class CartViewModel(
             currentItems.add(CartItem(product.barcode, product.name, product.sellPrice, 1.0))
         }
         _state.value = _state.value.copy(items = currentItems, total = computeTotal(currentItems))
-    }
-
-    fun addProductDirectly(product: Product) {
-        viewModelScope.launch {
-            // Vérifier la limite gratuite AVANT d'ajouter (bug corrigé)
-            if (!premiumManager.isPremium() && !premiumManager.canAddProduct()) {
-                return@launch // Limite atteinte, ignoré
-            }
-            addToCart(product)
-            repository.upsertProduct(product)
-            loadRecentProducts()
-        }
     }
 
     fun updateQuantity(index: Int, quantity: Double) {
@@ -146,7 +131,7 @@ class CartViewModel(
         val sale = Sale(
             date = System.currentTimeMillis(),
             total = s.total,
-            amountPaid = if (s.isCredit) s.total else amountPaid,
+            amountPaid = if (s.isCredit) 0 else amountPaid,
             changeGiven = if (s.isCredit) 0 else amountPaid - s.total,
             isCredit = s.isCredit,
             clientId = s.selectedClient?.id
@@ -182,7 +167,6 @@ class CartViewModel(
             repository.addDebtTransaction(debtTxn)
         }
 
-        _lastSaleChange.value = if (s.isCredit) 0 else amountPaid - s.total
         _lastSale.value = LastSale(
             items = s.items.toList(),
             total = s.total,

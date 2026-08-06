@@ -277,17 +277,21 @@ AS $func$
 $func$;
 
 -- Journal des connexions/auth (auth.audit_log_entries)
--- Note : cette table n'a pas de colonne auth_event — le type d'événement
--- est stocké dans payload->>'action' (JSON), et le payload entier est `json`.
+-- Schéma RÉEL Supabase : instance_id, id, payload (json), created_at, ip_address.
+-- Il n'y a NI colonne auth_event NI colonne user_id : l'événement est dans
+-- payload->>'action' et l'utilisateur concerné dans payload->>'user_id'.
 CREATE OR REPLACE FUNCTION public.admin_audit_logs(from_ts bigint DEFAULT 0, to_ts bigint DEFAULT 0, lim int DEFAULT 500)
 RETURNS TABLE(created_at timestamptz, auth_event text, ip text, user_id uuid, payload jsonb)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = auth
 AS $func$
     SELECT a.created_at,
            a.payload->>'action' AS auth_event,
-           a.ip_address::text,
-           a.user_id,
-           a.payload::jsonb
+           a.ip_address::text AS ip,
+           -- user_id vit dans le payload ; cast sécurisé (UUID valide ou NULL)
+           CASE WHEN a.payload->>'user_id' ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+                THEN (a.payload->>'user_id')::uuid
+                ELSE NULL END AS user_id,
+           a.payload::jsonb AS payload
     FROM auth.audit_log_entries a
     WHERE a.created_at >= CASE WHEN from_ts = 0 THEN '1970-01-01' ELSE to_timestamp(from_ts / 1000.0) END
       AND a.created_at <= CASE WHEN to_ts = 0 THEN now() ELSE to_timestamp(to_ts / 1000.0) END

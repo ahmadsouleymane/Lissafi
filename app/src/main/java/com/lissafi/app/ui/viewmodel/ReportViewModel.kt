@@ -2,7 +2,7 @@ package com.lissafi.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lissafi.app.data.LissafiDatabase
+import com.lissafi.app.data.LissafiDatabase.TopProduct
 import com.lissafi.app.data.repository.LissafiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,12 +11,6 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 enum class ReportPeriod { TODAY, WEEK, MONTH }
-
-data class TopProduct(
-    val name: String,
-    val totalQty: Double,
-    val count: Int
-)
 
 // Point de la série temporelle du chiffre d'affaires (pour la sparkline)
 data class RevenuePoint(
@@ -88,7 +82,7 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
                 estimatedProfit = profit,
                 nbTransactions = count,
                 panierMoyen = if (count > 0) total / count else 0,
-                topProducts = top.map { TopProduct(it.name, it.totalQty, it.count) },
+                topProducts = top,
                 revenueSeries = revenueSeries,
                 isLoading = false
             )

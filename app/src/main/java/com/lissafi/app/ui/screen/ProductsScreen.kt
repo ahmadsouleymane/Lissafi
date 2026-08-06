@@ -57,7 +57,7 @@ private fun isStockAlert(p: Product): Boolean =
     p.stock == 0 || p.stock <= p.minStock
 
 @Composable
-fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
+fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateToUpgrade: () -> Unit = {}) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -186,8 +186,8 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit) {
         PremiumLimitDialog(
             message = "Passe à Lissafi Premium pour ajouter autant de produits que tu veux. Sans limite.",
             onUpgrade = {
-                // TODO : brancher la navigation vers la page Premium / Admin
                 showPremiumDialog = false
+                onNavigateToUpgrade()
             },
             onDismiss = { showPremiumDialog = false }
         )
@@ -343,6 +343,8 @@ fun ProductFormDialog(
         mutableStateOf(if (initialProduct?.hasBarcode == true) initialProduct.barcode else "")
     }
     var showPriceWarning by remember { mutableStateOf(false) }
+    var showNameError by remember { mutableStateOf(false) }
+    var showSellPriceError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -368,8 +370,10 @@ fun ProductFormDialog(
             Column {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { name = it; showNameError = false },
                     label = { Text("Nom du produit *") },
+                    isError = showNameError,
+                    supportingText = if (showNameError) {{ Text("Le nom est obligatoire.", color = Error, fontSize = 12.sp) }} else null,
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -380,9 +384,18 @@ fun ProductFormDialog(
                     onValueChange = {
                         sellPrice = it
                         showPriceWarning = false
+                        showSellPriceError = false
                     },
                     label = "Prix de vente *"
                 )
+                if (showSellPriceError) {
+                    Text(
+                        text = "Le prix de vente est obligatoire.",
+                        color = Error,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
                 Spacer(Modifier.height(10.dp))
                 AmountField(
                     value = buyPrice,
@@ -451,30 +464,40 @@ fun ProductFormDialog(
                 onClick = {
                     val sPrice = sellPrice.toIntOrNull() ?: 0
                     val bPrice = buyPrice.toIntOrNull() ?: 0
+                    // Validation
+                    var valid = true
                     if (bPrice > 0 && bPrice >= sPrice) {
                         showPriceWarning = true
-                        return@PrimaryActionButton
+                        valid = false
                     }
-                    if (name.isNotBlank() && sPrice > 0) {
-                        val barcode = when {
-                            initialProduct != null -> initialProduct.barcode
-                            hasBarcode && barcodeText.isNotBlank() -> barcodeText.trim()
-                            else -> "MANUAL-${System.currentTimeMillis()}"
-                        }
-                        onSave(
-                            Product(
-                                barcode = barcode,
-                                name = name.trim(),
-                                sellPrice = sPrice,
-                                buyPrice = bPrice,
-                                stock = stock.toIntOrNull() ?: (initialProduct?.stock ?: 0),
-                                category = category.trim(),
-                                hasBarcode = hasBarcode && barcodeText.isNotBlank(),
-                                createdAt = initialProduct?.createdAt ?: System.currentTimeMillis(),
-                                updatedAt = System.currentTimeMillis()
-                            )
+                    if (name.isBlank()) {
+                        showNameError = true
+                        valid = false
+                    }
+                    if (sPrice <= 0) {
+                        showSellPriceError = true
+                        valid = false
+                    }
+                    if (!valid) return@PrimaryActionButton
+
+                    val barcode = when {
+                        initialProduct != null -> initialProduct.barcode
+                        hasBarcode && barcodeText.isNotBlank() -> barcodeText.trim()
+                        else -> "MANUAL-${System.currentTimeMillis()}"
+                    }
+                    onSave(
+                        Product(
+                            barcode = barcode,
+                            name = name.trim(),
+                            sellPrice = sPrice,
+                            buyPrice = bPrice,
+                            stock = stock.toIntOrNull() ?: (initialProduct?.stock ?: 0),
+                            category = category.trim(),
+                            hasBarcode = hasBarcode && barcodeText.isNotBlank(),
+                            createdAt = initialProduct?.createdAt ?: System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis()
                         )
-                    }
+                    )
                 }
             )
         },

@@ -92,12 +92,6 @@ class LissafiRepository(
         syncToRemote { api.upsertClient(c) }
     }
 
-    suspend fun updateClient(client: Client) {
-        val c = client.copy(userId = currentUserId)
-        db.updateClient(c)
-        syncToRemote { api.upsertClient(c) }
-    }
-
     // --- Dettes ---
 
     suspend fun getDebtTransactions(clientId: String): List<DebtTransaction> =

@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 data class SettingsState(
     val shopName: String = "",
     val shopPhone: String = "",
+    val adminPin: String = "1234",
     val isPremium: Boolean = false,
     val premiumExpiry: Long? = null,
     val premiumExpiryText: String = "",
@@ -32,12 +33,14 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
         viewModelScope.launch {
             val shopName = repository.getShopName()
             val shopPhone = repository.getShopPhone()
+            val adminPin = repository.getAdminPin()
             val premium = repository.isPremium()
             val expiry = repository.getPremiumExpiry()
 
             _state.value = _state.value.copy(
                 shopName = shopName,
                 shopPhone = shopPhone,
+                adminPin = adminPin,
                 isPremium = premium,
                 premiumExpiry = expiry,
                 premiumExpiryText = if (expiry != null) FormatUtils.formatDate(expiry) else ""
@@ -56,5 +59,14 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
                 isSaving = false
             )
         }
+    }
+
+    fun changeAdminPin(newPin: String): Boolean {
+        if (newPin.length != 4 || !newPin.all { it.isDigit() }) return false
+        viewModelScope.launch {
+            repository.setSetting("admin_pin", newPin)
+            _state.value = _state.value.copy(adminPin = newPin)
+        }
+        return true
     }
 }

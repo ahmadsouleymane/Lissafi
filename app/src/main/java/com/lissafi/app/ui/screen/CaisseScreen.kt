@@ -58,6 +58,7 @@ import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.SegmentedControl
+import com.lissafi.app.ui.components.SyncIndicator
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
@@ -176,6 +177,11 @@ fun CaisseScreen(
                     }
                 }
             )
+
+            // ── INDICATEUR SYNCHRO ──
+            if (syncStatus != SyncStatus.IDLE) {
+                SyncIndicator(status = syncStatus)
+            }
 
             // ── AIDE PREMIÈRE UTILISATION ──
             AnimatedVisibility(

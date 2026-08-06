@@ -9,7 +9,6 @@ import android.util.Log
 import com.lissafi.app.data.LissafiDatabase
 import com.lissafi.app.data.entity.*
 import com.lissafi.app.data.remote.SupabaseApi
-import com.lissafi.app.data.remote.SupabaseException
 import com.lissafi.app.data.remote.SupabaseManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -173,21 +172,24 @@ class SyncManager(
     // ==================== PUSH (local → Supabase) ====================
 
     private suspend fun pushProducts() {
-        val all = db.getAllProducts()
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val all = db.getAllProducts(userId)
         if (all.isEmpty()) return
         api.upsertProducts(all)
         Log.d(TAG, "Push produits: ${all.size} envoyés")
     }
 
     private suspend fun pushClients() {
-        val all = db.getAllClients()
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val all = db.getAllClients(userId)
         if (all.isEmpty()) return
         api.upsertClients(all)
         Log.d(TAG, "Push clients: ${all.size} envoyés")
     }
 
     private suspend fun pushSales() {
-        val unsynced = db.getUnsyncedSales()
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val unsynced = db.getUnsyncedSales(userId)
         for (sale in unsynced) {
             val items = db.getSaleItems(sale.id)
             val remoteId = api.insertSale(sale, items)
@@ -201,9 +203,8 @@ class SyncManager(
     }
 
     private suspend fun pushDebtTransactions() {
-        // Les transactions de dette sont poussées une par une (leur id est un autoincrement local,
-        // donc on force l'upsert sans dépendre de l'id).
-        val allClients = db.getAllClients()
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val allClients = db.getAllClients(userId)
         for (client in allClients) {
             val txns = db.getDebtTransactions(client.id)
             for (txn in txns) {

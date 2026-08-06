@@ -3,6 +3,7 @@ package com.lissafi.app.ui.screen
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -39,8 +40,6 @@ import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
-private const val ADMIN_PIN = "1234"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminScreen(
@@ -57,6 +56,9 @@ fun AdminScreen(
     var pinInput by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf(false) }
 
+    // PIN stocké en base (modifiable), fallback "1234" si jamais configuré
+    val adminPin = state.adminPin.ifBlank { "1234" }
+
     if (!pinVerified) {
         PinGate(
             pinInput = pinInput,
@@ -65,7 +67,7 @@ fun AdminScreen(
                 pinInput = value.filter { c -> c.isDigit() }.take(4)
                 pinError = false
                 if (pinInput.length == 4) {
-                    if (pinInput == ADMIN_PIN) {
+                    if (pinInput == adminPin) {
                         pinVerified = true
                     } else {
                         pinError = true
@@ -303,6 +305,84 @@ fun AdminScreen(
                             if (supabaseUrl.isNotBlank() && supabaseKey.isNotBlank()) {
                                 SupabaseManager.configure(context, supabaseUrl.trim(), supabaseKey.trim())
                                 Toast.makeText(context, "Supabase configuré !", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        height = 48
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── SÉCURITÉ ──
+            SectionHeader(
+                text = "SÉCURITÉ",
+                icon = LissafiIcons.Alerte,
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            )
+            LissafiCard {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Changer le code PIN",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Protège l'accès à cette zone d'administration.",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    var newPin by remember { mutableStateOf("") }
+                    var confirmPin by remember { mutableStateOf("") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = newPin,
+                            onValueChange = { newPin = it.filter { c -> c.isDigit() }.take(4) },
+                            placeholder = { Text("Nouveau PIN") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Primary,
+                                unfocusedBorderColor = Border,
+                                focusedContainerColor = Surface,
+                                unfocusedContainerColor = Surface,
+                                cursorColor = Primary
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = confirmPin,
+                            onValueChange = { confirmPin = it.filter { c -> c.isDigit() }.take(4) },
+                            placeholder = { Text("Confirme") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Primary,
+                                unfocusedBorderColor = Border,
+                                focusedContainerColor = Surface,
+                                unfocusedContainerColor = Surface,
+                                cursorColor = Primary
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    PrimaryActionButton(
+                        text = "CHANGER LE PIN",
+                        onClick = {
+                            if (newPin.length == 4 && newPin == confirmPin) {
+                                val ok = viewModel.changeAdminPin(newPin)
+                                Toast.makeText(
+                                    context,
+                                    if (ok) "PIN modifié." else "PIN invalide (4 chiffres requis).",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                if (ok) { newPin = ""; confirmPin = "" }
+                            } else {
+                                Toast.makeText(context, "Les deux PIN ne correspondent pas.", Toast.LENGTH_SHORT).show()
                             }
                         },
                         height = 48
