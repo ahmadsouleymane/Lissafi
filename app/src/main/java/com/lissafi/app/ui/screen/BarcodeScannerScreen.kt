@@ -1,6 +1,11 @@
 package com.lissafi.app.ui.screen
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.util.Size
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -52,10 +57,69 @@ fun BarcodeScannerScreen(
     var torchOn by remember { mutableStateOf(false) }
     var camera by remember { mutableStateOf<Camera?>(null) }
     var showManualEntry by remember { mutableStateOf(false) }
+    var cameraPermissionGranted by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        cameraPermissionGranted = granted
+        if (!granted) {
+            Toast.makeText(context, "La caméra est nécessaire pour scanner les codes-barres.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // ── APERÇU CAMÉRA ──
-        AndroidView(
+        // ── PERMISSION CAMÉRA NON ACCORDÉE ──
+        if (!cameraPermissionGranted) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.QrCodeScanner,
+                    contentDescription = null,
+                    tint = LissafiWhite,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "L'app a besoin d'accéder à la caméra pour scanner les codes-barres.",
+                    color = LissafiWhite,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                    colors = ButtonDefaults.buttonColors(containerColor = LissafiGreen)
+                ) {
+                    Text("Autoriser la caméra")
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .statusBarsPadding(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Fermer",
+                        tint = LissafiWhite,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+        } else {
+            // ── APERÇU CAMÉRA ──
+            AndroidView(
             factory = { ctx ->
                 PreviewView(ctx).apply {
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
@@ -193,7 +257,8 @@ fun BarcodeScannerScreen(
                 )
             }
         }
-    }
+    } // fin du else (permission accordée)
+}
 
     // ── SAISIE MANUELLE ──
     if (showManualEntry) {

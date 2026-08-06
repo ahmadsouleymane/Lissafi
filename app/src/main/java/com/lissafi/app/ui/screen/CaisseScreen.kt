@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -120,6 +121,14 @@ fun CaisseScreen(
     val btLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { showBluetoothPicker = true }
+
+    // Permission Bluetooth (Android 12+)
+    val btPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) showBluetoothPicker = true
+        else Toast.makeText(context, "Active le Bluetooth dans les réglages pour imprimer.", Toast.LENGTH_LONG).show()
+    }
 
     // Date du jour formatée
     val todayString = remember {
@@ -527,7 +536,17 @@ fun CaisseScreen(
             onImprimer = {
                 val adapter = BluetoothAdapter.getDefaultAdapter()
                 if (adapter != null && adapter.isEnabled) {
-                    showBluetoothPicker = true
+                    // Android 12+ : permission BLUETOOTH_CONNECT obligatoire
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT)
+                            == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            showBluetoothPicker = true
+                        } else {
+                            btPermissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
+                        }
+                    } else {
+                        showBluetoothPicker = true
+                    }
                 } else {
                     btLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                 }
