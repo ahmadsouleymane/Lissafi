@@ -94,6 +94,15 @@ fun CaisseScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // Charger les infos de la boutique pour le reçu
+    var shopName by remember { mutableStateOf("LISSAFI") }
+    var shopPhone by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        val app = context.applicationContext as LissafiApp
+        shopName = app.database.getSetting("shop_name")?.ifBlank { null } ?: "LISSAFI"
+        shopPhone = app.database.getSetting("shop_phone") ?: ""
+    }
+
     var showEncaisseSheet by remember { mutableStateOf(false) }
     var showScannerScreen by remember { mutableStateOf(false) }
     var showReceiptSheet by remember { mutableStateOf(false) }
@@ -513,6 +522,8 @@ fun CaisseScreen(
     if (showReceiptSheet && currentReceipt != null) {
         ReceiptSheet(
             sale = currentReceipt!!,
+            shopName = shopName,
+            shopPhone = shopPhone,
             onImprimer = {
                 val adapter = BluetoothAdapter.getDefaultAdapter()
                 if (adapter != null && adapter.isEnabled) {
@@ -522,7 +533,7 @@ fun CaisseScreen(
                 }
             },
             onWhatsApp = {
-                val receiptText = buildReceiptText(currentReceipt!!, context)
+                val receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone)
                 ReceiptService.shareViaWhatsApp(context, receiptText)
                 (context.applicationContext as LissafiApp).supabaseApi.logEvent(
                     eventType = "receipt",
@@ -531,7 +542,7 @@ fun CaisseScreen(
                 )
             },
             onPartager = {
-                val receiptText = buildReceiptText(currentReceipt!!, context)
+                val receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone)
                 ReceiptService.shareText(context, receiptText)
                 (context.applicationContext as LissafiApp).supabaseApi.logEvent(
                     eventType = "receipt",
@@ -549,7 +560,7 @@ fun CaisseScreen(
         val printers = remember { ReceiptService.getPairedPrinters() }
         BluetoothPrinterSheet(
             printers = printers,
-            receiptText = buildReceiptText(currentReceipt!!, context),
+            receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone),
             onDismiss = { showBluetoothPicker = false }
         )
     }
@@ -946,13 +957,15 @@ private fun EncaisseSheet(
 @Composable
 private fun ReceiptSheet(
     sale: LastSale,
+    shopName: String = "LISSAFI",
+    shopPhone: String = "",
     onImprimer: () -> Unit,
     onWhatsApp: () -> Unit,
     onPartager: () -> Unit,
     onFermer: () -> Unit
 ) {
     val context = LocalContext.current
-    val receiptText = remember { buildReceiptText(sale, context) }
+    val receiptText = remember(sale, shopName, shopPhone) { buildReceiptText(sale, context, shopName, shopPhone) }
 
     ModalBottomSheet(
         onDismissRequest = onFermer,
@@ -1258,16 +1271,22 @@ private fun ClientPickerSheet(
                     Button(
                         onClick = {
                             if (newName.isNotBlank()) {
-                                val client = Client(
-                                    id = java.util.UUID.randomUUID().toString(),
-                                    name = newName.trim(),
-                                    phone = newPhone.trim(),
-                                    totalDebt = 0,
-                                    createdAt = System.currentTimeMillis(),
-                                    updatedAt = System.currentTimeMillis()
-                                )
-                                scope.launch { app.database.upsertClient(client) }
-                                onClientSelected(client)
+                                scope.launch {
+                                    if (!viewModel.canAddClient()) {
+                                        Toast.makeText(ctx, "Limite atteinte. Passe à Premium pour ajouter plus de clients.", Toast.LENGTH_LONG).show()
+                                        return@launch
+                                    }
+                                    val client = Client(
+                                        id = java.util.UUID.randomUUID().toString(),
+                                        name = newName.trim(),
+                                        phone = newPhone.trim(),
+                                        totalDebt = 0,
+                                        createdAt = System.currentTimeMillis(),
+                                        updatedAt = System.currentTimeMillis()
+                                    )
+                                    app.database.upsertClient(client)
+                                    onClientSelected(client)
+                                }
                             }
                         },
                         modifier = Modifier
@@ -1281,7 +1300,15 @@ private fun ClientPickerSheet(
                 SecondaryActionButton(
                     text = "Nouveau client",
                     icon = LissafiIcons.Ajouter,
-                    onClick = { showNewClientForm = true },
+                    onClick = {
+                        scope.launch {
+                            if (!viewModel.canAddClient()) {
+                                Toast.makeText(ctx, "Limite atteinte. Passe à Premium pour ajouter plus de clients.", Toast.LENGTH_LONG).show()
+                            } else {
+                                showNewClientForm = true
+                            }
+                        }
+                    },
                     height = 48
                 )
                 Spacer(Modifier.height(10.dp))
@@ -1367,11 +1394,11 @@ private fun ClientPickerSheet(
 // ============================================================
 // TEXTE DU REÇU — fonction publique utilisée par ReceiptService
 // ============================================================
-fun buildReceiptText(sale: LastSale, context: Context): String {
+fun buildReceiptText(sale: LastSale, context: Context, shopName: String = "LISSAFI", shopPhone: String = ""): String {
     return ReceiptService.formatReceipt(
         ReceiptService.ReceiptData(
-            shopName = "LISSAFI",
-            shopPhone = "",
+            shopName = shopName.ifBlank { "LISSAFI" },
+            shopPhone = shopPhone,
             date = sale.date,
             items = sale.items.map { ReceiptService.ReceiptItem(it.name, it.quantity, it.price) },
             total = sale.total,

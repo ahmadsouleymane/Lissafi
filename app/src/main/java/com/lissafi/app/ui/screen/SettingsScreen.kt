@@ -367,8 +367,7 @@ fun SettingsScreen(
             )
             LissafiCard(
                 onClick = if (state.isPremium) {
-                    // TODO : écran de personnalisation du reçu
-                    { Toast.makeText(context, "Bientôt disponible", Toast.LENGTH_SHORT).show() }
+                    { showShopDialog = true }
                 } else null
             ) {
                 Row(
@@ -396,7 +395,7 @@ fun SettingsScreen(
                     }
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Personnalisation du reçu",
+                        text = "Nom et téléphone sur le reçu",
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
                         color = if (state.isPremium) OnBackground else TextSecondary,

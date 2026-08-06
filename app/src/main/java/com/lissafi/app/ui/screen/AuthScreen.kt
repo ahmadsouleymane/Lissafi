@@ -163,7 +163,7 @@ fun AuthScreen(viewModel: AuthViewModel) {
 
             // ── PIED DE PAGE ──
             Text(
-                text = "Tes données restent sur ton téléphone.",
+                text = "Tes données sont sauvegardées sur ton téléphone et synchronisées avec le cloud.",
                 color = TextSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center

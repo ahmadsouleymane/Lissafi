@@ -59,6 +59,9 @@ class CartViewModel(
         }
     }
 
+    /** Vérifie si l'utilisateur peut ajouter un client (limite gratuite). */
+    suspend fun canAddClient(): Boolean = premiumManager.canAddClient()
+
     private suspend fun loadRecentProducts() {
         _state.value = _state.value.copy(recentProducts = repository.getRecentProducts(8))
     }
