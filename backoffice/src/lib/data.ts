@@ -18,15 +18,21 @@ import type {
 // Lectures — toutes passent par le client service_role (serveur)
 // ============================================================
 
+function logRpcError(fn: string, error: unknown) {
+  console.error(`[data] ${fn} — échec RPC:`, error instanceof Error ? error.message : error);
+}
+
 /** Statistiques globales du dashboard. */
 export async function getStats(): Promise<Stats> {
-  const { data } = await supabaseAdmin().rpc("admin_stats");
+  const { data, error } = await supabaseAdmin().rpc("admin_stats");
+  if (error) logRpcError("getStats", error);
   return (data ?? {}) as Stats;
 }
 
 /** Liste de tous les comptes avec indicateurs agrégés. */
 export async function getUserSummaries(): Promise<UserSummary[]> {
-  const { data } = await supabaseAdmin().rpc("admin_user_summaries");
+  const { data, error } = await supabaseAdmin().rpc("admin_user_summaries");
+  if (error) logRpcError("getUserSummaries", error);
   return Array.isArray(data) ? (data as UserSummary[]) : [];
 }
 

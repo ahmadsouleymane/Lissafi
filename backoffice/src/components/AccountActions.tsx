@@ -69,7 +69,7 @@ export function AccountActions({ userId }: { userId: string }) {
           <form action={resetAction} className="flex items-end gap-2">
             <input type="hidden" name="userId" value={userId} />
             <Field label="Nouveau mot de passe">
-              <Input type="text" name="password" minLength={6} placeholder="min. 6 caractères" className="w-56" />
+              <Input type="password" name="password" minLength={6} placeholder="min. 6 caractères" className="w-56" />
             </Field>
             <Button type="submit" disabled={resetPending} variant="secondary" size="sm">
               {resetPending && <Spinner />} Appliquer

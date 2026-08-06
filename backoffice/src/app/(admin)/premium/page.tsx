@@ -161,7 +161,7 @@ function PremiumRow({ u, now }: { u: UserSummary & { _priority: number }; now: n
           </form>
           {active && (
             <ConfirmForm action={deactivatePremiumQuick.bind(null, u.user_id)} confirmText={`Désactiver le premium de ${u.shop_name || u.email} ?`}>
-              <Button type="submit" size="sm" variant="dangerOutline">Stop</Button>
+              <Button type="submit" size="sm" variant="dangerOutline">Désactiver</Button>
             </ConfirmForm>
           )}
         </div>

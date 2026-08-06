@@ -38,7 +38,7 @@ export default function LoginPage() {
 
           <form action={formAction} className="mt-5 space-y-4">
             <Field label="Email">
-              <Input type="email" name="email" placeholder="admin@lissafi.app" autoComplete="email" required />
+              <Input type="email" name="email" placeholder="ton@email.com" autoComplete="email" required />
             </Field>
             <Field label="Mot de passe">
               <Input type="password" name="password" placeholder="••••••••" autoComplete="current-password" required />

@@ -32,7 +32,8 @@ export default async function ConnexionsPage({
   const params = await searchParams;
   const range = params.range ?? "7d";
   const ranges: Record<string, number> = { "24h": 86400000, "7d": 7 * 86400000, "30d": 30 * 86400000, all: 0 };
-  const fromTs = Date.now() - (ranges[range] ?? ranges["7d"]);
+  const selected = ranges[range] ?? ranges["7d"];
+  const fromTs = selected === 0 ? 0 : Date.now() - selected;
 
   const [audit, emails] = await Promise.all([getAuditLogs({ fromTs, limit: 400 }), getUserEmails()]);
 
@@ -89,7 +90,7 @@ export default async function ConnexionsPage({
                       <Tr key={i}>
                         <Td className="whitespace-nowrap text-xs text-slate-500">{formatDateTimeIso(a.created_at)}</Td>
                         <Td><Badge color={EVENT_COLORS[a.auth_event] ?? "gray"}>{EVENT_LABELS[a.auth_event] ?? a.auth_event}</Badge></Td>
-                        <Td className="text-xs text-slate-600">{a.user_id ? emails[a.user_id] ?? a.user_id.slice(0, 8) : "—"}</Td>
+                        <Td className="text-xs text-slate-600">{a.user_id ? (emails[a.user_id] ?? a.user_id.slice(0, 8)) : "—"}</Td>
                         <Td className="font-mono text-xs text-slate-500">{a.ip ?? "—"}</Td>
                       </Tr>
                     ))}

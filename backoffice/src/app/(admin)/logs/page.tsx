@@ -105,7 +105,7 @@ function LogRowView({ log }: { log: AppLog }) {
         <p>{timeAgo(log.created_at)}</p>
         <p className="text-slate-400">{formatDate(log.created_at)}</p>
       </Td>
-      <Td className="text-xs text-slate-600">{log.email || log.user_id.slice(0, 8) || "—"}</Td>
+      <Td className="text-xs text-slate-600">{log.email || (log.user_id ? log.user_id.slice(0, 8) : null) || "—"}</Td>
       <Td><span className="text-xs text-slate-600"><EventTypeLabel type={log.event_type} /></span></Td>
       <Td><LevelBadge level={log.level} /></Td>
       <Td className="max-w-64"><p className="truncate text-slate-800" title={log.message}>{log.message || "—"}</p></Td>

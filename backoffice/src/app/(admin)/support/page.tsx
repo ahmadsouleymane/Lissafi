@@ -16,11 +16,13 @@ export default async function SupportPage({
   let tickets = await getTickets(status === "all" ? undefined : status);
   if (priority !== "all") tickets = tickets.filter((t) => t.priority === priority);
 
+  // Compteurs calculés sur TOUS les tickets (pas la liste filtrée)
+  const allForCounts = status === "all" && priority === "all" ? tickets : await getTickets();
   const counts = {
-    open: tickets.filter((t) => t.status === "open").length,
-    in_progress: tickets.filter((t) => t.status === "in_progress").length,
-    resolved: tickets.filter((t) => t.status === "resolved").length,
-    closed: tickets.filter((t) => t.status === "closed").length,
+    open: allForCounts.filter((t) => t.status === "open").length,
+    in_progress: allForCounts.filter((t) => t.status === "in_progress").length,
+    resolved: allForCounts.filter((t) => t.status === "resolved").length,
+    closed: allForCounts.filter((t) => t.status === "closed").length,
   };
 
   return (
@@ -87,7 +89,7 @@ export default async function SupportPage({
                 </Td>
                 <Td>
                   <Link href={`/comptes/${t.user_id}`} className="text-xs text-brand-600 hover:underline">
-                    {t.email || t.user_id.slice(0, 8)}
+                    {t.email || (t.user_id ? t.user_id.slice(0, 8) : "—")}
                   </Link>
                 </Td>
                 <Td><PriorityBadge priority={t.priority} /></Td>

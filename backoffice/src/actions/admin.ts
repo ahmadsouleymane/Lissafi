@@ -201,33 +201,51 @@ export async function updateAdminSetting(key: string, value: string): Promise<Ac
 }
 
 // ============================================================
-// Variantes "quick" — pour les boutons simples dans les formulaires.
-// Ne renvoient rien : l'UI se met à jour via revalidatePath.
+// Variantes "quick" — pour les boutons dans les formulaires
+// (compatibles avec l'attribut `action` de <form>).
+// Les erreurs sont loguées côté serveur ; l'UI se met à jour via
+// revalidatePath dans la fonction sous-jacente.
+// Pour avoir le résultat (succès/échec) côté client, utiliser
+// les fonctions non-quick avec useActionState.
 // ============================================================
 
 export async function activatePremiumQuick(userId: string, days = 365) {
-  await activatePremium(userId, days);
+  "use server";
+  const r = await activatePremium(userId, days);
+  if (r && "error" in r) console.error("[admin] activatePremiumQuick:", r.error);
 }
 
 export async function addPremiumDaysQuick(userId: string, days = 30) {
-  await addPremiumDays(userId, days);
+  "use server";
+  const r = await addPremiumDays(userId, days);
+  if (r && "error" in r) console.error("[admin] addPremiumDaysQuick:", r.error);
 }
 
 export async function deactivatePremiumQuick(userId: string) {
-  await deactivatePremium(userId);
+  "use server";
+  const r = await deactivatePremium(userId);
+  if (r && "error" in r) console.error("[admin] deactivatePremiumQuick:", r.error);
 }
 
 export async function updateTicketStatusQuick(ticketId: number, status: string) {
-  await updateTicketStatus(ticketId, status);
+  "use server";
+  const r = await updateTicketStatus(ticketId, status);
+  if (r && "error" in r) console.error("[admin] updateTicketStatusQuick:", r.error);
 }
 
 export async function deleteTicketQuick(ticketId: number) {
-  await deleteTicket(ticketId);
+  "use server";
+  const r = await deleteTicket(ticketId);
+  if (r && "error" in r) console.error("[admin] deleteTicketQuick:", r.error);
 }
 
 /** Variante formulaire quick : mettre à jour un paramètre du back-office. */
 export async function updateAdminSettingQuickForm(formData: FormData) {
+  "use server";
   const key = String(formData.get("key") || "");
   const value = String(formData.get("value") || "");
-  if (key) await updateAdminSetting(key, value);
+  if (key) {
+    const r = await updateAdminSetting(key, value);
+    if (r && "error" in r) console.error("[admin] updateAdminSettingQuickForm:", r.error);
+  }
 }

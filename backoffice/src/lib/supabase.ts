@@ -1,8 +1,11 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 // ============================================================
 // Clients Supabase — TOUS utilisés côté serveur uniquement.
 // Le navigateur n'a jamais accès à ces clés.
+// L'import "server-only" empêche toute importation dans un
+// composant client — échec au build immédiat.
 // ============================================================
 
 export const DEFAULT_URL = "https://fnyuhpfzkvunscuylvqv.supabase.co";

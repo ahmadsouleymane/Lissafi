@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 const STATUSES = ["open", "in_progress", "resolved", "closed"] as const;
+const STATUS_LABELS: Record<string, string> = { open: "Ouvert", in_progress: "En cours", resolved: "Résolu", closed: "Clos" };
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,7 +45,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           <div className="flex flex-wrap items-center gap-1.5">
             {STATUSES.filter((s) => s !== ticket.status).map((s) => (
               <form key={s} action={updateTicketStatusQuick.bind(null, ticketId, s)}>
-                <Button type="submit" size="sm" variant="secondary">→ {s.replace("_", " ")}</Button>
+                <Button type="submit" size="sm" variant="secondary">→ {STATUS_LABELS[s] ?? s}</Button>
               </form>
             ))}
             <ConfirmForm action={deleteTicketQuick.bind(null, ticketId)} confirmText="Supprimer définitivement ce ticket et ses réponses ?">
