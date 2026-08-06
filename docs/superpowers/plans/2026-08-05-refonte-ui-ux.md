@@ -495,6 +495,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
@@ -614,20 +615,32 @@ fun LissafiCard(
 fun LissafiHeader(
     title: String,
     subtitle: String? = null,
+    leadingIcon: ImageVector? = null,
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
         title = {
             Column {
-                Text(
-                    text = title,
-                    color = OnBackground,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 20.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (leadingIcon != null) {
+                        Icon(
+                            imageVector = leadingIcon,
+                            contentDescription = null,
+                            tint = OnBackground,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = title,
+                        color = OnBackground,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 20.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
@@ -1357,18 +1370,14 @@ package com.lissafi.app.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -1384,7 +1393,6 @@ import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.screen.*
 import com.lissafi.app.ui.theme.*
 import com.lissafi.app.ui.viewmodel.*
-import kotlinx.coroutines.launch
 
 object Routes {
     const val AUTH          = "auth"
@@ -1458,18 +1466,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val reportViewModel: ReportViewModel = remember { ReportViewModel(repository) }
     val settingsViewModel: SettingsViewModel = remember { SettingsViewModel(repository) }
 
-    // Pager state pour HorizontalPager
-    val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
-    val scope = rememberCoroutineScope()
-
-    // Synchroniser le pager avec la navigation
-    LaunchedEffect(currentRoute) {
-        val index = bottomNavItems.indexOfFirst { it.route == currentRoute }
-        if (index >= 0 && index != pagerState.currentPage) {
-            pagerState.animateScrollToPage(index)
-        }
-    }
-
     Scaffold(
         modifier = modifier,
         containerColor = Background,
@@ -1483,14 +1479,9 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             ) {
                 NavigationBar(
                     containerColor = Surface,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier
-                        .border(
-                            width = 0.5.dp,
-                            color = Border
-                        )
+                    tonalElevation = 0.dp
                 ) {
-                    bottomNavItems.forEachIndexed { index, item ->
+                    bottomNavItems.forEach { item ->
                         val selected = currentRoute == item.route
                         NavigationBarItem(
                             selected = selected,
@@ -1502,7 +1493,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                                     launchSingleTop = true
                                     restoreState = true
                                 }
-                                scope.launch { pagerState.animateScrollToPage(index) }
                             },
                             icon = {
                                 Icon(
@@ -1555,7 +1545,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             composable(Routes.PRODUCTS) {
                 ProductsScreen(
                     viewModel = productViewModel,
-                    premiumManager = premiumManager,
                     onBack = { navController.popBackStack() }
                 )
             }
