@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS public.admins (
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
+AS $func$
     SELECT EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid());
-$$;
+$func$;
 
 -- ============================================================
 -- 2. Journal des événements de l'application (logs, erreurs, reçus)
@@ -144,13 +144,14 @@ CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON public.admin_actions(targ
 -- 6. FONCTIONS D'AGRÉGATION (SECURITY DEFINER)
 --    Appelables côté serveur via le rôle service — aucun accès
 --    direct au schéma auth n'est exposé au client.
+--    Délimiteurs $func$ nommés : sans ambiguïté pour le SQL Editor.
 -- ============================================================
 
 -- Statistiques globales pour le dashboard
 CREATE OR REPLACE FUNCTION public.admin_stats()
 RETURNS jsonb
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
-AS $$
+AS $func$
     SELECT jsonb_build_object(
         'users',            (SELECT count(*) FROM auth.users),
         'users_today',      (SELECT count(*) FROM auth.users WHERE created_at >= date_trunc('day', now())),
@@ -179,7 +180,7 @@ AS $$
                AND e.value::bigint > 0
                AND e.value::bigint <= (extract(epoch FROM now() + interval '30 days') * 1000)::bigint)
     );
-$$;
+$func$;
 
 -- Séries de ventes (N derniers jours) pour le graphique du dashboard
 -- Bornes UTC exactes : generate_series renvoie des timestamptz, on compare
@@ -187,7 +188,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.admin_sales_series(days int DEFAULT 30)
 RETURNS TABLE(day date, sales bigint, total numeric)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
+AS $func$
     SELECT d::date AS day,
            count(s.id)::bigint AS sales,
            coalesce(sum(s.total), 0) AS total
@@ -201,13 +202,13 @@ AS $$
      AND s.date <  (extract(epoch FROM d + interval '1 day') * 1000)::bigint
     GROUP BY d
     ORDER BY d;
-$$;
+$func$;
 
 -- Séries d'inscriptions (N derniers jours)
 CREATE OR REPLACE FUNCTION public.admin_signups_series(days int DEFAULT 30)
 RETURNS TABLE(day date, signups bigint)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
-AS $$
+AS $func$
     SELECT d::date AS day,
            count(u.id)::bigint AS signups
     FROM generate_series(
@@ -219,13 +220,13 @@ AS $$
       ON u.created_at >= d AND u.created_at < d + interval '1 day'
     GROUP BY d
     ORDER BY d;
-$$;
+$func$;
 
 -- Liste des comptes + indicateurs agrégés (pour /comptes et /premium)
 CREATE OR REPLACE FUNCTION public.admin_user_summaries()
 RETURNS jsonb
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
-AS $$
+AS $func$
     SELECT coalesce(jsonb_agg(row_to_json(x) ORDER BY x.created_at DESC), '[]'::jsonb)
     FROM (
         SELECT
@@ -265,28 +266,28 @@ AS $$
         LEFT JOIN (SELECT user_id, count(*) AS client_count FROM clients GROUP BY user_id) c ON c.user_id = u.id
         LEFT JOIN (SELECT user_id, count(*) AS receipt_count FROM app_logs WHERE event_type = 'receipt' GROUP BY user_id) r ON r.user_id = u.id
     ) x;
-$$;
+$func$;
 
 -- Emails par user_id (léger, pour afficher les emails dans les listes)
 CREATE OR REPLACE FUNCTION public.admin_user_emails()
 RETURNS TABLE(user_id uuid, email text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = auth
-AS $$
+AS $func$
     SELECT id, email FROM auth.users;
-$$;
+$func$;
 
 -- Journal des connexions/auth (auth.audit_log_entries)
 CREATE OR REPLACE FUNCTION public.admin_audit_logs(from_ts bigint DEFAULT 0, to_ts bigint DEFAULT 0, lim int DEFAULT 500)
 RETURNS TABLE(created_at timestamptz, auth_event text, ip text, user_id uuid, payload jsonb)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = auth
-AS $$
+AS $func$
     SELECT a.created_at, a.auth_event, a.ip_address::text, a.user_id, a.metadata
     FROM auth.audit_log_entries a
     WHERE a.created_at >= CASE WHEN from_ts = 0 THEN '1970-01-01' ELSE to_timestamp(from_ts / 1000.0) END
       AND a.created_at <= CASE WHEN to_ts = 0 THEN now() ELSE to_timestamp(to_ts / 1000.0) END
     ORDER BY a.created_at DESC
     LIMIT CASE WHEN lim <= 0 THEN 1000 ELSE lim END;
-$$;
+$func$;
 
 -- Journal applicatif (app_logs) avec email de l'utilisateur
 CREATE OR REPLACE FUNCTION public.admin_logs(
@@ -299,7 +300,7 @@ CREATE OR REPLACE FUNCTION public.admin_logs(
 )
 RETURNS TABLE(id bigint, user_id uuid, email text, event_type text, level text, message text, meta text, created_at bigint)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
-AS $$
+AS $func$
     SELECT l.id, l.user_id, u.email, l.event_type, l.level, l.message, l.meta, l.created_at
     FROM app_logs l
     LEFT JOIN auth.users u ON u.id = l.user_id
@@ -310,7 +311,7 @@ AS $$
       AND (uid IS NULL OR l.user_id = uid)
     ORDER BY l.created_at DESC
     LIMIT CASE WHEN lim <= 0 THEN 200 ELSE lim END;
-$$;
+$func$;
 
 -- ============================================================
 -- 7. MISE À JOUR du schéma existant : index sur app_settings pour les pivots
