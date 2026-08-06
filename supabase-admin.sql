@@ -182,6 +182,8 @@ AS $$
 $$;
 
 -- Séries de ventes (N derniers jours) pour le graphique du dashboard
+-- Bornes UTC exactes : generate_series renvoie des timestamptz, on compare
+-- s.date (epoch millis UTC) aux minuit UTC de chaque jour.
 CREATE OR REPLACE FUNCTION public.admin_sales_series(days int DEFAULT 30)
 RETURNS TABLE(day date, sales bigint, total numeric)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -189,10 +191,14 @@ AS $$
     SELECT d::date AS day,
            count(s.id)::bigint AS sales,
            coalesce(sum(s.total), 0) AS total
-    FROM generate_series(CURRENT_DATE - (days - 1), CURRENT_DATE, '1 day') d
+    FROM generate_series(
+             date_trunc('day', now()) - (days - 1) * interval '1 day',
+             date_trunc('day', now()),
+             interval '1 day'
+         ) d
     LEFT JOIN sales s
       ON s.date >= (extract(epoch FROM d) * 1000)::bigint
-     AND s.date <  (extract(epoch FROM d + 1) * 1000)::bigint
+     AND s.date <  (extract(epoch FROM d + interval '1 day') * 1000)::bigint
     GROUP BY d
     ORDER BY d;
 $$;
@@ -200,12 +206,17 @@ $$;
 -- Séries d'inscriptions (N derniers jours)
 CREATE OR REPLACE FUNCTION public.admin_signups_series(days int DEFAULT 30)
 RETURNS TABLE(day date, signups bigint)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = auth
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
 AS $$
     SELECT d::date AS day,
            count(u.id)::bigint AS signups
-    FROM generate_series(CURRENT_DATE - (days - 1), CURRENT_DATE, '1 day') d
-    LEFT JOIN auth.users u ON u.created_at::date = d
+    FROM generate_series(
+             date_trunc('day', now()) - (days - 1) * interval '1 day',
+             date_trunc('day', now()),
+             interval '1 day'
+         ) d
+    LEFT JOIN auth.users u
+      ON u.created_at >= d AND u.created_at < d + interval '1 day'
     GROUP BY d
     ORDER BY d;
 $$;
@@ -225,7 +236,11 @@ AS $$
             coalesce(s.shop_name, '') AS shop_name,
             coalesce(s.shop_phone, '') AS shop_phone,
             coalesce(s.is_premium, 'false') = 'true' AS premium,
-            coalesce(nullif(s.premium_expiry, ''), '0')::bigint AS premium_expiry,
+            -- Cast sécurisé : une valeur corrompue ne doit pas faire échouer la liste
+            coalesce(
+                (CASE WHEN s.premium_expiry ~ '^[0-9]+$' THEN s.premium_expiry::bigint ELSE 0 END),
+                0
+            ) AS premium_expiry,
             coalesce(s.demo_taken, 'false') = 'true' AS demo_taken,
             coalesce(s.activation_code, '') AS activation_code,
             coalesce(p.product_count, 0) AS product_count,
