@@ -4,7 +4,7 @@
 
 export function formatFCFA(n: number): string {
   const value = Number.isFinite(n) ? n : 0;
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value)} F`;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value)} FCFA`;
 }
 
 export function formatDate(ms: number): string {
