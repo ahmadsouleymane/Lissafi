@@ -51,6 +51,7 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var showShopDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
@@ -305,6 +306,59 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ── SUPPORT — signalement direct vers le back-office ──
+            SectionHeader(
+                text = "SUPPORT",
+                icon = LissafiIcons.Alerte,
+                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+            )
+            LissafiCard(onClick = { showReportDialog = true }) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = LissafiIcons.Alerte,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Signaler un problème",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "Bug, question, demande d'aide — écris-nous",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    Icon(
+                        imageVector = LissafiIcons.Retour,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(180f) // flèche vers l'avant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // ── PERSONNALISATION REÇU (Premium) ──
             SectionHeader(
                 text = "REÇU",
@@ -407,6 +461,97 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showReportDialog) {
+        ReportIssueDialog(
+            onDismiss = { showReportDialog = false },
+            onSend = { subject, message ->
+                showReportDialog = false
+                app.supabaseApi.reportSupportTicket(subject, message)
+                Toast.makeText(context, "Message envoyé ! Merci.", Toast.LENGTH_LONG).show()
+            }
+        )
+    }
+}
+
+// ============================================================
+// DIALOGUE SIGNALEMENT DE PROBLÈME
+// ============================================================
+@Composable
+private fun ReportIssueDialog(
+    onDismiss: () -> Unit,
+    onSend: (subject: String, message: String) -> Unit
+) {
+    var subject by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
+        icon = {
+            Icon(
+                imageVector = LissafiIcons.Alerte,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(34.dp)
+            )
+        },
+        title = {
+            Column {
+                Text(text = "Signaler un problème", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Ton message arrive directement à l'équipe Lissafi.",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+            }
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = subject,
+                    onValueChange = { subject = it },
+                    label = { Text("Sujet") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Border,
+                        focusedContainerColor = Surface,
+                        unfocusedContainerColor = Surface,
+                        cursorColor = Primary
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Décris le problème…") },
+                    minLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Border,
+                        focusedContainerColor = Surface,
+                        unfocusedContainerColor = Surface,
+                        cursorColor = Primary
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            PrimaryActionButton(
+                text = "ENVOYER",
+                onClick = { onSend(subject.trim(), message.trim()) }
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
+        }
+    )
 }
 
 // ============================================================

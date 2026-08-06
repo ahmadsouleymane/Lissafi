@@ -115,6 +115,7 @@ class SyncManager(
         if (!SupabaseManager.hasValidSession(context)) {
             Log.w(TAG, "Session invalide (user_id manquant ou non-UUID) — synchro ignorée")
             _status.value = SyncStatus.NO_SESSION
+            api.logEvent("session_invalid", "warn", "Session invalide — synchro ignorée")
             return
         }
 
@@ -145,13 +146,16 @@ class SyncManager(
                     _lastSyncAt.value = now
                     _status.value = SyncStatus.SUCCESS
                     Log.d(TAG, "Synchro terminée avec succès")
+                    api.logEvent("sync", "info", "Synchronisation réussie")
                 } else {
                     _status.value = SyncStatus.ERROR
                     Log.e(TAG, "Synchro partielle : certaines étapes ont échoué")
+                    api.logEvent("sync_error", "warn", "Synchro partielle : certaines étapes ont échoué")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Erreur synchro", e)
                 _status.value = SyncStatus.ERROR
+                api.logEvent("sync_error", "error", "Erreur de synchronisation : ${e.message}")
             }
         }
     }

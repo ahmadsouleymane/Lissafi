@@ -31,5 +31,8 @@ class LissafiApp : Application() {
         if (authManager.isLoggedIn()) {
             syncManager.syncInBackground()
         }
+
+        // Remonte le démarrage au back-office (fire-and-forget, jamais bloquant)
+        supabaseApi.logEvent("app_start", "info", "Application démarrée")
     }
 }

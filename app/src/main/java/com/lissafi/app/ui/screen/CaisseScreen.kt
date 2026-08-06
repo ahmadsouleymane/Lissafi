@@ -518,10 +518,20 @@ fun CaisseScreen(
             onWhatsApp = {
                 val receiptText = buildReceiptText(currentReceipt!!, context)
                 ReceiptService.shareViaWhatsApp(context, receiptText)
+                (context.applicationContext as LissafiApp).supabaseApi.logEvent(
+                    eventType = "receipt",
+                    message = "Reçu partagé via WhatsApp",
+                    meta = "{\"total\":${currentReceipt!!.total}}"
+                )
             },
             onPartager = {
                 val receiptText = buildReceiptText(currentReceipt!!, context)
                 ReceiptService.shareText(context, receiptText)
+                (context.applicationContext as LissafiApp).supabaseApi.logEvent(
+                    eventType = "receipt",
+                    message = "Reçu partagé (texte)",
+                    meta = "{\"total\":${currentReceipt!!.total}}"
+                )
             },
             onFermer = {
                 showReceiptSheet = false
@@ -1042,6 +1052,7 @@ private fun BluetoothPrinterSheet(
 ) {
     var printing by remember { mutableStateOf(false) }
     var resultMsg by remember { mutableStateOf<String?>(null) }
+    val ctx = LocalContext.current
 
     ModalBottomSheet(
         onDismissRequest = { if (!printing) onDismiss() },
@@ -1105,6 +1116,11 @@ private fun BluetoothPrinterSheet(
                                     ReceiptService.printReceipt(printer.address, receiptText) { ok, msg ->
                                         resultMsg = msg
                                         printing = false
+                                        (ctx.applicationContext as LissafiApp).supabaseApi.logEvent(
+                                            eventType = "receipt",
+                                            level = if (ok) "info" else "error",
+                                            message = if (ok) "Reçu imprimé (Bluetooth)" else "Échec impression : $msg"
+                                        )
                                     }
                                 }
                                 .padding(14.dp),

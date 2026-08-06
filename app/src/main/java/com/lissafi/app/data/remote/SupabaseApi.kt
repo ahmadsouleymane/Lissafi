@@ -15,8 +15,33 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class AppLogPayload(
+    val user_id: String,
+    val event_type: String,
+    val level: String,
+    val message: String,
+    val meta: String,
+    val created_at: Long
+)
+
+@Serializable
+private data class SupportTicketPayload(
+    val user_id: String,
+    val subject: String,
+    val message: String,
+    val status: String,
+    val priority: String,
+    val created_at: Long,
+    val updated_at: Long
+)
 
 /**
  * Client REST Supabase (PostgREST).
@@ -36,6 +61,12 @@ class SupabaseApi(private val context: Context) {
     val hasValidSession: Boolean get() = SupabaseManager.hasValidSession(context)
 
     private fun restUrl(table: String) = "$baseUrl/rest/v1/$table"
+
+    /**
+     * Écritures légères (logs, signalements) : fire-and-forget, jamais bloquant.
+     * Les échecs réseau sont silencieux — le back-office récolte ce qui arrive.
+     */
+    private val logScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
      * Bloque toute écriture si la session locale est invalide (user_id manquant
@@ -299,6 +330,77 @@ class SupabaseApi(private val context: Context) {
         }
         ensureSuccess(response, "getAllSettings")
         response.body<List<AppSetting>>()
+    }
+
+    // ==================== LOGS & SUPPORT (back-office) ====================
+
+    /**
+     * Envoie un événement au journal du back-office (erreurs, reçus, synchros…).
+     * Fire-and-forget : n'interrompt jamais le parcours utilisateur.
+     * event_type : app_start | sync | sync_error | receipt | error | session_invalid
+     */
+    fun logEvent(eventType: String, level: String = "info", message: String = "", meta: String = "{}") {
+        val t = token
+        val uid = currentUserId
+        if (!hasValidSession || uid.isEmpty()) return
+
+        logScope.launch {
+            try {
+                val response = http.post(restUrl("app_logs")) {
+                    header("apikey", anonKey)
+                    header("Authorization", "Bearer $t")
+                    contentType(ContentType.Application.Json)
+                    setBody(AppLogPayload(
+                        user_id = uid,
+                        event_type = eventType,
+                        level = level,
+                        message = message,
+                        meta = meta,
+                        created_at = System.currentTimeMillis()
+                    ))
+                }
+                if (response.status.value !in 200..299) {
+                    Log.w("LissafiLog", "logEvent HTTP ${response.status.value}")
+                }
+            } catch (e: Exception) {
+                Log.w("LissafiLog", "logEvent ignoré : ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Envoie un signalement / une demande de support vers le back-office.
+     * Fire-and-forget, jamais bloquant.
+     */
+    fun reportSupportTicket(subject: String, message: String, priority: String = "normal") {
+        val t = token
+        val uid = currentUserId
+        if (!hasValidSession || uid.isEmpty()) return
+
+        logScope.launch {
+            try {
+                val now = System.currentTimeMillis()
+                val response = http.post(restUrl("support_tickets")) {
+                    header("apikey", anonKey)
+                    header("Authorization", "Bearer $t")
+                    contentType(ContentType.Application.Json)
+                    setBody(SupportTicketPayload(
+                        user_id = uid,
+                        subject = subject,
+                        message = message,
+                        status = "open",
+                        priority = priority,
+                        created_at = now,
+                        updated_at = now
+                    ))
+                }
+                if (response.status.value !in 200..299) {
+                    Log.w("LissafiLog", "reportTicket HTTP ${response.status.value}")
+                }
+            } catch (e: Exception) {
+                Log.w("LissafiLog", "reportTicket ignoré : ${e.message}")
+            }
+        }
     }
 }
 
