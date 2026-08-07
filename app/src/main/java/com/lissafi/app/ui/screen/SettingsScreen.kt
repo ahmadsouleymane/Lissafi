@@ -26,7 +26,6 @@ import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
-import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
 import com.lissafi.app.ui.theme.Background
@@ -38,15 +37,12 @@ import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Surface
 import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.viewmodel.SettingsViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     authManager: AuthManager,
     onBack: () -> Unit,
-    onNavigateToAdmin: () -> Unit,
     onSignOut: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
@@ -126,15 +122,6 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                    }
-                    // Version gratuite → bouton d'upgrade vers Admin
-                    if (!state.isPremium) {
-                        Spacer(Modifier.height(12.dp))
-                        SecondaryActionButton(
-                            text = "Passer à Premium",
-                            onClick = onNavigateToAdmin,
-                            height = 48
-                        )
                     }
                 }
             }
@@ -234,12 +221,9 @@ fun SettingsScreen(
                         )
                     }
                     TextButton(
-                        onClick = {
-                            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                                authManager.signOut()
-                            }
-                            onSignOut()
-                        }
+                        // Un seul chemin de déconnexion (via le ViewModel) : lancer
+                        // ici un second signOut concurrent créerait une course sur la session.
+                        onClick = { onSignOut() }
                     ) {
                         Text(
                             text = "Déconnexion",
@@ -248,59 +232,6 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // ── ADMINISTRATION ──
-            SectionHeader(
-                text = "ADMINISTRATION",
-                icon = LissafiIcons.Motdepasse,
-                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
-            )
-            LissafiCard(onClick = onNavigateToAdmin) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = LissafiIcons.Motdepasse,
-                            contentDescription = null,
-                            tint = Primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Zone du gérant",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Premium, synchronisation, réglages avancés",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                    Icon(
-                        imageVector = LissafiIcons.Retour,
-                        contentDescription = null,
-                        tint = Primary,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(180f) // flèche vers l'avant
-                    )
                 }
             }
 

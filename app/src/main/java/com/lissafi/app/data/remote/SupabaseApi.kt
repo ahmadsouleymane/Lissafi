@@ -63,6 +63,47 @@ class SupabaseApi(private val context: Context) {
     private fun restUrl(table: String) = "$baseUrl/rest/v1/$table"
 
     /**
+     * La colonne `deleted` (soft delete) existe-t-elle côté serveur ?
+     * Vérifiée une seule fois puis mise en cache. Tant que la migration Supabase
+     * (supabase-schema.sql) n'est pas exécutée, on ne l'envoie pas dans les push :
+     * cela évitait que pushProducts échoue à chaque cycle (erreur 42703) et
+     * fasse tourner la synchro en « Synchro partielle » en boucle.
+     */
+    @Volatile
+    private var remoteHasDeletedColumn: Boolean? = null
+
+    private suspend fun probeRemoteProductDeleted(): Boolean {
+        remoteHasDeletedColumn?.let { return it }
+        return try {
+            val r = http.get(restUrl("products")) {
+                header("apikey", anonKey)
+                token?.let { header("Authorization", "Bearer $it") }
+                parameter("select", "deleted")
+                parameter("limit", "1")
+            }
+            val ok = r.status.value in 200..299
+            remoteHasDeletedColumn = ok
+            ok
+        } catch (e: Exception) {
+            // Réseau indisponible : on suppose le schéma à jour, on ne met pas en cache.
+            true
+        }
+    }
+
+    /**
+     * Rafraîchit le token d'accès s'il est expiré ou sur le point de l'être
+     * (< 60 s restantes). N'effectue un appel réseau que dans ce cas ; sinon
+     * c'est un simple décodage JWT local, sans coût.
+     */
+    suspend fun ensureFreshSession() {
+        val exp = SupabaseManager.getAccessTokenExpiry(context)
+        val now = System.currentTimeMillis() / 1000
+        if (exp == null || exp - now < 60) {
+            com.lissafi.app.data.auth.AuthManager(context).refreshSession()
+        }
+    }
+
+    /**
      * Écritures légères (logs, signalements) : fire-and-forget, jamais bloquant.
      * Les échecs réseau sont silencieux — le back-office récolte ce qui arrive.
      */
@@ -124,12 +165,16 @@ class SupabaseApi(private val context: Context) {
     suspend fun upsertProducts(products: List<Product>) = withContext(Dispatchers.IO) {
         ensureValidUser()
         if (products.isEmpty()) return@withContext
+        // Si la colonne `deleted` n'existe pas encore côté serveur, on retire le champ
+        // (encodeDefaults=false l'omet de toute façon pour deleted=false) pour ne pas
+        // casser la synchro. La migration supabase-schema.sql l'active pleinement.
+        val body = if (probeRemoteProductDeleted()) products else products.map { it.copy(deleted = false) }
         val response = http.post(restUrl("products")) {
             header("apikey", anonKey)
             token?.let { header("Authorization", "Bearer $it") }
             header("Prefer", "resolution=merge-duplicates")
             contentType(ContentType.Application.Json)
-            setBody(products)
+            setBody(body)
         }
         ensureSuccess(response, "upsertProducts")
     }
@@ -162,14 +207,21 @@ class SupabaseApi(private val context: Context) {
         val inserted = response.body<List<Sale>>().firstOrNull()
         val saleId = inserted?.id ?: 0L
         if (saleId > 0 && items.isNotEmpty()) {
-            val itemsWithSaleId = items.map { it.copy(saleId = saleId) }
-            val itemsResponse = http.post(restUrl("sale_items")) {
-                header("apikey", anonKey)
-                token?.let { header("Authorization", "Bearer $it") }
-                contentType(ContentType.Application.Json)
-                setBody(itemsWithSaleId)
+            try {
+                val itemsWithSaleId = items.map { it.copy(saleId = saleId) }
+                val itemsResponse = http.post(restUrl("sale_items")) {
+                    header("apikey", anonKey)
+                    token?.let { header("Authorization", "Bearer $it") }
+                    contentType(ContentType.Application.Json)
+                    setBody(itemsWithSaleId)
+                }
+                ensureSuccess(itemsResponse, "insertSaleItems")
+            } catch (e: Exception) {
+                // Ne PAS lever : la vente existe déjà côté serveur. Si on levait, le
+                // SyncManager la re-pousserait → vente en DOUBLE. La vente est marquée
+                // synced avec son id distant ; les articles manquants restent locaux.
+                Log.w("LissafiSupabase", "Articles non poussés pour la vente $saleId (retry manuel), sale OK: ${e.message}")
             }
-            ensureSuccess(itemsResponse, "insertSaleItems")
         }
         saleId
     }

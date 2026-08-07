@@ -62,6 +62,11 @@ class ClientViewModel(
 
     fun addClient(name: String, phone: String = "") {
         viewModelScope.launch {
+            // Re-vérifie la limite au moment de l'écriture (course TOCTOU).
+            if (!premiumManager.canAddClient()) {
+                _state.value = _state.value.copy(isLimitReached = true)
+                return@launch
+            }
             val client = Client(
                 id = UUID.randomUUID().toString(),
                 name = name,

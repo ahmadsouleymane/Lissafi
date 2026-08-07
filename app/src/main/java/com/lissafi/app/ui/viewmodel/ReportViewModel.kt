@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import java.util.Calendar
 
 enum class ReportPeriod { TODAY, WEEK, MONTH }
@@ -61,16 +62,17 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
                 .sortedBy { it.date }
 
             for (sale in sales) {
-                if (!sale.isCredit || sale.amountPaid > 0) {
-                    val items = repository.getSaleItems(sale.id)
-                    for (item in items) {
-                        val product = repository.getProduct(item.barcode)
-                        if (product != null && product.buyPrice > 0) {
-                            profit += (item.price - product.buyPrice) * item.quantity.toInt()
-                        } else {
-                            // Pas de prix d'achat connu → on compte le prix de vente comme bénéfice
-                            profit += (item.price * item.quantity).toInt()
-                        }
+                // Toutes les ventes comptent dans la marge (comptant ET crédit) :
+                // la marchandise est sortie dans les deux cas. Avant, les ventes à
+                // crédit (amountPaid toujours 0) étaient exclues → marge sous-estimée.
+                val items = repository.getSaleItems(sale.id)
+                for (item in items) {
+                    val product = repository.getProduct(item.barcode)
+                    if (product != null && product.buyPrice > 0) {
+                        profit += ((item.price - product.buyPrice) * item.quantity).roundToInt()
+                    } else {
+                        // Pas de prix d'achat connu → on compte le prix de vente comme bénéfice
+                        profit += (item.price * item.quantity).roundToInt()
                     }
                 }
             }

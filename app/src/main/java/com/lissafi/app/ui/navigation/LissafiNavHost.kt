@@ -25,6 +25,7 @@ import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.screen.*
 import com.lissafi.app.ui.theme.*
 import com.lissafi.app.ui.viewmodel.*
+import kotlinx.coroutines.launch
 
 object Routes {
     const val AUTH          = "auth"
@@ -34,7 +35,6 @@ object Routes {
     const val CLIENT_DETAIL = "client_detail/{clientId}"
     const val ACTIVITY      = "activity"
     const val SETTINGS      = "settings"
-    const val ADMIN         = "admin"
 
     fun clientDetail(id: String) = "client_detail/$id"
 }
@@ -57,15 +57,28 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val api     = remember { app.supabaseApi }
 
     val authManager    = remember { AuthManager(context) }
-    val authViewModel  = remember { AuthViewModel(authManager) }
+    val composeScope   = rememberCoroutineScope()
+    val authViewModel  = remember {
+        AuthViewModel(
+            authManager,
+            // Le nom de boutique saisi à l'inscription n'était jamais enregistré.
+            onShopNameSaved = { shopName ->
+                if (shopName.isNotBlank()) {
+                    composeScope.launch { app.database.setSetting("shop_name", shopName) }
+                }
+            }
+        )
+    }
     val authState      by authViewModel.state.collectAsState()
 
     val isLoggedIn = authState.isLoggedIn || app.authManager.isLoggedIn()
     val userId = app.authManager.currentUserId() ?: ""
     val repository = remember(userId) {
-        LissafiRepository(db, api).withUserId(userId)
+        // Toutes les écritures passent par SyncManager (source de push unique sous mutex).
+        LissafiRepository(db, api, onDataChanged = { app.syncManager.syncInBackground() })
+            .withUserId(userId)
     }
-    val premiumManager = remember { PremiumManager(repository) }
+    val premiumManager = remember(userId) { PremiumManager(repository) }
 
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -91,17 +104,21 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
 
     val syncStatus by app.syncManager.status.collectAsState()
 
-    // ViewModels
-    val cartViewModel: CartViewModel = remember { CartViewModel(repository, premiumManager) }
-    val productViewModel: ProductViewModel = remember { ProductViewModel(repository, premiumManager) }
-    val clientViewModel: ClientViewModel = remember { ClientViewModel(repository, premiumManager) }
-    val reportViewModel: ReportViewModel = remember { ReportViewModel(repository) }
-    val settingsViewModel: SettingsViewModel = remember { SettingsViewModel(repository) }
+    // ViewModels — keyés sur le userId : chaque changement de compte recrée
+    // les ViewModels avec le bon repository (sinon ils restent figés sur le
+    // premier utilisateur et toutes les écritures partent sous le mauvais user_id).
+    val cartViewModel: CartViewModel = remember(userId) { CartViewModel(repository, premiumManager) }
+    val productViewModel: ProductViewModel = remember(userId) { ProductViewModel(repository, premiumManager) }
+    val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
+    val reportViewModel: ReportViewModel = remember(userId) { ReportViewModel(repository) }
+    val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository) }
 
     Scaffold(
         modifier = modifier,
         containerColor = Background,
-        contentWindowInsets = WindowInsets.systemBars
+        // safeDrawing inclut les insets du clavier (IME) : le contenu remonte
+        // au-dessus du clavier au lieu d'être caché.
+        contentWindowInsets = WindowInsets.safeDrawing
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         bottomBar = {
             AnimatedVisibility(
@@ -211,15 +228,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     viewModel = settingsViewModel,
                     authManager = authManager,
                     onBack = { navController.popBackStack() },
-                    onNavigateToAdmin = { navController.navigate(Routes.ADMIN) },
                     onSignOut = { authViewModel.signOut() }
-                )
-            }
-            composable(Routes.ADMIN) {
-                AdminScreen(
-                    viewModel = settingsViewModel,
-                    premiumManager = premiumManager,
-                    onBack = { navController.popBackStack() }
                 )
             }
         }

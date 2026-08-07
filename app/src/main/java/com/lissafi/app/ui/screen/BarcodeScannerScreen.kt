@@ -119,62 +119,76 @@ fun BarcodeScannerScreen(
             }
         } else {
             // ── APERÇU CAMÉRA ──
-            AndroidView(
-            factory = { ctx ->
-                PreviewView(ctx).apply {
+            val previewView = remember {
+                PreviewView(context).apply {
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                 }
-            },
-            modifier = Modifier.fillMaxSize()
-        ) { previewView ->
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-            val executor = Executors.newSingleThreadExecutor()
+            }
+            val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+            val executor = remember { Executors.newSingleThreadExecutor() }
+            val activeProvider = remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
-            cameraProviderFuture.addListener({
-                val provider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setTargetResolution(Size(1280, 720))
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
+            // Liaison caméra faite UNE seule fois (pas à chaque recomposition),
+            // et libérée proprement (executor + unbind) à la sortie de l'écran.
+            DisposableEffect(lifecycleOwner) {
+                val listener = Runnable {
+                    try {
+                        val provider = cameraProviderFuture.get()
+                        activeProvider.value = provider
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setTargetResolution(Size(1280, 720))
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
 
-                imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                    val mediaImage = imageProxy.image
-                    if (mediaImage != null) {
-                        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                        BarcodeScanning.getClient().process(image)
-                            .addOnSuccessListener { barcodes ->
-                                for (barcode in barcodes) {
-                                    barcode.rawValue?.let { value ->
-                                        executor.shutdown()
-                                        imageProxy.close()
-                                        onBarcodeScanned(value)
-                                        return@addOnSuccessListener
-                                    }
-                                }
+                        imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                            val mediaImage = imageProxy.image
+                            if (mediaImage == null) {
+                                imageProxy.close()
+                                return@setAnalyzer
                             }
-                            .addOnCompleteListener { imageProxy.close() }
-                    } else {
-                        imageProxy.close()
-                    }
+                            try {
+                                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                BarcodeScanning.getClient().process(image)
+                                    .addOnSuccessListener { barcodes ->
+                                        val value = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
+                                        if (value != null) {
+                                            executor.shutdown()
+                                            onBarcodeScanned(value)
+                                        }
+                                    }
+                                    // Fermeture unique de l'image : faite ici, pas avant.
+                                    .addOnCompleteListener { imageProxy.close() }
+                            } catch (e: Exception) {
+                                try { imageProxy.close() } catch (_: Exception) {}
+                            }
+                        }
+
+                        provider.unbindAll()
+                        camera = provider.bindToLifecycle(
+                            lifecycleOwner,
+                            CameraSelector.DEFAULT_BACK_CAMERA,
+                            preview,
+                            imageAnalysis
+                        )
+                    } catch (_: Exception) {}
                 }
+                cameraProviderFuture.addListener(listener, ContextCompat.getMainExecutor(context))
 
-                try {
-                    provider.unbindAll()
-                    val bound = provider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
-                        imageAnalysis
-                    )
-                    camera = bound
-                } catch (_: Exception) {}
-            }, ContextCompat.getMainExecutor(context))
-        }
+                onDispose {
+                    executor.shutdown()
+                    try { activeProvider.value?.unbindAll() } catch (_: Exception) {}
+                }
+            }
 
-        // ── CADRE DE SCAN (coins) ──
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // ── CADRE DE SCAN (coins) ──
         Box(
             modifier = Modifier.fillMaxSize().padding(32.dp),
             contentAlignment = Alignment.Center

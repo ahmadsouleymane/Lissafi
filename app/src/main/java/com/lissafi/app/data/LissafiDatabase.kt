@@ -17,7 +17,9 @@ class LissafiDatabase private constructor(context: Context) :
 
     companion object {
         const val DATABASE_NAME = "lissafi.db"
-        const val DATABASE_VERSION = 2
+        // v3 = PK composite (barcode, user_id) sur products + colonne `deleted` (soft delete).
+        // Le schéma distant supabase-schema.sql a déjà la PK composite — on aligne la DB locale.
+        const val DATABASE_VERSION = 3
 
         @Volatile
         private var INSTANCE: LissafiDatabase? = null
@@ -30,9 +32,11 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     override fun onCreate(db: SQLiteDatabase) {
+        // PK composite (barcode, user_id) : deux comptes peuvent avoir le même EAN.
+        // `deleted` (soft delete) : la suppression est propagée à Supabase, pas perdue.
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS products (
-                barcode TEXT PRIMARY KEY,
+                barcode TEXT NOT NULL,
                 name TEXT NOT NULL,
                 sell_price INTEGER NOT NULL DEFAULT 0,
                 buy_price INTEGER NOT NULL DEFAULT 0,
@@ -42,7 +46,9 @@ class LissafiDatabase private constructor(context: Context) :
                 has_barcode INTEGER NOT NULL DEFAULT 1,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
-                user_id TEXT NOT NULL DEFAULT ''
+                user_id TEXT NOT NULL DEFAULT '',
+                deleted INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (barcode, user_id)
             )
         """)
         db.execSQL("""
@@ -108,6 +114,38 @@ class LissafiDatabase private constructor(context: Context) :
             try { db.execSQL("ALTER TABLE clients ADD COLUMN user_id TEXT NOT NULL DEFAULT ''") } catch (_: Exception) {}
             try { db.execSQL("ALTER TABLE debt_transactions ADD COLUMN user_id TEXT NOT NULL DEFAULT ''") } catch (_: Exception) {}
         }
+
+        // V2 → V3 : PK composite (barcode, user_id) + colonne deleted sur products.
+        // SQLite ne permet pas de modifier la PK : on recrée la table (pattern standard).
+        if (oldVersion < 3) {
+            db.execSQL("""
+                CREATE TABLE products_v3 (
+                    barcode TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    sell_price INTEGER NOT NULL DEFAULT 0,
+                    buy_price INTEGER NOT NULL DEFAULT 0,
+                    stock INTEGER NOT NULL DEFAULT 0,
+                    min_stock INTEGER NOT NULL DEFAULT 5,
+                    category TEXT NOT NULL DEFAULT '',
+                    has_barcode INTEGER NOT NULL DEFAULT 1,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    user_id TEXT NOT NULL DEFAULT '',
+                    deleted INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (barcode, user_id)
+                )
+            """)
+            db.execSQL("""
+                INSERT INTO products_v3
+                    (barcode, name, sell_price, buy_price, stock, min_stock, category,
+                     has_barcode, created_at, updated_at, user_id, deleted)
+                SELECT barcode, name, sell_price, buy_price, stock, min_stock, category,
+                       has_barcode, created_at, updated_at, user_id, 0
+                FROM products
+            """)
+            db.execSQL("DROP TABLE products")
+            db.execSQL("ALTER TABLE products_v3 RENAME TO products")
+        }
     }
 
     // ==================== PRODUCTS ====================
@@ -117,7 +155,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getAllProducts(userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND user_id = ?" else "WHERE deleted = 0"
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT * FROM products $where ORDER BY updated_at DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
@@ -126,8 +164,21 @@ class LissafiDatabase private constructor(context: Context) :
         list
     }
 
-    suspend fun getProduct(barcode: String): Product? = withContext(Dispatchers.IO) {
-        readableDatabase.rawQuery("SELECT * FROM products WHERE barcode = ?", arrayOf(barcode)).use { cursor ->
+    /** Tous les produits, y compris supprimés — utilisé pour pousser l'état complet vers Supabase. */
+    suspend fun getAllProductsIncludingDeleted(userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<Product>()
+        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId) else null
+        readableDatabase.rawQuery("SELECT * FROM products $where ORDER BY updated_at DESC", args).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toProduct())
+        }
+        list
+    }
+
+    suspend fun getProduct(barcode: String, userId: String = ""): Product? = withContext(Dispatchers.IO) {
+        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(barcode, userId) else arrayOf(barcode)
+        readableDatabase.rawQuery("SELECT * FROM products WHERE barcode = ? AND deleted = 0$where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.toProduct() else null
         }
     }
@@ -136,14 +187,14 @@ class LissafiDatabase private constructor(context: Context) :
         val list = mutableListOf<Product>()
         val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf("%$query%", userId) else arrayOf("%$query%")
-        readableDatabase.rawQuery("SELECT * FROM products WHERE name LIKE ? $where ORDER BY name ASC", args).use { cursor ->
+        readableDatabase.rawQuery("SELECT * FROM products WHERE name LIKE ? AND deleted = 0 $where ORDER BY name ASC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
         }
         list
     }
 
     suspend fun getProductCount(userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND user_id = ?" else "WHERE deleted = 0"
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT COUNT(*) FROM products $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -152,7 +203,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getRecentProducts(limit: Int = 8, userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND user_id = ?" else "WHERE deleted = 0"
         val args = if (userId.isNotEmpty()) arrayOf(userId, limit.toString()) else arrayOf(limit.toString())
         readableDatabase.rawQuery("SELECT * FROM products $where ORDER BY updated_at DESC LIMIT ?", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
@@ -173,42 +224,63 @@ class LissafiDatabase private constructor(context: Context) :
             put("created_at", product.createdAt)
             put("updated_at", product.updatedAt)
             put("user_id", product.userId)
+            put("deleted", if (product.deleted) 1 else 0)
         }
         writableDatabase.insertWithOnConflict("products", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
         getAllProducts(product.userId)
     }
 
     suspend fun deleteProduct(product: Product) = withContext(Dispatchers.IO) {
-        writableDatabase.delete("products", "barcode = ?", arrayOf(product.barcode))
+        // Soft delete : le flag `deleted` est poussé vers Supabase, pour que la
+        // suppression survive à une coupure réseau et soit propagée aux autres appareils.
+        val cv = ContentValues().apply {
+            put("deleted", 1)
+            put("updated_at", System.currentTimeMillis())
+        }
+        writableDatabase.update(
+            "products", cv,
+            "barcode = ? AND user_id = ?",
+            arrayOf(product.barcode, product.userId)
+        )
         getAllProducts(product.userId)
     }
 
     // ==================== SALES ====================
 
     suspend fun insertSale(sale: Sale, items: List<SaleItem>): Long = withContext(Dispatchers.IO) {
-        val cv = ContentValues().apply {
-            put("date", sale.date)
-            put("total", sale.total)
-            put("amount_paid", sale.amountPaid)
-            put("change_given", sale.changeGiven)
-            put("is_credit", if (sale.isCredit) 1 else 0)
-            put("client_id", sale.clientId)
-            put("synced", if (sale.synced) 1 else 0)
-            put("user_id", sale.userId)
-        }
-        val saleId = writableDatabase.insert("sales", null, cv)
-        for (item in items) {
-            val itemCv = ContentValues().apply {
-                put("sale_id", saleId)
-                put("barcode", item.barcode)
-                put("name", item.name)
-                put("price", item.price)
-                put("quantity", item.quantity)
-                put("user_id", item.userId)
+        val db = writableDatabase
+        // Transaction : la vente et ses articles sont insérés atomiquement.
+        // Un crash entre les deux laisserait une vente sans articles, poussée
+        // telle quelle sur Supabase (données corrompues).
+        db.beginTransaction()
+        try {
+            val cv = ContentValues().apply {
+                put("date", sale.date)
+                put("total", sale.total)
+                put("amount_paid", sale.amountPaid)
+                put("change_given", sale.changeGiven)
+                put("is_credit", if (sale.isCredit) 1 else 0)
+                put("client_id", sale.clientId)
+                put("synced", if (sale.synced) 1 else 0)
+                put("user_id", sale.userId)
             }
-            writableDatabase.insert("sale_items", null, itemCv)
+            val saleId = db.insert("sales", null, cv)
+            for (item in items) {
+                val itemCv = ContentValues().apply {
+                    put("sale_id", saleId)
+                    put("barcode", item.barcode)
+                    put("name", item.name)
+                    put("price", item.price)
+                    put("quantity", item.quantity)
+                    put("user_id", item.userId)
+                }
+                db.insert("sale_items", null, itemCv)
+            }
+            db.setTransactionSuccessful()
+            saleId
+        } finally {
+            db.endTransaction()
         }
-        saleId
     }
 
     suspend fun getSalesBetween(start: Long, end: Long, userId: String = ""): List<Sale> = withContext(Dispatchers.IO) {
@@ -288,8 +360,10 @@ class LissafiDatabase private constructor(context: Context) :
         list
     }
 
-    suspend fun getClient(id: String): Client? = withContext(Dispatchers.IO) {
-        readableDatabase.rawQuery("SELECT * FROM clients WHERE id = ?", arrayOf(id)).use { cursor ->
+    suspend fun getClient(id: String, userId: String = ""): Client? = withContext(Dispatchers.IO) {
+        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(id, userId) else arrayOf(id)
+        readableDatabase.rawQuery("SELECT * FROM clients WHERE id = ?$where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.toClient() else null
         }
     }
@@ -340,40 +414,55 @@ class LissafiDatabase private constructor(context: Context) :
 
     // ==================== DEBT TRANSACTIONS ====================
 
-    suspend fun getDebtTransactions(clientId: String): List<DebtTransaction> = withContext(Dispatchers.IO) {
+    suspend fun getDebtTransactions(clientId: String, userId: String = ""): List<DebtTransaction> = withContext(Dispatchers.IO) {
         val list = mutableListOf<DebtTransaction>()
-        readableDatabase.rawQuery("SELECT * FROM debt_transactions WHERE client_id = ? ORDER BY date DESC", arrayOf(clientId)).use { cursor ->
+        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(clientId, userId) else arrayOf(clientId)
+        readableDatabase.rawQuery("SELECT * FROM debt_transactions WHERE client_id = ?$where ORDER BY date DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toDebtTransaction())
         }
         list
     }
 
     suspend fun addDebtTransaction(transaction: DebtTransaction) = withContext(Dispatchers.IO) {
-        val cv = ContentValues().apply {
-            put("client_id", transaction.clientId)
-            if (transaction.saleId != null) put("sale_id", transaction.saleId)
-            put("amount", transaction.amount)
-            put("date", transaction.date)
-            put("note", transaction.note)
-            put("user_id", transaction.userId)
-        }
-        writableDatabase.insert("debt_transactions", null, cv)
-
-        writableDatabase.rawQuery("SELECT COALESCE(SUM(amount), 0) FROM debt_transactions WHERE client_id = ?", arrayOf(transaction.clientId)).use { cursor ->
-            if (cursor.moveToFirst()) {
-                val total = cursor.getInt(0)
-                val cv2 = ContentValues().apply {
-                    put("total_debt", total)
-                    put("updated_at", System.currentTimeMillis())
-                }
-                writableDatabase.update("clients", cv2, "id = ?", arrayOf(transaction.clientId))
+        val db = writableDatabase
+        // Transaction : l'INSERT + le recalcul de total_debt sont atomiques
+        // (deux appels concurrents ne peuvent pas écraser total_debt avec une somme partielle).
+        db.beginTransaction()
+        try {
+            val cv = ContentValues().apply {
+                put("client_id", transaction.clientId)
+                if (transaction.saleId != null) put("sale_id", transaction.saleId)
+                put("amount", transaction.amount)
+                put("date", transaction.date)
+                put("note", transaction.note)
+                put("user_id", transaction.userId)
             }
+            db.insert("debt_transactions", null, cv)
+
+            val where = if (transaction.userId.isNotEmpty()) " AND user_id = ?" else ""
+            val args = if (transaction.userId.isNotEmpty()) arrayOf(transaction.clientId, transaction.userId) else arrayOf(transaction.clientId)
+            db.rawQuery("SELECT COALESCE(SUM(amount), 0) FROM debt_transactions WHERE client_id = ?$where", args).use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val total = cursor.getInt(0)
+                    val cv2 = ContentValues().apply {
+                        put("total_debt", total)
+                        put("updated_at", System.currentTimeMillis())
+                    }
+                    db.update("clients", cv2, "id = ?", arrayOf(transaction.clientId))
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
         }
         getAllClients(transaction.userId)
     }
 
-    suspend fun getTotalDebt(clientId: String): Int = withContext(Dispatchers.IO) {
-        readableDatabase.rawQuery("SELECT COALESCE(SUM(amount), 0) FROM debt_transactions WHERE client_id = ?", arrayOf(clientId)).use { cursor ->
+    suspend fun getTotalDebt(clientId: String, userId: String = ""): Int = withContext(Dispatchers.IO) {
+        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(clientId, userId) else arrayOf(clientId)
+        readableDatabase.rawQuery("SELECT COALESCE(SUM(amount), 0) FROM debt_transactions WHERE client_id = ?$where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
         }
     }
@@ -425,20 +514,52 @@ class LissafiDatabase private constructor(context: Context) :
      * Remplace l'id local d'une vente par l'id généré par Supabase (BIGSERIAL),
      * et met à jour les références (articles vendus, transactions de dette).
      * Évite les doublons lors du pull après une réinstallation ou sur un 2e appareil.
+     *
+     * Si `newId` est déjà occupé par une AUTRE vente locale (cas d'un 2e appareil
+     * qui a généré localement le même id AUTOINCREMENT), cette vente est d'abord
+     * déplacée vers un id libre pour libérer `newId`, sinon l'UPDATE violerait
+     * la PRIMARY KEY et planterait la synchro.
      */
     suspend fun reassignSaleId(oldId: Long, newId: Long) = withContext(Dispatchers.IO) {
         if (oldId <= 0 || newId <= 0 || oldId == newId) return@withContext
         writableDatabase.beginTransaction()
         try {
-            writableDatabase.execSQL(
+            val db = writableDatabase
+            // Une autre vente occupe-t-elle déjà newId ?
+            val occupied = readableDatabase.rawQuery(
+                "SELECT 1 FROM sales WHERE id = ? AND id != ?",
+                arrayOf(newId.toString(), oldId.toString())
+            ).use { it.moveToFirst() }
+
+            if (occupied) {
+                // Trouver un id libre pour déplacer la vente qui occupe newId.
+                val maxId = readableDatabase.rawQuery(
+                    "SELECT COALESCE(MAX(id), 0) FROM sales", null
+                ).use { if (it.moveToFirst()) it.getLong(0) else newId }
+                var freeId = maxOf(maxId + 1, newId + 1)
+                db.execSQL(
+                    "UPDATE sale_items SET sale_id = ? WHERE sale_id = ?",
+                    arrayOf(freeId.toString(), newId.toString())
+                )
+                db.execSQL(
+                    "UPDATE debt_transactions SET sale_id = ? WHERE sale_id = ?",
+                    arrayOf(freeId.toString(), newId.toString())
+                )
+                db.execSQL(
+                    "UPDATE sales SET id = ? WHERE id = ?",
+                    arrayOf(freeId.toString(), newId.toString())
+                )
+            }
+
+            db.execSQL(
                 "UPDATE sale_items SET sale_id = ? WHERE sale_id = ?",
                 arrayOf(newId.toString(), oldId.toString())
             )
-            writableDatabase.execSQL(
+            db.execSQL(
                 "UPDATE debt_transactions SET sale_id = ? WHERE sale_id = ?",
                 arrayOf(newId.toString(), oldId.toString())
             )
-            writableDatabase.execSQL(
+            db.execSQL(
                 "UPDATE sales SET id = ? WHERE id = ?",
                 arrayOf(newId.toString(), oldId.toString())
             )
@@ -522,7 +643,8 @@ private fun Cursor.toProduct() = Product(
     hasBarcode = getInt(7) == 1,
     createdAt = getLong(8),
     updatedAt = getLong(9),
-    userId = if (columnCount > 10) getString(10) else ""
+    userId = if (columnCount > 10) getString(10) else "",
+    deleted = if (columnCount > 11) getInt(11) == 1 else false
 )
 
 private fun Cursor.toSale() = Sale(

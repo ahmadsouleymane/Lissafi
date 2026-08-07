@@ -17,8 +17,12 @@ CREATE TABLE IF NOT EXISTS products (
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    deleted BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (barcode, user_id)
 );
+
+-- Soft delete : ajoute la colonne sur les tables déjà créées (script idempotent)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted BOOLEAN NOT NULL DEFAULT false;
 
 -- 2. Table des ventes
 CREATE TABLE IF NOT EXISTS sales (

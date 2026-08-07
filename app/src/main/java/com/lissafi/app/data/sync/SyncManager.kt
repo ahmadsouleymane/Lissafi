@@ -118,6 +118,14 @@ class SyncManager(
             return
         }
 
+        // Le token d'accès GoTrue expire après ~1 h : le rafraîchir avant d'envoyer
+        // quoi que ce soit, sinon toutes les étapes échouent en 401.
+        try {
+            api.ensureFreshSession()
+        } catch (e: Exception) {
+            Log.w(TAG, "Rafraîchissement de session échoué : ${e.message}")
+        }
+
         syncMutex.withLock {
             _status.value = SyncStatus.SYNCING
             try {
@@ -173,7 +181,9 @@ class SyncManager(
 
     private suspend fun pushProducts() {
         val userId = SupabaseManager.currentUserId(context) ?: ""
-        val all = db.getAllProducts(userId)
+        // On pousse aussi les produits supprimés (soft delete) : c'est ainsi que la
+        // suppression est propagée au serveur et aux autres appareils.
+        val all = db.getAllProductsIncludingDeleted(userId)
         if (all.isEmpty()) return
         api.upsertProducts(all)
         Log.d(TAG, "Push produits: ${all.size} envoyés")
@@ -206,7 +216,7 @@ class SyncManager(
         val userId = SupabaseManager.currentUserId(context) ?: ""
         val allClients = db.getAllClients(userId)
         for (client in allClients) {
-            val txns = db.getDebtTransactions(client.id)
+            val txns = db.getDebtTransactions(client.id, userId)
             for (txn in txns) {
                 api.addDebtTransaction(txn)
             }
@@ -242,9 +252,9 @@ class SyncManager(
     }
 
     private suspend fun pullSales() {
-        // Récupérer les ventes récentes (30 derniers jours)
-        val thirtyDaysAgo = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
-        val remote = api.getSalesBetween(thirtyDaysAgo, System.currentTimeMillis())
+        // Récupérer TOUT l'historique : après une réinstallation ou sur un 2e appareil,
+        // les ventes anciennes ne doivent pas disparaître (avant : limité à 30 jours).
+        val remote = api.getSalesBetween(0L, System.currentTimeMillis())
         for (sale in remote) {
             if (!db.saleExists(sale.id)) {
                 // On récupère d'abord les articles : si l'opération échoue, la vente
@@ -260,7 +270,8 @@ class SyncManager(
     }
 
     private suspend fun pullDebtTransactions() {
-        val clients = db.getAllClients()
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val clients = db.getAllClients(userId)
         for (client in clients) {
             val remote = api.getDebtTransactions(client.id)
             for (txn in remote) {

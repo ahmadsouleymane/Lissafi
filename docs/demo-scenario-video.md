@@ -19,7 +19,7 @@
 | 3 | Stock | Tu sais ce qui te reste, à l'unité près |
 | 4 | Sans réseau | Ça marche quand même au marché |
 | 5 | Ticket WhatsApp | Le client garde sa preuve d'achat |
-| 6 | Le prix | Gratuit pour tester, Premium 10 000 F/an |
+| 6 | Le prix | Gratuit pour tester, Premium 15 000 F/an |
 
 ---
 
@@ -124,9 +124,9 @@ faite en direct pendant le tournage.
 1. Réglages → montrer la ligne **Premium** active (boutique « Boutique Albaraka »,
    téléphone, expiration dans 1 an).
 2. Montrer qu'on a **23 produits** → impossible en version gratuite (10 max).
-3. Carte finale : « 0 F pour tester · 10 000 F/an · c'est 27 F par jour ».
-4. Punch : « Toute une boutique dans ton téléphone, pour moins que le prix d'un
-   sachet d'eau par jour. »
+3. Carte finale : « 0 F pour tester · 15 000 F/an · c'est 41 F par jour ».
+4. Punch : « Toute une boutique dans ton téléphone, pour le prix d'un sachet
+   d'eau par jour. »
 
 ---
 

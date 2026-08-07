@@ -21,9 +21,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lissafi.app.data.entity.Product
+import com.lissafi.app.data.remote.ProductLookupService
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.AmountField
 import com.lissafi.app.ui.components.AmountText
+import com.lissafi.app.ui.components.BarcodeView
 import com.lissafi.app.ui.components.ConfirmDialog
 import com.lissafi.app.ui.components.EmptyState
 import com.lissafi.app.ui.components.LissafiCard
@@ -61,9 +63,12 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var showAddDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
+    var newProductPrefill by remember { mutableStateOf<Product?>(null) }
+    var addChoiceOpen by remember { mutableStateOf(false) }
+    var addScannerOpen by remember { mutableStateOf(false) }
+    var addLookupBusy by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(ProductFilter.TOUS) }
 
     val alertCount = state.products.count { isStockAlert(it) }
@@ -131,7 +136,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
                 actionLabel = if (state.searchQuery.isBlank()) "Ajouter un produit" else null,
                 onAction = {
                     scope.launch {
-                        if (viewModel.canAddProduct()) showAddDialog = true
+                        if (viewModel.canAddProduct()) addChoiceOpen = true
                         else showPremiumDialog = true
                     }
                 }
@@ -158,7 +163,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
                         icon = LissafiIcons.Ajouter,
                         onClick = {
                             scope.launch {
-                                if (viewModel.canAddProduct()) showAddDialog = true
+                                if (viewModel.canAddProduct()) addChoiceOpen = true
                                 else showPremiumDialog = true
                             }
                         }
@@ -169,15 +174,44 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
         }
     }
 
-    if (showAddDialog) {
-        ProductFormDialog(
-            title = "Nouveau produit",
-            subtitle = "Renseigne le nom et le prix de vente. C'est tout ce qu'il faut pour vendre.",
-            onDismiss = { showAddDialog = false },
-            onSave = {
-                viewModel.addProduct(it)
-                showAddDialog = false
-            }
+    // Choix du mode d'ajout : avec ou sans code-barres
+    if (addChoiceOpen) {
+        AddProductChoiceDialog(
+            onWithoutBarcode = {
+                addChoiceOpen = false
+                newProductPrefill = Product(barcode = "", name = "", hasBarcode = false)
+            },
+            onWithBarcode = {
+                addChoiceOpen = false
+                addScannerOpen = true
+            },
+            onDismiss = { addChoiceOpen = false }
+        )
+    }
+
+    // Ajout AVEC code-barres : on scanne, puis on tente de récupérer les infos via l'API.
+    if (addScannerOpen) {
+        BarcodeScannerScreen(
+            onBarcodeScanned = { code ->
+                addScannerOpen = false
+                scope.launch {
+                    addLookupBusy = true
+                    val info = ProductLookupService.lookup(code)
+                    addLookupBusy = false
+                    newProductPrefill = Product(
+                        barcode = code,
+                        name = info?.name ?: "",
+                        category = info?.category ?: "",
+                        hasBarcode = true
+                    )
+                    Toast.makeText(
+                        context,
+                        if (info != null) "Produit trouvé : ${info.name}" else "Produit non trouvé — saisis les infos.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            },
+            onDismiss = { addScannerOpen = false }
         )
     }
 
@@ -193,10 +227,26 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
         )
     }
 
+    // Nouveau produit (pré-rempli ou non) — l'utilisateur complète avant d'enregistrer.
+    newProductPrefill?.let { prefill ->
+        ProductFormDialog(
+            title = "Nouveau produit",
+            subtitle = "Complète les informations puis enregistre.",
+            isNew = true,
+            initialProduct = prefill,
+            onDismiss = { newProductPrefill = null },
+            onSave = {
+                viewModel.addProduct(it)
+                newProductPrefill = null
+            }
+        )
+    }
+
     editingProduct?.let { product ->
         ProductFormDialog(
             title = "Modifier « ${product.name} »",
             subtitle = "Corrige les informations du produit.",
+            isNew = false,
             initialProduct = product,
             onDismiss = { editingProduct = null },
             onSave = {
@@ -329,14 +379,17 @@ private fun ProductCard(
 fun ProductFormDialog(
     title: String,
     subtitle: String? = null,
+    isNew: Boolean = true,
     initialProduct: Product? = null,
     onDismiss: () -> Unit,
     onSave: (Product) -> Unit
 ) {
     var name by remember { mutableStateOf(initialProduct?.name ?: "") }
-    var sellPrice by remember { mutableStateOf(initialProduct?.sellPrice?.toString() ?: "") }
-    var buyPrice by remember { mutableStateOf(initialProduct?.buyPrice?.toString() ?: "") }
-    var stock by remember { mutableStateOf(initialProduct?.stock?.toString() ?: "") }
+    // Pour un NOUVEAU produit, prix/stock démarrent vides (le pré-remplissage du
+    // scan ne concerne que le nom/catégorie). En édition, on affiche les valeurs.
+    var sellPrice by remember { mutableStateOf(if (isNew) "" else initialProduct?.sellPrice?.toString() ?: "") }
+    var buyPrice by remember { mutableStateOf(if (isNew) "" else initialProduct?.buyPrice?.toString() ?: "") }
+    var stock by remember { mutableStateOf(if (isNew) "" else initialProduct?.stock?.toString() ?: "") }
     var category by remember { mutableStateOf(initialProduct?.category ?: "") }
     var hasBarcode by remember { mutableStateOf(initialProduct?.hasBarcode ?: true) }
     var barcodeText by remember {
@@ -345,6 +398,30 @@ fun ProductFormDialog(
     var showPriceWarning by remember { mutableStateOf(false) }
     var showNameError by remember { mutableStateOf(false) }
     var showSellPriceError by remember { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(false) }
+    var lookupBusy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    // Scanner intégré au formulaire : scanne puis tente de pré-remplir nom/catégorie.
+    if (showScanner) {
+        BarcodeScannerScreen(
+            onBarcodeScanned = { code ->
+                showScanner = false
+                barcodeText = code
+                scope.launch {
+                    lookupBusy = true
+                    val info = ProductLookupService.lookup(code)
+                    lookupBusy = false
+                    if (info != null) {
+                        if (name.isBlank()) name = info.name
+                        if (category.isBlank()) category = info.category
+                    }
+                }
+            },
+            onDismiss = { showScanner = false }
+        )
+        return
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -367,7 +444,10 @@ fun ProductFormDialog(
             }
         },
         text = {
-            Column {
+            // imePadding : le clavier ne cache plus les champs du formulaire.
+            Column(
+                modifier = Modifier.imePadding()
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; showNameError = false },
@@ -453,8 +533,29 @@ fun ProductFormDialog(
                         label = { Text("Code-barres") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        trailingIcon = {
+                            IconButton(onClick = { showScanner = true }) {
+                                Icon(
+                                    imageVector = LissafiIcons.Scanner,
+                                    contentDescription = "Scanner un code-barres",
+                                    tint = Primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        supportingText = if (lookupBusy) {
+                            { Text("Recherche des informations du produit…", fontSize = 12.sp, color = TextSecondary) }
+                        } else null,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    // Affiche un vrai code-barres RECTANGULAIRE (et non carré) pour le produit.
+                    if (barcodeText.isNotBlank()) {
+                        Spacer(Modifier.height(10.dp))
+                        BarcodeView(
+                            barcode = barcodeText.trim(),
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
         },
@@ -481,7 +582,8 @@ fun ProductFormDialog(
                     if (!valid) return@PrimaryActionButton
 
                     val barcode = when {
-                        initialProduct != null -> initialProduct.barcode
+                        // Édition : on garde le code-barres d'origine (clé du produit).
+                        !isNew && initialProduct != null -> initialProduct.barcode
                         hasBarcode && barcodeText.isNotBlank() -> barcodeText.trim()
                         else -> "MANUAL-${System.currentTimeMillis()}"
                     }
@@ -501,6 +603,98 @@ fun ProductFormDialog(
                 }
             )
         },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
+        }
+    )
+}
+
+// ============================================================
+// CHOIX DU MODE D'AJOUT — avec ou sans code-barres
+// ============================================================
+@Composable
+private fun AddProductChoiceDialog(
+    onWithoutBarcode: () -> Unit,
+    onWithBarcode: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
+        icon = {
+            Icon(
+                imageVector = LissafiIcons.Produit,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(34.dp)
+            )
+        },
+        title = {
+            Text("Comment ajouter ce produit ?", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Choisis la façon d'enregistrer ton article.",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+                Spacer(Modifier.height(16.dp))
+
+                // Option 1 : sans code-barres
+                Surface(
+                    onClick = onWithoutBarcode,
+                    shape = RoundedCornerShape(14.dp),
+                    color = SurfaceAlt,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = LissafiIcons.Produit,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Sans code-barres", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("Saisis le nom et le prix à la main.", fontSize = 11.sp, color = TextSecondary)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Option 2 : avec code-barres → scan + recherche automatique
+                Surface(
+                    onClick = onWithBarcode,
+                    shape = RoundedCornerShape(14.dp),
+                    color = SurfaceAlt,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = LissafiIcons.Scanner,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Avec code-barres", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("Scanne, on tente de retrouver le produit automatiquement.", fontSize = 11.sp, color = TextSecondary)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
         }

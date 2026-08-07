@@ -547,8 +547,11 @@ fun CaisseScreen(
                     } else {
                         showBluetoothPicker = true
                     }
-                } else {
+                } else if (adapter != null) {
                     btLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                } else {
+                    // Pas de radio Bluetooth sur cet appareil : éviter un crash
+                    Toast.makeText(context, "Bluetooth non disponible sur cet appareil.", Toast.LENGTH_SHORT).show()
                 }
             },
             onWhatsApp = {
@@ -670,11 +673,12 @@ private fun ProductSearchDropdown(
     var isLoading by remember { mutableStateOf(true) }
     val context = LocalContext.current
     val app = remember { context.applicationContext as LissafiApp }
+    val userId = app.authManager.currentUserId() ?: ""
 
     LaunchedEffect(query) {
         isLoading = true
-        products = if (query.isBlank()) app.database.getAllProducts()
-        else app.database.searchProducts(query)
+        products = if (query.isBlank()) app.database.getAllProducts(userId)
+        else app.database.searchProducts(query, userId)
         isLoading = false
     }
 
@@ -917,7 +921,9 @@ private fun EncaisseSheet(
             QuickAmountChips(
                 amounts = QUICK_CASH,
                 current = paid,
-                onSelect = { amt -> onAmountChange((paid + amt).toString()) }
+                // Les chips affichent un montant ABSOLU (500, 1000…) : le clic
+                // remplace le montant saisi, il ne l'additionne pas.
+                onSelect = { amt -> onAmountChange(amt.toString()) }
             )
             AnimatedVisibility(visible = paid >= total) {
                 LissafiCard(
@@ -1221,14 +1227,15 @@ private fun ClientPickerSheet(
     val ctx = LocalContext.current
     val app = remember { ctx.applicationContext as LissafiApp }
     val scope = rememberCoroutineScope()
+    val userId = app.authManager.currentUserId() ?: ""
 
     LaunchedEffect(Unit) {
-        clients = app.database.getAllClients()
+        clients = app.database.getAllClients(userId)
         loading = false
     }
     LaunchedEffect(q) {
         loading = true
-        clients = if (q.isBlank()) app.database.getAllClients() else app.database.searchClients(q)
+        clients = if (q.isBlank()) app.database.getAllClients(userId) else app.database.searchClients(q, userId)
         loading = false
     }
 
@@ -1301,7 +1308,8 @@ private fun ClientPickerSheet(
                                         phone = newPhone.trim(),
                                         totalDebt = 0,
                                         createdAt = System.currentTimeMillis(),
-                                        updatedAt = System.currentTimeMillis()
+                                        updatedAt = System.currentTimeMillis(),
+                                        userId = userId
                                     )
                                     app.database.upsertClient(client)
                                     onClientSelected(client)

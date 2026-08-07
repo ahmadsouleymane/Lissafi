@@ -1,15 +1,21 @@
 package com.lissafi.app.service
 
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 object FormatUtils {
-    private val fcfaFormat: NumberFormat = NumberFormat.getNumberInstance(Locale.FRENCH)
 
+    /**
+     * Formate un montant FCFA avec des espaces de groupement ASCII (U+0020),
+     * pas l'espace insécable étroite U+202F de Locale.FRENCH : cette dernière
+     * s'imprime en mojibake sur les tickets thermiques 58 mm en Latin-1.
+     */
     fun formatFCFA(amount: Int): String {
-        return "${fcfaFormat.format(amount)} F"
+        val sign = if (amount < 0) "-" else ""
+        val abs = kotlin.math.abs(amount).toString()
+        val grouped = abs.reversed().chunked(3).joinToString(" ").reversed()
+        return "$sign$grouped FCFA"
     }
 
     fun formatDate(timestamp: Long): String {

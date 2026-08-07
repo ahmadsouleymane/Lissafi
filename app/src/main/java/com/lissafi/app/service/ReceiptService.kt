@@ -5,12 +5,15 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import com.lissafi.app.data.entity.SaleItem
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.roundToInt
 
 /**
  * Service de génération et d'impression de reçus.
@@ -43,44 +46,84 @@ object ReceiptService {
         val price: Int
     )
 
+    /**
+     * Format du reçu — 32 colonnes (imprimante thermique 58 mm), refondu pour un
+     * rendu propre et aligné. N'utilise QUE des caractères Latin-1 sûrs ("=", "-",
+     * accents français) : aucun caractère Unicode rare qui s'imprimerait mal ou
+     * décalerait les colonnes (les accents é/è/à/ç sont codés sur un octet).
+     */
     fun formatReceipt(data: ReceiptData): String {
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
         val sb = StringBuilder()
 
-        sb.appendLine("======================================")
-        sb.appendLine("      ${data.shopName.ifBlank { "LISSAFI" }}")
-        sb.appendLine("      ${data.shopPhone.ifBlank { "" }}")
-        sb.appendLine("--------------------------------------")
-        sb.appendLine("      ${sdf.format(Date(data.date))}")
-        sb.appendLine("--------------------------------------")
-        sb.appendLine("QTÉ   ARTICLE           PRIX   TOTAL")
-        sb.appendLine("--------------------------------------")
+        // ── En-tête : boutique centrée ──
+        sb.appendLine(sep('='))
+        sb.appendLine(center(data.shopName.ifBlank { "LISSAFI" }))
+        if (data.shopPhone.isNotBlank()) sb.appendLine(center(data.shopPhone))
+        sb.appendLine(center(sdf.format(Date(data.date))))
+        sb.appendLine(sep('-'))
 
+        // ── Tableau des articles ──
+        sb.appendLine("${"Qté".padStart(4)}  ${"ARTICLE".padEnd(14)}  ${"TOTAL".padStart(12)}")
+        sb.appendLine(sep('-'))
         for (item in data.items) {
-            val name = if (item.name.length > 16) item.name.take(14) + ".." else item.name.padEnd(16)
-            val qty = item.quantity.toInt().toString().padStart(3)
-            val price = FormatUtils.formatFCFA(item.price).padEnd(7)
-            val lineTotal = FormatUtils.formatFCFA((item.price * item.quantity).toInt())
-            sb.appendLine("$qty  $name $price $lineTotal")
+            val name = truncate(item.name, 14)
+            val qty = qtyText(item.quantity).padStart(4)
+            val total = grouped((item.price * item.quantity).roundToInt())
+            sb.appendLine("$qty  ${name.padEnd(14)}  ${total.padStart(12)}")
         }
+        sb.appendLine(sep('-'))
 
-        sb.appendLine("--------------------------------------")
-        sb.appendLine("TOTAL :           ${FormatUtils.formatFCFA(data.total)}")
-
+        // ── Totaux ──
         if (data.isCredit) {
-            sb.appendLine("TYPE :            VENTE À CRÉDIT")
-        } else {
-            sb.appendLine("PAYÉ :            ${FormatUtils.formatFCFA(data.amountPaid)}")
-            sb.appendLine("MONNAIE :         ${FormatUtils.formatFCFA(data.changeGiven)}")
+            sb.appendLine(center("VENTE À CRÉDIT"))
+            sb.appendLine(sep('-'))
+        }
+        sb.appendLine(kvRow("TOTAL", FormatUtils.formatFCFA(data.total)))
+        if (!data.isCredit) {
+            sb.appendLine(kvRow("PAYÉ", FormatUtils.formatFCFA(data.amountPaid)))
+            sb.appendLine(kvRow("MONNAIE", FormatUtils.formatFCFA(data.changeGiven)))
         }
 
-        sb.appendLine("======================================")
-        sb.appendLine("      Merci pour votre achat !")
-        sb.appendLine("      Lissafi — Ton commerce, maîtrisé.")
-        sb.appendLine("======================================")
+        // ── Pied de page ──
+        sb.appendLine(sep('='))
+        sb.appendLine(center("Merci pour votre achat !"))
+        sb.appendLine(center("Lissafi - Ton commerce, maîtrise."))
+        sb.appendLine(sep('='))
         sb.appendLine()
 
         return sb.toString()
+    }
+
+    private const val RECEIPT_WIDTH = 32
+
+    private fun sep(c: Char = '=') = c.toString().repeat(RECEIPT_WIDTH)
+
+    /** Centre un texte sur la largeur du reçu (remplit gauche/droite). */
+    private fun center(text: String, width: Int = RECEIPT_WIDTH): String {
+        val t = if (text.length >= width) text.take(width) else text
+        val pad = width - t.length
+        val left = pad / 2
+        return " ".repeat(left) + t + " ".repeat(pad - left)
+    }
+
+    /** Ligne label → valeur alignée à droite sur toute la largeur. */
+    private fun kvRow(label: String, value: String, width: Int = RECEIPT_WIDTH): String {
+        val gap = maxOf(1, width - label.length - value.length)
+        return label + " ".repeat(gap) + value
+    }
+
+    private fun truncate(text: String, n: Int): String =
+        if (text.length > n) text.take(n - 1) + ".." else text
+
+    /** Quantité : "1" si entière, "1,5" sinon. */
+    private fun qtyText(q: Double): String =
+        if (q % 1.0 == 0.0) q.toInt().toString() else q.toString().replace('.', ',')
+
+    /** Nombre groupé (espace ASCII) sans devise — pour les lignes du tableau. */
+    private fun grouped(amount: Int): String {
+        val sign = if (amount < 0) "-" else ""
+        return sign + kotlin.math.abs(amount).toString().reversed().chunked(3).joinToString(" ").reversed()
     }
 
     // ==================== PARTAGE WHATSAPP ====================
@@ -94,6 +137,12 @@ object ReceiptService {
             }
             if (intent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(intent)
+            } else {
+                android.widget.Toast.makeText(
+                    context,
+                    "WhatsApp n'est pas installé sur cet appareil.",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
             }
         } catch (_: Exception) {}
     }
@@ -137,8 +186,12 @@ object ReceiptService {
                 @Suppress("MissingPermission")
                 socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
 
-                @Suppress("MissingPermission")
-                adapter.cancelDiscovery()
+                // cancelDiscovery exige BLUETOOTH_SCAN sur Android 12+ ; s'il manque,
+                // on l'ignore — pas indispensable pour une connexion SPP sortante.
+                try {
+                    @Suppress("MissingPermission")
+                    adapter.cancelDiscovery()
+                } catch (_: Exception) {}
 
                 socket.connect()
                 outputStream = socket.outputStream
@@ -146,35 +199,35 @@ object ReceiptService {
                 // ESC/POS commands for basic formatting
                 val esc = 0x1B.toByte()
                 val init = byteArrayOf(esc, '@'.code.toByte()) // Initialize printer
-                val alignCenter = byteArrayOf(esc, 'a'.code.toByte(), 0x01) // Center align
                 val alignLeft = byteArrayOf(esc, 'a'.code.toByte(), 0x00) // Left align
-                val boldOn = byteArrayOf(esc, 'E'.code.toByte(), 0x01) // Bold on
-                val boldOff = byteArrayOf(esc, 'E'.code.toByte(), 0x00) // Bold off
                 val cutPaper = byteArrayOf(0x1D.toByte(), 'V'.code.toByte(), 0x01) // Cut paper
 
                 outputStream.write(init)
-                outputStream.write(alignCenter)
-                outputStream.write(boldOn)
-                outputStream.write("LISSAFI\n\n".toByteArray(Charsets.UTF_8))
-                outputStream.write(boldOff)
 
-                // Print the receipt text
+                // Latin-1 (et non UTF-8) : les imprimantes thermiques 58 mm affichent
+                // les accents correctement ; un caractère hors Latin-1 devient '?'
+                // plutôt qu'un mojibake multi-octets qui décale les colonnes du reçu.
                 val lines = receiptText.split("\n")
                 for (line in lines) {
                     outputStream.write(alignLeft)
-                    outputStream.write("$line\n".toByteArray(Charsets.UTF_8))
+                    outputStream.write("$line\n".toByteArray(Charsets.ISO_8859_1))
                 }
 
                 outputStream.write(cutPaper)
                 outputStream.flush()
 
-                onResult(true, "Reçu imprimé avec succès")
+                postResult(onResult, true, "Reçu imprimé avec succès")
             } catch (e: Exception) {
-                onResult(false, "Erreur d'impression : ${e.message ?: "inconnue"}")
+                postResult(onResult, false, "Erreur d'impression : ${e.message ?: "inconnue"}")
             } finally {
                 try { outputStream?.close() } catch (_: Exception) {}
                 try { socket?.close() } catch (_: Exception) {}
             }
         }.start()
+    }
+
+    /** Renvoie le résultat d'impression sur le thread principal (état Compose). */
+    private fun postResult(onResult: (Boolean, String) -> Unit, ok: Boolean, msg: String) {
+        Handler(Looper.getMainLooper()).post { onResult(ok, msg) }
     }
 }

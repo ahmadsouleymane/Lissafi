@@ -3,6 +3,7 @@ package com.lissafi.app.data.remote
 import android.content.Context
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -38,6 +39,12 @@ object SupabaseManager {
                         coerceInputValues = true
                         encodeDefaults = false  // ne sérialise pas id=0, laisse le BIGSERIAL du serveur générer l'id
                     })
+                }
+                // Timeouts : sans eux, une connexion morte bloquait la synchro sans fin.
+                install(HttpTimeout) {
+                    connectTimeoutMillis = 10_000
+                    requestTimeoutMillis = 25_000
+                    socketTimeoutMillis = 25_000
                 }
             }.also { httpClient = it }
         }
@@ -77,6 +84,31 @@ object SupabaseManager {
 
     fun getAccessToken(context: Context): String? {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_ACCESS_TOKEN, null)
+    }
+
+    fun getRefreshToken(context: Context): String? {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_REFRESH_TOKEN, null)
+    }
+
+    /**
+     * Date d'expiration (epoch secondes) du token d'accès GoTrue, déduite du
+     * champ `exp` du JWT. Retourne null si le token n'est pas un JWT décodable.
+     */
+    fun getAccessTokenExpiry(context: Context): Long? {
+        val token = getAccessToken(context) ?: return null
+        val parts = token.split(".")
+        if (parts.size < 2) return null
+        return try {
+            val payload = android.util.Base64.decode(
+                parts[1].replace('-', '+').replace('_', '/'),
+                android.util.Base64.DEFAULT
+            )
+            val json = org.json.JSONObject(String(payload))
+            val exp = json.optLong("exp")
+            if (exp > 0) exp else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun isLoggedIn(context: Context): Boolean = getAccessToken(context) != null

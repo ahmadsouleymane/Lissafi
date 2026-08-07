@@ -59,7 +59,15 @@ class ProductViewModel(
     }
 
     fun addProduct(product: Product) {
-        viewModelScope.launch { repository.upsertProduct(product) }
+        viewModelScope.launch {
+            // Re-vérifie la limite au moment de l'écriture (course TOCTOU : deux
+            // clics rapides ne doivent pas dépasser la limite gratuite).
+            if (!premiumManager.canAddProduct()) {
+                _state.value = _state.value.copy(isLimitReached = true)
+                return@launch
+            }
+            repository.upsertProduct(product)
+        }
     }
 
     fun deleteProduct(product: Product) {

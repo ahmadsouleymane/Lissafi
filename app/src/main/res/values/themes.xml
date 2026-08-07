@@ -7,7 +7,7 @@
 
     <style name="Theme.Lissafi.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/lissafi_primary</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/lissafi_primary</item>
         <item name="postSplashScreenTheme">@style/Theme.Lissafi</item>
     </style>

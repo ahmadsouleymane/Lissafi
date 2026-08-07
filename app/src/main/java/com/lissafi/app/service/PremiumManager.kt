@@ -55,11 +55,18 @@ class PremiumManager(private val repository: LissafiRepository) {
 
     suspend fun activateWithCode(code: String): Boolean {
         if (!VALID_CODES.contains(code)) return false
+        // Un code ne peut être utilisé qu'UNE fois sur cet appareil : sinon, un
+        // code partagé re-grantait 365 jours à l'infini.
+        val previous = repository.getSetting("activation_code")
+        if (previous == code) return false
 
         val expiry = System.currentTimeMillis() + PREMIUM_DAYS * 24 * 60 * 60 * 1000L
         repository.setSetting("is_premium", "true")
         repository.setSetting("premium_expiry", expiry.toString())
         repository.setSetting("activation_code", code)
+        // La démo est consommée dès qu'un code est utilisé : pas de 7 jours bonus
+        // après l'expiration du premium-code.
+        repository.setSetting("demo_taken", "true")
         return true
     }
 

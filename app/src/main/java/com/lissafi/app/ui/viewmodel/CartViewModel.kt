@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 data class CartItem(
     val barcode: String,
@@ -151,7 +152,9 @@ class CartViewModel(
                 val product = repository.getProduct(item.barcode)
                 if (product != null && product.stock > 0) {
                     repository.upsertProduct(product.copy(
-                        stock = maxOf(0, product.stock - item.quantity.toInt()),
+                        // roundToInt au lieu de toInt() : une vente de 1,5 kg décrémente
+                        // de 2 et non de 1 (et 0,5 kg décrémente de 1 au lieu de 0).
+                        stock = maxOf(0, product.stock - item.quantity.roundToInt()),
                         updatedAt = System.currentTimeMillis()
                     ))
                 }
@@ -182,5 +185,5 @@ class CartViewModel(
     }
 
     private fun computeTotal(items: List<CartItem>): Int =
-        items.sumOf { (it.price * it.quantity).toInt() }
+        items.sumOf { (it.price * it.quantity).roundToInt() }
 }

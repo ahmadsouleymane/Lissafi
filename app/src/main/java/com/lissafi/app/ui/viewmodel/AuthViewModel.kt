@@ -37,7 +37,10 @@ data class AuthState(
 private const val DEMO_EMAIL = "demo@lissafi.app"
 private const val DEMO_PASSWORD = "demo123456"
 
-class AuthViewModel(private val authManager: AuthManager) : ViewModel() {
+class AuthViewModel(
+    private val authManager: AuthManager,
+    private val onShopNameSaved: (String) -> Unit = {}
+) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -90,6 +93,7 @@ class AuthViewModel(private val authManager: AuthManager) : ViewModel() {
             val result = authManager.signUp(state.email, state.password, state.shopName)
             when (result) {
                 is AuthResult.Success -> {
+                    onShopNameSaved(state.shopName)
                     _state.value = _state.value.copy(
                         isLoading = false,
                         message = result.message,

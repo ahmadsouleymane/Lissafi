@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 data class SettingsState(
     val shopName: String = "",
     val shopPhone: String = "",
-    val adminPin: String = "1234",
+    val adminPin: String = "0000",
     val isPremium: Boolean = false,
     val premiumExpiry: Long? = null,
     val premiumExpiryText: String = "",

@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class LissafiRepository(
     private val db: LissafiDatabase,
-    private val api: SupabaseApi
+    private val api: SupabaseApi,
+    private val onDataChanged: () -> Unit = {}
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -37,7 +38,7 @@ class LissafiRepository(
     val productsFlow: Flow<List<Product>> get() = db.productsFlow
 
     suspend fun getAllProducts(): List<Product> = db.getAllProducts(currentUserId)
-    suspend fun getProduct(barcode: String): Product? = db.getProduct(barcode)
+    suspend fun getProduct(barcode: String): Product? = db.getProduct(barcode, currentUserId)
     suspend fun searchProducts(query: String): List<Product> = db.searchProducts(query, currentUserId)
     suspend fun getProductCount(): Int = db.getProductCount(currentUserId)
     suspend fun getRecentProducts(limit: Int = 8): List<Product> = db.getRecentProducts(limit, currentUserId)
@@ -45,12 +46,13 @@ class LissafiRepository(
     suspend fun upsertProduct(product: Product) {
         val p = product.copy(userId = currentUserId)
         db.upsertProduct(p)
-        syncToRemote { api.upsertProduct(p) }
+        syncToRemote()
     }
 
     suspend fun deleteProduct(product: Product) {
-        db.deleteProduct(product)
-        syncToRemote { api.deleteProduct(product.barcode) }
+        // Soft delete local ; la suppression (deleted=1) est poussée par SyncManager.pushProducts.
+        db.deleteProduct(product.copy(userId = currentUserId))
+        syncToRemote()
     }
 
     // --- Ventes ---
@@ -59,14 +61,9 @@ class LissafiRepository(
         val s = sale.copy(userId = currentUserId)
         val itms = items.map { it.copy(userId = currentUserId) }
         val saleId = db.insertSale(s, itms)
-        syncToRemote {
-            val remoteId = api.insertSale(s, itms)
-            if (remoteId > 0) {
-                // Aligner l'id local sur l'id généré par Supabase → pas de doublons au pull
-                if (remoteId != saleId) db.reassignSaleId(saleId, remoteId)
-                db.markSaleSynced(remoteId)
-            }
-        }
+        // Le push (api.insertSale + reassignSaleId + markSaleSynced) est fait par
+        // SyncManager.pushSales, sous le mutex → une seule source de push, pas de doublons.
+        syncToRemote()
         return saleId
     }
 
@@ -82,28 +79,28 @@ class LissafiRepository(
     val clientsFlow: Flow<List<Client>> get() = db.clientsFlow
 
     suspend fun getAllClients(): List<Client> = db.getAllClients(currentUserId)
-    suspend fun getClient(id: String): Client? = db.getClient(id)
+    suspend fun getClient(id: String): Client? = db.getClient(id, currentUserId)
     suspend fun searchClients(query: String): List<Client> = db.searchClients(query, currentUserId)
     suspend fun getClientCount(): Int = db.getClientCount(currentUserId)
 
     suspend fun upsertClient(client: Client) {
         val c = client.copy(userId = currentUserId)
         db.upsertClient(c)
-        syncToRemote { api.upsertClient(c) }
+        syncToRemote()
     }
 
     // --- Dettes ---
 
     suspend fun getDebtTransactions(clientId: String): List<DebtTransaction> =
-        db.getDebtTransactions(clientId)
+        db.getDebtTransactions(clientId, currentUserId)
 
     suspend fun addDebtTransaction(transaction: DebtTransaction) {
         val t = transaction.copy(userId = currentUserId)
         db.addDebtTransaction(t)
-        syncToRemote { api.addDebtTransaction(t) }
+        syncToRemote()
     }
 
-    suspend fun getTotalDebt(clientId: String): Int = db.getTotalDebt(clientId)
+    suspend fun getTotalDebt(clientId: String): Int = db.getTotalDebt(clientId, currentUserId)
 
     // --- Paramètres ---
 
@@ -111,7 +108,7 @@ class LissafiRepository(
 
     suspend fun setSetting(key: String, value: String) {
         db.setSetting(key, value)
-        syncToRemote { api.setSetting(key, value) }
+        syncToRemote()
     }
 
     suspend fun isPremium(): Boolean = getSetting("is_premium") == "true"
@@ -120,16 +117,19 @@ class LissafiRepository(
     suspend fun getShopName(): String = getSetting("shop_name") ?: ""
     suspend fun getShopPhone(): String = getSetting("shop_phone") ?: ""
 
-    private fun syncToRemote(block: suspend () -> Unit) {
+    private fun syncToRemote() {
         scope.launch {
             // Session invalide (user_id non-UUID ou token absent) : on n'écrit rien
             // sur Supabase — les INSERT seraient rejetés par le typage UUID + RLS.
             if (!api.isConfigured || !api.hasValidSession) return@launch
             try {
-                block()
+                // Rafraîchit le token s'il est expiré (sinon la synchro échoue en 401).
+                api.ensureFreshSession()
+                // Déclenche la synchro via SyncManager (source de push UNIQUE sous mutex) :
+                // élimine la course de double-push qui pouvait dupliquer les ventes.
+                onDataChanged()
             } catch (e: Exception) {
-                // Silencieux : en cas d'échec réseau, l'élément reste non-synchronisé
-                // et sera retenté automatiquement par SyncManager.
+                // Silencieux : les échecs réseau seront retentés par SyncManager.
             }
         }
     }

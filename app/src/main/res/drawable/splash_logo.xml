@@ -1,0 +1,28 @@
+<!-- Logo Lissafi (croix 4 carrés) pour l'écran de chargement — vectoriel donc net à toute taille -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:translateX="256"
+        android:translateY="256"
+        android:scaleX="0.5"
+        android:scaleY="0.5">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,682.67h341.33v341.33h0C152.95,1024,0,871.05,0,682.67H0Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M682.67,0h0C871.05,0,1024,152.95,1024,341.33h-341.33V0h0Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M682.67,674.81h341.33c0,188.39-152.95,341.33-341.33,341.33h0v-341.33h0Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M341.33,0h0v341.33H0C0,152.95,152.95,0,341.33,0Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M341.33,341.33h341.33v341.33h-341.33z"/>
+    </group>
+</vector>
