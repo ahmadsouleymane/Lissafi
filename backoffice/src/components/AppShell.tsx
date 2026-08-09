@@ -8,6 +8,7 @@ import {
   IconActivity,
   IconChat,
   IconCrown,
+  IconDatabase,
   IconGrid,
   IconLogIn,
   IconLogout,
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/connexions", label: "Connexions", icon: IconLogIn },
   { href: "/support", label: "Support", icon: IconChat },
   { href: "/reglages", label: "Réglages", icon: IconSettings },
+  { href: "/donnees", label: "Données", icon: IconDatabase },
 ];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
