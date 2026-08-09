@@ -113,24 +113,6 @@ fun AuthScreen(viewModel: AuthViewModel) {
                         }
                     )
 
-                    Spacer(Modifier.height(14.dp))
-
-                    // Bouton démo — accès rapide au compte de démonstration
-                    OutlinedButton(
-                        onClick = { viewModel.demoLogin() },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.5.dp, Secondary),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Secondary)
-                    ) {
-                        Text(
-                            text = "🎬 Tester avec la démo",
-                            color = Secondary,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                    }
-
                     Spacer(Modifier.height(16.dp))
 
                     when (state.mode) {
