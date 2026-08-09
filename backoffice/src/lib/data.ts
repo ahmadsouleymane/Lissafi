@@ -226,8 +226,10 @@ export async function getAccountDebts(userId: string): Promise<(DebtTransaction 
 
 /** Ventes d'un compte, paginées, avec les articles de la page. */
 export async function getAccountSales(userId: string, page = 1, limit = 50): Promise<AccountSalePage> {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  const pageSafe = Math.max(1, page);
+  const limitSafe = Math.min(100, Math.max(1, limit));
+  const from = (pageSafe - 1) * limitSafe;
+  const to = from + limitSafe - 1;
   const { data, count } = await supabaseAdmin()
     .from("sales")
     .select("*", { count: "exact" })

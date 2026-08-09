@@ -27,11 +27,13 @@ export default async function CompteDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
   const tab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as string) : "overview";
+  const page = Math.max(1, Number(sp.page ?? 1) || 1);
+  const limit = 50;
 
   const detail = await getUserDetail(id);
   if (!detail.summary) notFound();
@@ -44,7 +46,7 @@ export default async function CompteDetailPage({
           tab === "produits" ? getAccountProducts(id) : Promise.resolve([]),
           tab === "clients" ? getAccountClients(id) : Promise.resolve([]),
           tab === "dettes" ? getAccountDebts(id) : Promise.resolve([]),
-          tab === "ventes" ? getAccountSales(id, 1, 50) : Promise.resolve(null),
+          tab === "ventes" ? getAccountSales(id, page, limit) : Promise.resolve(null),
         ]);
 
   const waPhone = u.shop_phone.replace(/\s+/g, "");
@@ -103,7 +105,14 @@ export default async function CompteDetailPage({
       {tab === "produits" && <ProductsTab products={products ?? []} />}
       {tab === "clients" && <ClientsTab clients={clients ?? []} />}
       {tab === "dettes" && <DebtsTab debts={debts ?? []} />}
-      {tab === "ventes" && salesPage && <SalesTab salesPage={salesPage} />}
+      {tab === "ventes" && salesPage && (
+        <SalesTab
+          salesPage={salesPage}
+          page={page}
+          totalPages={Math.max(1, Math.ceil(salesPage.total / limit))}
+          userId={id}
+        />
+      )}
     </div>
   );
 }
@@ -311,7 +320,17 @@ function DebtsTab({ debts }: { debts: Awaited<ReturnType<typeof getAccountDebts>
 // Onglet Ventes (avec articles)
 // ============================================================
 
-function SalesTab({ salesPage }: { salesPage: Awaited<ReturnType<typeof getAccountSales>> }) {
+function SalesTab({
+  salesPage,
+  page,
+  totalPages,
+  userId,
+}: {
+  salesPage: Awaited<ReturnType<typeof getAccountSales>>;
+  page: number;
+  totalPages: number;
+  userId: string;
+}) {
   const { sales, itemsBySale, total } = salesPage;
   return (
     <div className="space-y-4">
@@ -325,6 +344,24 @@ function SalesTab({ salesPage }: { salesPage: Awaited<ReturnType<typeof getAccou
           </div>
         )}
       </Card>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-5">
+          <p className="text-sm text-slate-500">{total} vente{total > 1 ? "s" : ""}</p>
+          <div className="flex items-center gap-2">
+            {page > 1 && (
+              <Link href={`/comptes/${userId}?tab=ventes&page=${page - 1}`} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                ← Précédent
+              </Link>
+            )}
+            <span className="text-sm text-slate-500">Page {page} / {totalPages}</span>
+            {page < totalPages && (
+              <Link href={`/comptes/${userId}?tab=ventes&page=${page + 1}`} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                Suivant →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
