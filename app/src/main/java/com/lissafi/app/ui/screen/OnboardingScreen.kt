@@ -64,6 +64,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
+            .statusBarsPadding()
     ) {
         // ── PASSER (haut droite) ──
         TextButton(

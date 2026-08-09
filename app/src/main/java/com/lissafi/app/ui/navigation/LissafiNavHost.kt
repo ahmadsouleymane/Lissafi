@@ -99,6 +99,9 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         if (isLoggedIn) {
             app.syncManager.syncInBackground()
             navController.navigate(Routes.CAISSE) {
+                // launchSingleTop : au démarrage déjà connecté, startDestination
+                // est déjà CAISSE → évite d'empiler un doublon.
+                launchSingleTop = true
                 popUpTo(Routes.AUTH) { inclusive = true }
             }
         } else if (OnboardingManager.isCompleted(context)) {
