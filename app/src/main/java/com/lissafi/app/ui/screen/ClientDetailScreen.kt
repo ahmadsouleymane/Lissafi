@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +24,7 @@ import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.AmountField
 import com.lissafi.app.ui.components.AmountText
 import com.lissafi.app.ui.components.EmptyState
+import com.lissafi.app.ui.components.IconCircle
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
@@ -31,6 +33,7 @@ import com.lissafi.app.ui.components.QuickAmountChips
 import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.theme.Background
+import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
 import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.OnPrimary
@@ -38,8 +41,11 @@ import com.lissafi.app.ui.theme.OnSecondary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
+import com.lissafi.app.ui.theme.SuccessContainer
 import com.lissafi.app.ui.theme.Surface
+import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
+import com.lissafi.app.ui.theme.TextTertiary
 import com.lissafi.app.ui.viewmodel.ClientViewModel
 
 @Composable
@@ -73,52 +79,69 @@ fun ClientDetailScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 88.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
+                // ── CARTE DETTE ──
                 item {
                     client?.let { DebtCard(it, transactions) }
                 }
 
+                // ── BOUTON REMBOURSER (pilule) ──
                 if (hasDebt) {
                     item {
-                        SecondaryActionButton(
-                            text = "Rembourser",
-                            icon = LissafiIcons.Rembourser,
-                            onClick = { showRepayDialog = true },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            SecondaryActionButton(
+                                text = "Rembourser",
+                                icon = LissafiIcons.Rembourser,
+                                onClick = { showRepayDialog = true },
+                                modifier = Modifier.fillMaxWidth(0.7f),
+                                height = 48
+                            )
+                        }
                     }
                 }
 
+                // ── MINI STATS ──
                 item {
                     client?.let { MiniStats(it, transactions) }
                 }
 
+                // ── TITRE TRANSACTIONS ──
                 item {
                     SectionHeader(
                         text = "DERNIÈRES TRANSACTIONS",
                         icon = LissafiIcons.Recents,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                        modifier = Modifier.padding(vertical = 16.dp)
                     )
                 }
 
+                // ── LISTE TRANSACTIONS ──
                 if (transactions.isEmpty()) {
                     item {
                         EmptyState(
                             icon = LissafiIcons.Credit,
                             title = "Aucune transaction",
-                            message = "Les ventes à crédit et les remboursements\napparaîtront ici.",
-                            modifier = Modifier.padding(top = 4.dp)
+                            message = "Les ventes à crédit et les remboursements\napparaîtront ici."
                         )
                     }
                 } else {
                     items(transactions, key = { it.id }) { txn ->
                         TransactionRow(txn.amount, txn.note, txn.date)
+                        Spacer(Modifier.height(6.dp))
                     }
                 }
+
+                // Espace pour le FAB
+                item { Spacer(Modifier.height(80.dp)) }
             }
         }
 
+        // ── FAB ──
         FloatingActionButton(
             onClick = { showAddDebtDialog = true },
             modifier = Modifier
@@ -126,16 +149,21 @@ fun ClientDetailScreen(
                 .padding(20.dp),
             containerColor = Primary,
             contentColor = OnPrimary,
-            shape = CircleShape
+            shape = RoundedCornerShape(16.dp),
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 4.dp,
+                pressedElevation = 8.dp
+            )
         ) {
             Icon(
                 imageVector = LissafiIcons.Ajouter,
-                contentDescription = "Ajouter une dette"
+                contentDescription = "Ajouter une dette",
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 
-    // ── DIALOGUE AJOUT DE DETTE ──
+    // ── DIALOGUES ──
     if (showAddDebtDialog) {
         AddDebtDialog(
             onDismiss = { showAddDebtDialog = false },
@@ -146,7 +174,6 @@ fun ClientDetailScreen(
         )
     }
 
-    // ── DIALOGUE REMBOURSEMENT ──
     if (showRepayDialog) {
         RepayDialog(
             currentDebt = client?.totalDebt ?: 0,
@@ -160,7 +187,7 @@ fun ClientDetailScreen(
 }
 
 // ============================================================
-// CARTE DETTE — Proéminente, avec barre de progression
+// CARTE DETTE — Orange, proéminente, avec barre de progression
 // ============================================================
 @Composable
 private fun DebtCard(client: Client, transactions: List<DebtTransaction>) {
@@ -172,24 +199,22 @@ private fun DebtCard(client: Client, transactions: List<DebtTransaction>) {
     val progress = if (totalCredit > 0) (totalRepaid.toFloat() / totalCredit).coerceIn(0f, 1f) else 0f
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = bg, contentColor = fg),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(24.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = LissafiIcons.Credit,
                     contentDescription = null,
                     tint = fg,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -199,22 +224,24 @@ private fun DebtCard(client: Client, transactions: List<DebtTransaction>) {
                     color = fg.copy(alpha = 0.9f)
                 )
             }
-            Spacer(Modifier.height(8.dp))
-            AmountText(
-                amount = client.totalDebt,
-                fontSize = 36,
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = FormatUtils.formatFCFA(client.totalDebt),
+                fontWeight = FontWeight.Bold,
+                fontSize = 40.sp,
                 color = fg,
-                fontWeight = FontWeight.Bold
+                maxLines = 1
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = if (hasDebt) "En attente de remboursement" else "Ce client ne te doit rien",
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 color = fg.copy(alpha = 0.8f)
             )
-            if (hasDebt) {
-                Spacer(Modifier.height(16.dp))
-                // Barre de progression : part remboursée du total accordé
+
+            if (hasDebt && totalCredit > 0) {
+                Spacer(Modifier.height(20.dp))
+                // Barre de progression
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -238,64 +265,45 @@ private fun DebtCard(client: Client, transactions: List<DebtTransaction>) {
                     Text(
                         text = "Remboursé ${FormatUtils.formatFCFA(totalRepaid)}",
                         fontSize = 12.sp,
-                        color = fg.copy(alpha = 0.9f)
+                        color = fg.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "Crédité ${FormatUtils.formatFCFA(totalCredit)}",
                         fontSize = 12.sp,
-                        color = fg.copy(alpha = 0.9f)
+                        color = fg.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.Medium
                     )
                 }
-            } else {
-                Spacer(Modifier.height(12.dp))
-                DebtStatRow("Total crédit accordé", FormatUtils.formatFCFA(totalCredit), fg.copy(alpha = 0.9f))
-                DebtStatRow("Total remboursé", FormatUtils.formatFCFA(totalRepaid), fg.copy(alpha = 0.9f))
             }
         }
     }
 }
 
-// Ligne label + valeur, lisible sur fond coloré (InfoRow est prévu pour fond clair)
-@Composable
-private fun DebtStatRow(label: String, value: String, valueColor: Color) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, fontSize = 13.sp, color = valueColor)
-        Text(
-            text = value,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = valueColor
-        )
-    }
-}
-
 // ============================================================
-// MINI-STATS — Achats + ancienneté
+// MINI-STATS — Deux cartes côte à côte
 // ============================================================
 @Composable
 private fun MiniStats(client: Client, transactions: List<DebtTransaction>) {
     val purchaseCount = transactions.count { it.amount > 0 }
+    val daysSince = ((System.currentTimeMillis() - client.createdAt) / (24 * 3600 * 1000)).toInt()
+
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatMiniCard(
             icon = LissafiIcons.Panier,
             value = "$purchaseCount",
             label = "ventes à crédit",
+            color = Secondary,
             modifier = Modifier.weight(1f)
         )
         StatMiniCard(
             icon = LissafiIcons.Recents,
-            value = FormatUtils.formatDateShort(client.createdAt),
+            value = if (daysSince <= 0) "Aujourd'hui" else "Il y a ${daysSince}j",
             label = "client depuis",
+            color = Primary,
             modifier = Modifier.weight(1f)
         )
     }
@@ -306,25 +314,28 @@ private fun StatMiniCard(
     icon: ImageVector,
     value: String,
     label: String,
+    color: Color,
     modifier: Modifier = Modifier
 ) {
-    LissafiCard(modifier = modifier) {
-        Column(Modifier.padding(14.dp)) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(20.dp)
+    LissafiCard(modifier = modifier, cornerRadius = 18, elevation = 2) {
+        Column(Modifier.padding(16.dp)) {
+            IconCircle(
+                icon = icon,
+                backgroundColor = color.copy(alpha = 0.08f),
+                iconTint = color,
+                size = 36,
+                iconSize = 18
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = value,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 fontSize = 17.sp,
                 color = OnBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 text = label,
                 fontSize = 12.sp,
@@ -335,42 +346,38 @@ private fun StatMiniCard(
 }
 
 // ============================================================
-// LIGNE TRANSACTION
+// LIGNE TRANSACTION — Pastille colorée + infos + montant
 // ============================================================
 @Composable
 private fun TransactionRow(amount: Int, note: String, date: Long) {
     val isCredit = amount >= 0
-    val color = if (isCredit) Error else Success
+    val color = if (isCredit) Secondary else Success
     val icon = if (isCredit) LissafiIcons.Credit else LissafiIcons.Rembourser
     val label = if (isCredit) "Vente à crédit" else "Remboursement"
+    val bgColor = if (isCredit) Secondary.copy(alpha = 0.08f) else SuccessContainer
 
-    LissafiCard(modifier = Modifier.padding(vertical = 3.dp)) {
+    LissafiCard(cornerRadius = 16, elevation = 1) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            // Pastille cerclée
+            IconCircle(
+                icon = icon,
+                backgroundColor = bgColor,
+                iconTint = color,
+                size = 42,
+                iconSize = 20
+            )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
+                    fontSize = 14.sp,
+                    color = OnBackground
                 )
                 if (note.isNotBlank()) {
                     Text(
@@ -384,13 +391,13 @@ private fun TransactionRow(amount: Int, note: String, date: Long) {
                 Text(
                     text = FormatUtils.formatDate(date),
                     fontSize = 11.sp,
-                    color = TextSecondary
+                    color = TextTertiary
                 )
             }
             Text(
                 text = if (isCredit) "+${FormatUtils.formatFCFA(amount)}" else "-${FormatUtils.formatFCFA(-amount)}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 color = color
             )
         }
@@ -410,23 +417,39 @@ private fun AddDebtDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
         icon = {
-            Icon(
-                imageVector = LissafiIcons.Credit,
-                contentDescription = null,
-                tint = Secondary,
-                modifier = Modifier.size(34.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Secondary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LissafiIcons.Credit,
+                    contentDescription = null,
+                    tint = Secondary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         },
         title = {
-            Column {
-                Text(text = "Ajouter une dette", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Ajouter une dette",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = OnBackground,
+                    textAlign = TextAlign.Center
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Le client paiera plus tard. Le montant sera ajouté à sa dette.",
+                    text = "Le client paiera plus tard.",
                     fontSize = 12.sp,
-                    color = TextSecondary
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
                 )
             }
         },
@@ -460,13 +483,15 @@ private fun AddDebtDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Annuler", color = TextSecondary, fontSize = 14.sp)
+            }
         }
     )
 }
 
 // ============================================================
-// DIALOGUE REMBOURSEMENT — avec montants rapides
+// DIALOGUE REMBOURSEMENT
 // ============================================================
 @Composable
 private fun RepayDialog(
@@ -479,23 +504,39 @@ private fun RepayDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
         icon = {
-            Icon(
-                imageVector = LissafiIcons.Rembourser,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(34.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LissafiIcons.Rembourser,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         },
         title = {
-            Column {
-                Text(text = "Remboursement", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Spacer(Modifier.height(2.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Remboursement",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = OnBackground,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = "Dette actuelle : ${FormatUtils.formatFCFA(currentDebt)}",
                     fontSize = 13.sp,
-                    color = TextSecondary
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
                 )
             }
         },
@@ -507,25 +548,23 @@ private fun RepayDialog(
                     label = "Montant reçu *"
                 )
                 Spacer(Modifier.height(12.dp))
-                // Montants rapides
                 QuickAmountChips(
                     amounts = listOf(1000, 2000, 5000),
                     current = amt,
                     onSelect = { amount = it.toString() }
                 )
                 Spacer(Modifier.height(8.dp))
-                // Tout rembourser
                 FilterChip(
                     selected = currentDebt > 0 && amt == currentDebt,
                     onClick = { amount = currentDebt.toString() },
                     label = {
                         Text(
                             text = "Solde complet",
-                            fontSize = 12.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Primary,
                         selectedLabelColor = OnPrimary,
@@ -533,11 +572,10 @@ private fun RepayDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
-                // Avertissement si le montant dépasse la dette
                 if (amt > currentDebt) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Le montant reçu dépasse la dette de ${FormatUtils.formatFCFA(currentDebt)}. Le remboursement sera plafonné.",
+                        text = "Le montant dépasse la dette. Il sera plafonné à ${FormatUtils.formatFCFA(currentDebt)}.",
                         fontSize = 12.sp,
                         color = Error,
                         lineHeight = 16.sp
@@ -548,14 +586,15 @@ private fun RepayDialog(
         confirmButton = {
             PrimaryActionButton(
                 text = "ENREGISTRER LE PAIEMENT",
-                onClick = {
-                    if (amt > 0) onSave(if (amt > currentDebt) currentDebt else amt)
-                },
+                icon = LissafiIcons.Valider,
+                onClick = { if (amt > 0) onSave(if (amt > currentDebt) currentDebt else amt) },
                 enabled = amt > 0 && amt <= currentDebt
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Annuler", color = TextSecondary, fontSize = 14.sp)
+            }
         }
     )
 }

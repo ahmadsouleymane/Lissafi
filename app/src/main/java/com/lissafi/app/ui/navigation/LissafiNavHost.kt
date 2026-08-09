@@ -1,10 +1,18 @@
 package com.lissafi.app.ui.navigation
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -61,7 +69,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val authViewModel  = remember {
         AuthViewModel(
             authManager,
-            // Le nom de boutique saisi à l'inscription n'était jamais enregistré.
             onShopNameSaved = { shopName ->
                 if (shopName.isNotBlank()) {
                     composeScope.launch { app.database.setSetting("shop_name", shopName) }
@@ -74,7 +81,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val isLoggedIn = authState.isLoggedIn || app.authManager.isLoggedIn()
     val userId = app.authManager.currentUserId() ?: ""
     val repository = remember(userId) {
-        // Toutes les écritures passent par SyncManager (source de push unique sous mutex).
         LissafiRepository(db, api, onDataChanged = { app.syncManager.syncInBackground() })
             .withUserId(userId)
     }
@@ -84,11 +90,9 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Routes principales (4 onglets)
     val mainRoutes = setOf(Routes.CAISSE, Routes.PRODUCTS, Routes.CLIENTS, Routes.ACTIVITY)
     val showBottomBar = currentRoute in mainRoutes
 
-    // Sync
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
             app.syncManager.syncInBackground()
@@ -104,132 +108,152 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
 
     val syncStatus by app.syncManager.status.collectAsState()
 
-    // ViewModels — keyés sur le userId : chaque changement de compte recrée
-    // les ViewModels avec le bon repository (sinon ils restent figés sur le
-    // premier utilisateur et toutes les écritures partent sous le mauvais user_id).
     val cartViewModel: CartViewModel = remember(userId) { CartViewModel(repository, premiumManager) }
     val productViewModel: ProductViewModel = remember(userId) { ProductViewModel(repository, premiumManager) }
     val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
     val reportViewModel: ReportViewModel = remember(userId) { ReportViewModel(repository) }
     val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository) }
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = Background,
-        // safeDrawing inclut les insets du clavier (IME) : le contenu remonte
-        // au-dessus du clavier au lieu d'être caché.
-        contentWindowInsets = WindowInsets.safeDrawing
-            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
-        bottomBar = {
-            AnimatedVisibility(
-                visible = showBottomBar && isLoggedIn,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it }
-            ) {
-                NavigationBar(
-                    containerColor = Surface,
-                    tonalElevation = 3.dp // léger relief
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Background,
+            contentWindowInsets = WindowInsets.safeDrawing
+                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = showBottomBar && isLoggedIn,
+                    enter = fadeIn() + slideInVertically { it },
+                    exit = fadeOut() + slideOutVertically { it }
                 ) {
-                    bottomNavItems.forEach { item ->
-                        val selected = currentRoute == item.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                    // Barre de navigation flottante
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = Surface,
+                            shadowElevation = 8.dp
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                bottomNavItems.forEach { item ->
+                                    val selected = currentRoute == item.route
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .then(
+                                                    if (selected) Modifier.background(
+                                                        PrimaryContainer,
+                                                        RoundedCornerShape(16.dp)
+                                                    ) else Modifier
+                                                )
+                                                .clickable {
+                                                    navController.navigate(item.route) {
+                                                        popUpTo(navController.graph.findStartDestination().id) {
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = item.icon,
+                                                contentDescription = item.label,
+                                                modifier = Modifier.size(22.dp),
+                                                tint = if (selected) Primary else TextSecondary
+                                            )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = item.label,
+                                                fontSize = 11.sp,
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (selected) Primary else TextSecondary
+                                            )
+                                        }
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = item.label,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Primary,
-                                selectedTextColor = Primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = TextSecondary,
-                                unselectedTextColor = TextSecondary
-                            )
-                        )
+                            }
+                        }
                     }
                 }
             }
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = if (isLoggedIn) Routes.CAISSE else Routes.AUTH,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            composable(Routes.AUTH) {
-                AuthScreen(viewModel = authViewModel)
-            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = if (isLoggedIn) Routes.CAISSE else Routes.AUTH,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                composable(Routes.AUTH) {
+                    AuthScreen(viewModel = authViewModel)
+                }
 
-            composable(Routes.CAISSE) {
-                CaisseScreen(
-                    viewModel = cartViewModel,
-                    syncStatus = syncStatus,
-                    onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) },
-                    onNavigateToClients  = { navController.navigate(Routes.CLIENTS) },
-                    onNavigateToReports  = { navController.navigate(Routes.ACTIVITY) },
-                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
-                )
-            }
-            composable(Routes.PRODUCTS) {
-                ProductsScreen(
-                    viewModel = productViewModel,
-                    onBack = { navController.popBackStack() },
-                    onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
-                )
-            }
-            composable(Routes.CLIENTS) {
-                ClientsScreen(
-                    viewModel = clientViewModel,
-                    onClientClick = { clientId -> navController.navigate(Routes.clientDetail(clientId)) },
-                    onBack = { navController.popBackStack() },
-                    onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
-                )
-            }
-            composable(
-                route = Routes.CLIENT_DETAIL,
-                arguments = listOf(navArgument("clientId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val clientId = backStackEntry.arguments?.getString("clientId") ?: return@composable
-                ClientDetailScreen(
-                    clientId = clientId,
-                    viewModel = clientViewModel,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(Routes.ACTIVITY) {
-                ReportsScreen(  // sera renommé en ActivityScreen dans la Task 6
-                    viewModel = reportViewModel,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(Routes.SETTINGS) {
-                SettingsScreen(
-                    viewModel = settingsViewModel,
-                    authManager = authManager,
-                    onBack = { navController.popBackStack() },
-                    onSignOut = { authViewModel.signOut() }
-                )
+                composable(Routes.CAISSE) {
+                    CaisseScreen(
+                        viewModel = cartViewModel,
+                        syncStatus = syncStatus,
+                        onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) },
+                        onNavigateToClients  = { navController.navigate(Routes.CLIENTS) },
+                        onNavigateToReports  = { navController.navigate(Routes.ACTIVITY) },
+                        onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
+                    )
+                }
+                composable(Routes.PRODUCTS) {
+                    ProductsScreen(
+                        viewModel = productViewModel,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
+                    )
+                }
+                composable(Routes.CLIENTS) {
+                    ClientsScreen(
+                        viewModel = clientViewModel,
+                        onClientClick = { clientId -> navController.navigate(Routes.clientDetail(clientId)) },
+                        onBack = { navController.popBackStack() },
+                        onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
+                    )
+                }
+                composable(
+                    route = Routes.CLIENT_DETAIL,
+                    arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val clientId = backStackEntry.arguments?.getString("clientId") ?: return@composable
+                    ClientDetailScreen(
+                        clientId = clientId,
+                        viewModel = clientViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.ACTIVITY) {
+                    ReportsScreen(
+                        viewModel = reportViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.SETTINGS) {
+                    SettingsScreen(
+                        viewModel = settingsViewModel,
+                        authManager = authManager,
+                        onBack = { navController.popBackStack() },
+                        onSignOut = { authViewModel.signOut() }
+                    )
+                }
             }
         }
     }

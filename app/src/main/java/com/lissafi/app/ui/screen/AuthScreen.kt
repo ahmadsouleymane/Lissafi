@@ -63,7 +63,9 @@ import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Surface
+import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
+import com.lissafi.app.ui.theme.TextTertiary
 import com.lissafi.app.ui.viewmodel.AuthMode
 import com.lissafi.app.ui.viewmodel.AuthState
 import com.lissafi.app.ui.viewmodel.AuthViewModel
@@ -100,7 +102,7 @@ fun AuthScreen(viewModel: AuthViewModel) {
             Spacer(Modifier.height(28.dp))
 
             // ── CARTE FORMULAIRE ──
-            LissafiCard(cornerRadius = 26) {
+            LissafiCard(cornerRadius = 24, elevation = 4) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     // Onglets Connexion / Nouveau compte
                     SegmentedControl(
@@ -117,8 +119,8 @@ fun AuthScreen(viewModel: AuthViewModel) {
                     OutlinedButton(
                         onClick = { viewModel.demoLogin() },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, Secondary),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.5.dp, Secondary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Secondary)
                     ) {
                         Text(
@@ -230,7 +232,7 @@ private fun AuthTextField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Primary,
+                tint = TextTertiary,
                 modifier = Modifier.size(20.dp)
             )
         },
@@ -240,10 +242,10 @@ private fun AuthTextField(
         visualTransformation = visualTransformation,
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Primary,
-            unfocusedBorderColor = Border,
-            focusedContainerColor = Surface,
-            unfocusedContainerColor = Surface,
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            focusedContainerColor = SurfaceAlt,
+            unfocusedContainerColor = SurfaceAlt,
             cursorColor = Primary
         ),
         modifier = modifier.fillMaxWidth()
@@ -305,7 +307,7 @@ private fun AuthSubmitButton(
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Primary,
             contentColor = OnPrimary,
@@ -343,7 +345,7 @@ private fun AuthResetButton(
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.5.dp, Primary),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary)
     ) {

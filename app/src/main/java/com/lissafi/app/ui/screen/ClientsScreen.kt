@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,7 +21,9 @@ import com.composables.icons.lucide.Lucide
 import com.lissafi.app.data.entity.Client
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.AmountText
+import com.lissafi.app.ui.components.CapsuleTextField
 import com.lissafi.app.ui.components.EmptyState
+import com.lissafi.app.ui.components.IconCircle
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
@@ -30,10 +33,12 @@ import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.StatusBadge
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
+import com.lissafi.app.ui.theme.Surface
 import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.theme.Warning
@@ -202,29 +207,22 @@ private fun ClientCard(
         else -> null to Success
     }
 
-    LissafiCard(modifier = Modifier.padding(vertical = 4.dp), onClick = onClick) {
+    LissafiCard(modifier = Modifier.padding(vertical = 4.dp), onClick = onClick, cornerRadius = 18, elevation = 2) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar avec code couleur selon le retard (uniquement s'il y a une dette)
+            // Avatar avec code couleur selon le retard
             val avatarColor = badgeColor.takeIf { badge != null } ?: Primary
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(avatarColor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = LissafiIcons.Client,
-                    contentDescription = null,
-                    tint = avatarColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            IconCircle(
+                icon = LissafiIcons.Client,
+                backgroundColor = avatarColor.copy(alpha = 0.12f),
+                iconTint = avatarColor,
+                size = 48,
+                iconSize = 24
+            )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -297,44 +295,45 @@ private fun AddClientDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
         icon = {
-            Icon(
-                imageVector = LissafiIcons.Client,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(34.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LissafiIcons.Client,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         },
         title = {
-            Column {
-                Text(text = "Nouveau client", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "Nouveau client", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = OnBackground, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Le nom suffit pour commencer.",
-                    fontSize = 12.sp,
-                    color = TextSecondary
-                )
+                Text(text = "Le nom suffit pour commencer.", fontSize = 12.sp, color = TextSecondary, textAlign = TextAlign.Center)
             }
         },
         text = {
             Column {
-                OutlinedTextField(
+                CapsuleTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nom du client *") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "Nom du client *",
+                    leadingIcon = LissafiIcons.Client
                 )
                 Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
+                CapsuleTextField(
                     value = phone,
                     onValueChange = { phone = it.filter { c -> c.isDigit() || c == '+' } },
-                    label = { Text("Téléphone (optionnel)") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "Téléphone (optionnel)",
+                    leadingIcon = LissafiIcons.Client
                 )
             }
         },

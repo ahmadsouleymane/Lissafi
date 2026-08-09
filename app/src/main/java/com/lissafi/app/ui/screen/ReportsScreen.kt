@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.AmountText
 import com.lissafi.app.ui.components.EmptyState
+import com.lissafi.app.ui.components.IconCircle
 import com.lissafi.app.ui.components.InfoRow
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
@@ -327,23 +328,16 @@ private fun KpiTile(
     percentage: Int?,
     modifier: Modifier = Modifier
 ) {
-    LissafiCard(modifier = modifier, cornerRadius = 16) {
+    LissafiCard(modifier = modifier, cornerRadius = 18, elevation = 2) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(color.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                IconCircle(
+                    icon = icon,
+                    backgroundColor = color.copy(alpha = 0.1f),
+                    iconTint = color,
+                    size = 36,
+                    iconSize = 18
+                )
                 if (percentage != null) {
                     Spacer(Modifier.weight(1f))
                     Text(

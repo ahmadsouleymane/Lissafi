@@ -36,17 +36,13 @@ import com.composables.icons.lucide.*
 
 // ============================================================
 // ICÔNES — Mapping Lucide
-// API : com.composables.icons.lucide.Lucide — chaque icône est une
-// propriété d'extension `val Lucide.Store: ImageVector`.
-// Import requis : `import com.composables.icons.lucide.Lucide`
-// + `import com.composables.icons.lucide.*` (ou par icône).
 // ============================================================
 object LissafiIcons {
     // Navigation
     val Caisse     = Lucide.Store
     val Produits   = Lucide.Package
     val Clients    = Lucide.Users
-    val Activite   = Lucide.ChartColumnBig   // ex BarChart3 (renommée)
+    val Activite   = Lucide.ChartColumnBig
     val Reglages   = Lucide.Settings2
     val Retour     = Lucide.ArrowLeft
 
@@ -77,38 +73,68 @@ object LissafiIcons {
 
     // Statut
     val Sync       = Lucide.Cloud
-    val SyncOk     = Lucide.CircleCheck     // ex CloudCheck
-    val SyncErr    = Lucide.CloudOff        // ex CloudAlert
-    val Alerte     = Lucide.TriangleAlert   // ex AlertTriangle
-    val Succes     = Lucide.CircleCheck     // ex CheckCircle2
-    val Erreur     = Lucide.CircleAlert     // ex AlertCircle
+    val SyncOk     = Lucide.CircleCheck
+    val SyncErr    = Lucide.CloudOff
+    val Alerte     = Lucide.TriangleAlert
+    val Succes     = Lucide.CircleCheck
+    val Erreur     = Lucide.CircleAlert
     val Recents    = Lucide.Clock
     val Info       = Lucide.Info
     val Version    = Lucide.FileText
 }
 
 // ============================================================
-// CARTE — Bordée, sans ombre par défaut
+// CARTE — Flottante avec ombre douce, coins 20dp
 // ============================================================
 @Composable
 fun LissafiCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Int = 16,
+    cornerRadius: Int = 20,
     onClick: (() -> Unit)? = null,
-    borderColor: Color = Border,
+    borderColor: Color = Color.Transparent,
     containerColor: Color = Surface,
+    elevation: Int = 4,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius.dp)
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (elevation > 0) Modifier.shadow(
+                    elevation = elevation.dp,
+                    shape = shape,
+                    ambientColor = Color.Black.copy(alpha = 0.04f),
+                    spotColor = Color.Black.copy(alpha = 0.04f)
+                ) else Modifier
+            )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, borderColor)
+        border = if (borderColor != Color.Transparent) BorderStroke(1.dp, borderColor) else null
     ) { content() }
+}
+
+// ============================================================
+// CARTE SANS OMBRE — Pour conteneurs internes
+// ============================================================
+@Composable
+fun LissafiCardFlat(
+    modifier: Modifier = Modifier,
+    cornerRadius: Int = 16,
+    onClick: (() -> Unit)? = null,
+    containerColor: Color = SurfaceAlt,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    LissafiCard(
+        modifier = modifier,
+        cornerRadius = cornerRadius,
+        onClick = onClick,
+        containerColor = containerColor,
+        elevation = 0,
+        content = content
+    )
 }
 
 // ============================================================
@@ -182,7 +208,7 @@ fun LissafiHeader(
 }
 
 // ============================================================
-// TITRE DE SECTION — Subtil, en minuscules
+// TITRE DE SECTION — Subtil
 // ============================================================
 @Composable
 fun SectionHeader(
@@ -208,7 +234,7 @@ fun SectionHeader(
         Text(
             text = text,
             color = tint,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
             letterSpacing = 0.5.sp
         )
@@ -220,7 +246,7 @@ fun SectionHeader(
 }
 
 // ============================================================
-// ÉTAT VIDE — Icône subtile, texte chaleureux
+// ÉTAT VIDE — Icone subtile, texte chaleureux
 // ============================================================
 @Composable
 fun EmptyState(
@@ -239,7 +265,7 @@ fun EmptyState(
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(80.dp)
                 .clip(CircleShape)
                 .background(Primary.copy(alpha = 0.06f)),
             contentAlignment = Alignment.Center
@@ -247,8 +273,8 @@ fun EmptyState(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Primary.copy(alpha = 0.5f),
-                modifier = Modifier.size(32.dp)
+                tint = Primary.copy(alpha = 0.4f),
+                modifier = Modifier.size(36.dp)
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -259,7 +285,7 @@ fun EmptyState(
             color = OnBackground,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = message,
             fontSize = 13.sp,
@@ -279,7 +305,7 @@ fun EmptyState(
 }
 
 // ============================================================
-// CHAMP DE RECHERCHE — Fond SurfaceAlt, coins 12dp
+// CHAMP DE RECHERCHE — Fond gris clair, sans bordure, coins 12dp
 // ============================================================
 @Composable
 fun SearchField(
@@ -309,7 +335,7 @@ fun SearchField(
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Primary,
+            focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent,
             focusedContainerColor = SurfaceAlt,
             unfocusedContainerColor = SurfaceAlt,
@@ -320,7 +346,56 @@ fun SearchField(
 }
 
 // ============================================================
-// BOUTON PRINCIPAL — Pleine largeur, 56dp, scale press
+// CHAMP TEXTE STYLE CAPSULE — Fond gris, sans bordure
+// ============================================================
+@Composable
+fun CapsuleTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    singleLine: Boolean = true,
+    minLines: Int = 1
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                text = placeholder,
+                fontSize = 14.sp,
+                color = TextTertiary
+            )
+        },
+        leadingIcon = leadingIcon?.let {
+            {
+                Icon(
+                    imageVector = it,
+                    contentDescription = null,
+                    tint = TextTertiary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        },
+        trailingIcon = trailingIcon,
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else minLines,
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            focusedContainerColor = SurfaceAlt,
+            unfocusedContainerColor = SurfaceAlt,
+            cursorColor = Primary
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+// ============================================================
+// BOUTON PRINCIPAL — Pleine largeur, 56dp, scale press, pill
 // ============================================================
 @Composable
 fun PrimaryActionButton(
@@ -346,13 +421,17 @@ fun PrimaryActionButton(
             .fillMaxWidth()
             .height(height.dp)
             .scale(scale),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = OnPrimary,
             disabledContainerColor = Color(0xFF000000).copy(alpha = 0.06f),
             disabledContentColor = Color(0xFF000000).copy(alpha = 0.30f)
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 0.dp
         )
     ) {
         if (icon != null) {
@@ -365,14 +444,14 @@ fun PrimaryActionButton(
         }
         Text(
             text = text,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp
         )
     }
 }
 
 // ============================================================
-// BOUTON SECONDAIRE — Contour primary
+// BOUTON SECONDAIRE — Contour primary, pill
 // ============================================================
 @Composable
 fun SecondaryActionButton(
@@ -381,7 +460,7 @@ fun SecondaryActionButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
-    height: Int = 56
+    height: Int = 52
 ) {
     OutlinedButton(
         onClick = onClick,
@@ -389,7 +468,7 @@ fun SecondaryActionButton(
         modifier = modifier
             .fillMaxWidth()
             .height(height.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.5.dp, Primary),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = Primary
@@ -405,8 +484,8 @@ fun SecondaryActionButton(
         }
         Text(
             text = text,
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp
         )
     }
 }
@@ -433,7 +512,7 @@ fun AmountText(
 }
 
 // ============================================================
-// ASTUCE — Message informatif
+// ASTUCE — Message informatif sur fond teinté
 // ============================================================
 @Composable
 fun HelpHint(
@@ -444,7 +523,7 @@ fun HelpHint(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(tint.copy(alpha = 0.08f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -467,7 +546,7 @@ fun HelpHint(
 }
 
 // ============================================================
-// BADGE — Pastille colorée
+// BADGE — Pastille colorée avec point
 // ============================================================
 @Composable
 fun StatusBadge(
@@ -479,7 +558,7 @@ fun StatusBadge(
         modifier = modifier
             .clip(RoundedCornerShape(50))
             .background(color.copy(alpha = 0.10f))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -488,7 +567,7 @@ fun StatusBadge(
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(Modifier.width(5.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             text = text,
             color = color,
@@ -513,18 +592,18 @@ fun QuantityStepper(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(Color(0xFF000000).copy(alpha = 0.04f))
                 .clickable(onClick = onDecrease),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = LissafiIcons.Fermer,  // X pour −, plus fin que Remove
+                imageVector = LissafiIcons.Fermer,
                 contentDescription = "Retirer",
                 tint = TextSecondary,
                 modifier = Modifier.size(14.dp)
@@ -541,7 +620,7 @@ fun QuantityStepper(
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(color.copy(alpha = 0.10f))
                 .clickable(onClick = onIncrease),
             contentAlignment = Alignment.Center
@@ -580,11 +659,11 @@ fun QuickAmountChips(
                 label = {
                     Text(
                         text = FormatUtils.formatFCFA(amt),
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
                 },
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Primary,
                     selectedLabelColor = OnPrimary,
@@ -667,7 +746,7 @@ fun ConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         icon = {
             Icon(
                 imageVector = icon,
@@ -694,7 +773,7 @@ fun ConfirmDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (destructive) Error else Primary
                 )
@@ -715,7 +794,7 @@ fun ConfirmDialog(
 }
 
 // ============================================================
-// DIALOGUE LIMITE PREMIUM — limite atteinte
+// DIALOGUE LIMITE PREMIUM
 // ============================================================
 @Composable
 fun PremiumLimitDialog(
@@ -725,7 +804,7 @@ fun PremiumLimitDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
         icon = {
             Icon(
                 imageVector = LissafiIcons.Boutique,
@@ -744,7 +823,7 @@ fun PremiumLimitDialog(
         confirmButton = {
             Button(
                 onClick = onUpgrade,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Secondary)
             ) {
                 Text("Voir Premium", fontWeight = FontWeight.Medium, fontSize = 14.sp)
@@ -775,7 +854,7 @@ fun SyncIndicator(
         SyncStatus.SUCCESS -> Icon(
             imageVector = LissafiIcons.SyncOk,
             contentDescription = "Données à jour",
-            tint = Primary,
+            tint = Success,
             modifier = modifier.size(18.dp)
         )
         SyncStatus.ERROR -> Icon(
@@ -809,7 +888,7 @@ fun InfoRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -827,17 +906,29 @@ fun InfoRow(
                 color = OnBackground
             )
         }
-        Text(
-            text = value,
-            fontWeight = valueWeight,
-            fontSize = 14.sp,
-            color = valueColor
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = value,
+                fontWeight = valueWeight,
+                fontSize = 14.sp,
+                color = valueColor
+            )
+            // Indicateur de statut si erreur
+            if (value.contains("Erreur")) {
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Secondary)
+                )
+            }
+        }
     }
 }
 
 // ============================================================
-// SEGMENTED CONTROL — Style iOS
+// SEGMENTED CONTROL — Style iOS, fond gris, sélection blanche
 // ============================================================
 @Composable
 fun SegmentedControl(
@@ -848,38 +939,65 @@ fun SegmentedControl(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(SurfaceAlt)
-            .padding(2.dp)
+            .padding(3.dp)
     ) {
         options.forEachIndexed { index, label ->
             val isSelected = index == selectedIndex
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         if (isSelected) Surface else Color.Transparent
                     )
                     .then(
                         if (isSelected) Modifier.shadow(
                             elevation = 2.dp,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             ambientColor = Color.Black.copy(alpha = 0.06f),
                             spotColor = Color.Black.copy(alpha = 0.06f)
                         ) else Modifier
                     )
                     .clickable { onSelect(index) }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
                     fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (isSelected) OnBackground else TextSecondary
                 )
             }
         }
+    }
+}
+
+// ============================================================
+// PASTILLE ICÔNE — Cercle coloré pour listes et cartes
+// ============================================================
+@Composable
+fun IconCircle(
+    icon: ImageVector,
+    backgroundColor: Color = Primary.copy(alpha = 0.08f),
+    iconTint: Color = Primary,
+    size: Int = 44,
+    iconSize: Int = 22
+) {
+    Box(
+        modifier = Modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(iconSize.dp)
+        )
     }
 }

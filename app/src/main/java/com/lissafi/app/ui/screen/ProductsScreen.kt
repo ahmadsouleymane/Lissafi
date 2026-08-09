@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,8 +27,10 @@ import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.AmountField
 import com.lissafi.app.ui.components.AmountText
 import com.lissafi.app.ui.components.BarcodeView
+import com.lissafi.app.ui.components.CapsuleTextField
 import com.lissafi.app.ui.components.ConfirmDialog
 import com.lissafi.app.ui.components.EmptyState
+import com.lissafi.app.ui.components.IconCircle
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
@@ -36,10 +39,13 @@ import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.StatusBadge
 import com.lissafi.app.ui.theme.Background
+import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Success
+import com.lissafi.app.ui.theme.Surface
 import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.theme.Warning
@@ -281,27 +287,18 @@ private fun ProductCard(
         else -> "En stock · ${product.stock}"
     }
 
-    LissafiCard(modifier = Modifier.padding(vertical = 4.dp)) {
+    LissafiCard(modifier = Modifier.padding(vertical = 4.dp), cornerRadius = 18, elevation = 2) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = LissafiIcons.Produit,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            IconCircle(
+                icon = LissafiIcons.Produit,
+                size = 46,
+                iconSize = 22
+            )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -425,39 +422,45 @@ fun ProductFormDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
         icon = {
-            Icon(
-                imageVector = LissafiIcons.Produit,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(34.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LissafiIcons.Produit,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         },
         title = {
-            Column {
-                Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = OnBackground, textAlign = TextAlign.Center)
                 if (subtitle != null) {
                     Spacer(Modifier.height(4.dp))
-                    Text(text = subtitle, fontSize = 12.sp, color = TextSecondary)
+                    Text(text = subtitle, fontSize = 12.sp, color = TextSecondary, textAlign = TextAlign.Center)
                 }
             }
         },
         text = {
-            // imePadding : le clavier ne cache plus les champs du formulaire.
             Column(
                 modifier = Modifier.imePadding()
             ) {
-                OutlinedTextField(
+                CapsuleTextField(
                     value = name,
                     onValueChange = { name = it; showNameError = false },
-                    label = { Text("Nom du produit *") },
-                    isError = showNameError,
-                    supportingText = if (showNameError) {{ Text("Le nom est obligatoire.", color = Error, fontSize = 12.sp) }} else null,
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "Nom du produit *"
                 )
+                if (showNameError) {
+                    Text("Le nom est obligatoire.", color = Error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 2.dp))
+                }
                 Spacer(Modifier.height(10.dp))
                 AmountField(
                     value = sellPrice,
@@ -495,21 +498,16 @@ fun ProductFormDialog(
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    CapsuleTextField(
                         value = stock,
                         onValueChange = { stock = it.filter { c -> c.isDigit() } },
-                        label = { Text("Stock") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        placeholder = "Stock",
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    CapsuleTextField(
                         value = category,
                         onValueChange = { category = it },
-                        label = { Text("Catégorie") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        placeholder = "Catégorie",
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -527,12 +525,11 @@ fun ProductFormDialog(
                     )
                 }
                 if (hasBarcode) {
-                    OutlinedTextField(
+                    CapsuleTextField(
                         value = barcodeText,
                         onValueChange = { barcodeText = it },
-                        label = { Text("Code-barres") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        placeholder = "Code-barres",
+                        leadingIcon = LissafiIcons.Produit,
                         trailingIcon = {
                             IconButton(onClick = { showScanner = true }) {
                                 Icon(
@@ -542,12 +539,11 @@ fun ProductFormDialog(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
-                        },
-                        supportingText = if (lookupBusy) {
-                            { Text("Recherche des informations du produit…", fontSize = 12.sp, color = TextSecondary) }
-                        } else null,
-                        modifier = Modifier.fillMaxWidth()
+                        }
                     )
+                    if (lookupBusy) {
+                        Text("Recherche des informations du produit…", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                    }
                     // Affiche un vrai code-barres RECTANGULAIRE (et non carré) pour le produit.
                     if (barcodeText.isNotBlank()) {
                         Spacer(Modifier.height(10.dp))
@@ -620,74 +616,69 @@ private fun AddProductChoiceDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
         icon = {
-            Icon(
-                imageVector = LissafiIcons.Produit,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(34.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LissafiIcons.Produit,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         },
         title = {
-            Text("Comment ajouter ce produit ?", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Comment ajouter ce produit ?", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = OnBackground, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(4.dp))
+                Text(text = "Choisis la façon d'enregistrer ton article.", fontSize = 12.sp, color = TextSecondary, textAlign = TextAlign.Center)
+            }
         },
         text = {
             Column {
-                Text(
-                    text = "Choisis la façon d'enregistrer ton article.",
-                    fontSize = 12.sp,
-                    color = TextSecondary
-                )
-                Spacer(Modifier.height(16.dp))
-
+                Spacer(Modifier.height(8.dp))
                 // Option 1 : sans code-barres
                 Surface(
                     onClick = onWithoutBarcode,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = SurfaceAlt,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = LissafiIcons.Produit,
-                            contentDescription = null,
-                            tint = Primary,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        IconCircle(icon = LissafiIcons.Produit, size = 44, iconSize = 22)
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text("Sans code-barres", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("Sans code-barres", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = OnBackground)
                             Text("Saisis le nom et le prix à la main.", fontSize = 11.sp, color = TextSecondary)
                         }
                     }
                 }
-
                 Spacer(Modifier.height(10.dp))
-
-                // Option 2 : avec code-barres → scan + recherche automatique
+                // Option 2 : avec code-barres
                 Surface(
                     onClick = onWithBarcode,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = SurfaceAlt,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = LissafiIcons.Scanner,
-                            contentDescription = null,
-                            tint = Primary,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        IconCircle(icon = LissafiIcons.Scanner, size = 44, iconSize = 22)
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text("Avec code-barres", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("Avec code-barres", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = OnBackground)
                             Text("Scanne, on tente de retrouver le produit automatiquement.", fontSize = 11.sp, color = TextSecondary)
                         }
                     }

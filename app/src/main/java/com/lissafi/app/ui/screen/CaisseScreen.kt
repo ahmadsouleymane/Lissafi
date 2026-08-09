@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -47,8 +48,10 @@ import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.service.ReceiptService
 import com.lissafi.app.ui.components.AmountField
 import com.lissafi.app.ui.components.AmountText
+import com.lissafi.app.ui.components.CapsuleTextField
 import com.lissafi.app.ui.components.EmptyState
 import com.lissafi.app.ui.components.HelpHint
+import com.lissafi.app.ui.components.IconCircle
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
@@ -66,6 +69,7 @@ import com.lissafi.app.ui.theme.Error
 import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
+import com.lissafi.app.ui.theme.PrimaryContainer
 import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Surface
 import com.lissafi.app.ui.theme.SurfaceAlt
@@ -95,7 +99,6 @@ fun CaisseScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Charger les infos de la boutique pour le reçu
     var shopName by remember { mutableStateOf("LISSAFI") }
     var shopPhone by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
@@ -117,12 +120,10 @@ fun CaisseScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSearchResults by remember { mutableStateOf(false) }
 
-    // Activation Bluetooth demandée → on ouvre le choix des imprimantes au retour
     val btLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { showBluetoothPicker = true }
 
-    // Permission Bluetooth (Android 12+)
     val btPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -130,19 +131,16 @@ fun CaisseScreen(
         else Toast.makeText(context, "Active le Bluetooth dans les réglages pour imprimer.", Toast.LENGTH_LONG).show()
     }
 
-    // Date du jour formatée
     val todayString = remember {
         val sdf = java.text.SimpleDateFormat("EE d MMM", java.util.Locale.FRENCH)
         sdf.format(java.util.Date())
     }
 
-    // Guide de premier lancement (affiché une seule fois)
     val prefs = remember { context.getSharedPreferences("lissafi_prefs", Context.MODE_PRIVATE) }
     var showHelp by remember {
         mutableStateOf(!prefs.getBoolean("caisse_help_seen", false))
     }
 
-    // Feedback de scan (succès → vert Primary, code inconnu → orange Secondary)
     LaunchedEffect(scanResult) {
         scanResult?.let {
             scanIsSuccess = it.startsWith("OK:")
@@ -157,7 +155,6 @@ fun CaisseScreen(
         }
     }
 
-    // Reçu après vente
     LaunchedEffect(lastSale) {
         lastSale?.let { sale ->
             currentReceipt = sale
@@ -167,10 +164,11 @@ fun CaisseScreen(
 
     val paid = amountText.toIntOrNull() ?: 0
     val realTimeChange = if (paid >= state.total) paid - state.total else 0
+    val hasItems = state.items.isNotEmpty()
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── EN-TÊTE — minimal transparent, logo à gauche du titre ──
+            // ── EN-TÊTE — logo + date + settings ──
             LissafiHeader(
                 title = "",
                 subtitle = todayString,
@@ -213,51 +211,56 @@ fun CaisseScreen(
                 })
             }
 
-            // ── RECHERCHE PRODUIT + dropdown inline ──
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // ── RECHERCHE + SCANNER — ligne unifiée ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Champ de recherche
+                SearchField(
+                    value = searchQuery,
+                    onValueChange = {
+                        searchQuery = it
+                        showSearchResults = it.isNotBlank()
+                    },
+                    placeholder = "Rechercher un produit…",
+                    modifier = Modifier.weight(1f)
+                )
+                // Bouton scanner
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Primary.copy(alpha = 0.08f))
+                        .clickable { showScannerScreen = true },
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Bouton scanner — ouvre le scanner de codes-barres
-                    IconButton(
-                        onClick = { showScannerScreen = true },
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Primary.copy(alpha = 0.10f))
-                    ) {
-                        Icon(
-                            imageVector = LissafiIcons.Scanner,
-                            contentDescription = "Scanner un code-barres",
-                            tint = Primary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    Icon(
+                        imageVector = LissafiIcons.Scanner,
+                        contentDescription = "Scanner",
+                        tint = Primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            // ── RÉSULTATS DE RECHERCHE ──
+            if (showSearchResults) {
+                ProductSearchDropdown(
+                    query = searchQuery,
+                    onSelect = { product ->
+                        viewModel.scanProduct(product.barcode)
+                        searchQuery = ""
+                        showSearchResults = false
+                    },
+                    onDismiss = {
+                        showSearchResults = false
+                        searchQuery = ""
                     }
-                    SearchField(
-                        value = searchQuery,
-                        onValueChange = {
-                            searchQuery = it
-                            showSearchResults = it.isNotBlank()
-                        },
-                        placeholder = "Chercher un produit…",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (showSearchResults) {
-                    ProductSearchDropdown(
-                        query = searchQuery,
-                        onSelect = { product ->
-                            viewModel.scanProduct(product.barcode)
-                            searchQuery = ""
-                            showSearchResults = false
-                        },
-                        onDismiss = {
-                            showSearchResults = false
-                            searchQuery = ""
-                        }
-                    )
-                }
+                )
             }
 
             // ── FEEDBACK SCAN ──
@@ -266,7 +269,7 @@ fun CaisseScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (scanIsSuccess) Primary.copy(alpha = 0.08f)
                             else Secondary.copy(alpha = 0.08f)
@@ -309,15 +312,16 @@ fun CaisseScreen(
                 }
             }
 
-            // ── TOTAL — carte bordée, montant animé ──
+            // ── TOTAL — carte flottante avec montant animé ──
             LissafiCard(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                cornerRadius = 16
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                cornerRadius = 20,
+                elevation = 4
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -328,9 +332,10 @@ fun CaisseScreen(
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp
                         )
+                        Spacer(Modifier.height(2.dp))
                         Text(
-                            text = if (state.items.isEmpty()) "Panier vide" else
-                                "${state.items.size} article${if (state.items.size > 1) "s" else ""}",
+                            text = if (hasItems) "${state.items.size} article${if (state.items.size > 1) "s" else ""}"
+                            else "Panier vide",
                             color = TextTertiary,
                             fontSize = 12.sp
                         )
@@ -339,8 +344,8 @@ fun CaisseScreen(
                         Text(
                             text = FormatUtils.formatFCFA(total),
                             color = if (total > 0) Primary else TextTertiary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 36.sp,
                             maxLines = 1
                         )
                     }
@@ -353,19 +358,50 @@ fun CaisseScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 16.dp),
-                cornerRadius = 16
+                cornerRadius = 20,
+                elevation = 2
             ) {
-                if (state.items.isEmpty()) {
-                    // État vide centré dans la zone disponible
+                if (!hasItems) {
+                    // État vide centré
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        EmptyState(
-                            icon = LissafiIcons.Scanner,
-                            title = "Panier vide",
-                            message = "Scanne un code-barres ou cherche un produit"
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(40.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(88.dp)
+                                    .clip(CircleShape)
+                                    .background(Primary.copy(alpha = 0.06f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = LissafiIcons.Scanner,
+                                    contentDescription = null,
+                                    tint = Primary.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = "Panier vide",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = OnBackground,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = "Scannez un code-barres\npour commencer",
+                                fontSize = 13.sp,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 18.sp
+                            )
+                        }
                     }
                 } else {
                     LazyColumn(
@@ -385,7 +421,7 @@ fun CaisseScreen(
                                 HorizontalDivider(
                                     color = Border,
                                     thickness = 0.5.dp,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
                         }
@@ -413,7 +449,7 @@ fun CaisseScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Secondary.copy(alpha = 0.08f))
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -452,7 +488,7 @@ fun CaisseScreen(
                 )
             }
 
-            // ── BOUTON ENCAISSER ──
+            // ── BOUTON ENCAISSER — géant, vert, flottant ──
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 PrimaryActionButton(
                     text = if (state.isCredit)
@@ -478,12 +514,11 @@ fun CaisseScreen(
                             }
                         }
                     },
-                    enabled = state.total > 0
+                    enabled = state.total > 0,
+                    height = 58
                 )
             }
         }
-
-        // ── SCANNER ÉCRAN ──
     }
 
     // ── BOTTOM SHEETS ──
@@ -536,7 +571,6 @@ fun CaisseScreen(
             onImprimer = {
                 val adapter = BluetoothAdapter.getDefaultAdapter()
                 if (adapter != null && adapter.isEnabled) {
-                    // Android 12+ : permission BLUETOOTH_CONNECT obligatoire
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT)
                             == android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -550,7 +584,6 @@ fun CaisseScreen(
                 } else if (adapter != null) {
                     btLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                 } else {
-                    // Pas de radio Bluetooth sur cet appareil : éviter un crash
                     Toast.makeText(context, "Bluetooth non disponible sur cet appareil.", Toast.LENGTH_SHORT).show()
                 }
             },
@@ -595,7 +628,7 @@ fun CaisseScreen(
 private fun FirstUseHelpCard(onDismiss: () -> Unit) {
     LissafiCard(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        cornerRadius = 16
+        cornerRadius = 20
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -661,7 +694,7 @@ private fun HelpStep(number: Int, text: String) {
 }
 
 // ============================================================
-// DROPDOWN RECHERCHE PRODUIT (inline)
+// DROPDOWN RECHERCHE PRODUIT
 // ============================================================
 @Composable
 private fun ProductSearchDropdown(
@@ -682,14 +715,12 @@ private fun ProductSearchDropdown(
         isLoading = false
     }
 
-    Column(
+    LissafiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface)
-            .border(1.dp, Border, RoundedCornerShape(14.dp))
-            .padding(vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        cornerRadius = 16,
+        elevation = 8
     ) {
         when {
             isLoading -> Box(
@@ -716,20 +747,11 @@ private fun ProductSearchDropdown(
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(CircleShape)
-                                    .background(Primary.copy(alpha = 0.08f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = LissafiIcons.Produit,
-                                    contentDescription = null,
-                                    tint = Primary,
-                                    modifier = Modifier.size(17.dp)
-                                )
-                            }
+                            IconCircle(
+                                icon = LissafiIcons.Produit,
+                                size = 36,
+                                iconSize = 18
+                            )
                             Spacer(Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -739,17 +761,7 @@ private fun ProductSearchDropdown(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    AmountText(amount = product.sellPrice, fontSize = 13)
-                                    if (product.hasBarcode && product.stock <= product.minStock) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = "Stock : ${product.stock}",
-                                            fontSize = 11.sp,
-                                            color = if (product.stock == 0) Error else Secondary
-                                        )
-                                    }
-                                }
+                                AmountText(amount = product.sellPrice, fontSize = 13)
                             }
                             Icon(
                                 imageVector = LissafiIcons.Ajouter,
@@ -758,20 +770,14 @@ private fun ProductSearchDropdown(
                                 modifier = Modifier.size(22.dp)
                             )
                         }
-                        HorizontalDivider(
-                            color = Border,
-                            thickness = 0.5.dp,
-                            modifier = Modifier.padding(horizontal = 14.dp)
-                        )
+                        if (products.indexOf(product) < products.size - 1) {
+                            HorizontalDivider(
+                                color = Border,
+                                thickness = 0.5.dp,
+                                modifier = Modifier.padding(horizontal = 14.dp)
+                            )
+                        }
                     }
-                }
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(vertical = 2.dp)
-                ) {
-                    Text("Fermer", color = TextSecondary, fontSize = 13.sp)
                 }
             }
         }
@@ -799,7 +805,8 @@ private fun CartItemRow(
                 fontWeight = FontWeight.Medium,
                 fontSize = 15.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                color = OnBackground
             )
             Text(
                 text = "${FormatUtils.formatFCFA(item.price)} / unité",
@@ -830,9 +837,8 @@ private fun CartItemRow(
 private fun SpeedProductPill(product: Product, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(Surface, RoundedCornerShape(22.dp))
-            .border(1.dp, Border, RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .background(Surface, RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -841,14 +847,15 @@ private fun SpeedProductPill(product: Product, onClick: () -> Unit) {
             imageVector = LissafiIcons.Produit,
             contentDescription = null,
             tint = Primary,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(14.dp)
         )
         Spacer(Modifier.width(6.dp))
         Text(
             text = product.name,
             fontWeight = FontWeight.Medium,
             fontSize = 13.sp,
-            maxLines = 1
+            maxLines = 1,
+            color = OnBackground
         )
     }
 }
@@ -871,7 +878,8 @@ private fun EncaisseSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Surface
+        containerColor = Surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
@@ -881,27 +889,29 @@ private fun EncaisseSheet(
                 .imePadding()
                 .padding(bottom = 32.dp)
         ) {
+            // Poignée visuelle
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Border)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(16.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Primary.copy(alpha = 0.10f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = LissafiIcons.Encaisser,
-                        contentDescription = null,
-                        tint = Primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                IconCircle(
+                    icon = LissafiIcons.Encaisser,
+                    size = 48,
+                    iconSize = 24
+                )
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
                         text = "Encaisser",
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         color = OnBackground
                     )
                     Text(
@@ -911,7 +921,7 @@ private fun EncaisseSheet(
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
             AmountField(
                 value = amountText,
                 onValueChange = onAmountChange,
@@ -921,20 +931,19 @@ private fun EncaisseSheet(
             QuickAmountChips(
                 amounts = QUICK_CASH,
                 current = paid,
-                // Les chips affichent un montant ABSOLU (500, 1000…) : le clic
-                // remplace le montant saisi, il ne l'additionne pas.
                 onSelect = { amt -> onAmountChange(amt.toString()) }
             )
             AnimatedVisibility(visible = paid >= total) {
                 LissafiCard(
                     modifier = Modifier.padding(top = 12.dp),
-                    cornerRadius = 12,
-                    borderColor = Primary
+                    cornerRadius = 16,
+                    containerColor = PrimaryContainer,
+                    elevation = 0
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(16.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -952,7 +961,7 @@ private fun EncaisseSheet(
                                 color = TextSecondary,
                                 fontWeight = FontWeight.Medium
                             )
-                            AmountText(amount = change, fontSize = 22, color = Primary)
+                            AmountText(amount = change, fontSize = 24, color = Primary)
                         }
                     }
                 }
@@ -994,7 +1003,8 @@ private fun ReceiptSheet(
 
     ModalBottomSheet(
         onDismissRequest = onFermer,
-        containerColor = Surface
+        containerColor = Surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1003,21 +1013,33 @@ private fun ReceiptSheet(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Border)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(16.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = LissafiIcons.Succes,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(26.dp)
+                IconCircle(
+                    icon = LissafiIcons.Succes,
+                    backgroundColor = PrimaryContainer,
+                    iconTint = Primary,
+                    size = 48,
+                    iconSize = 24
                 )
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    text = if (sale.isCredit) "Crédit enregistré" else "Vente enregistrée",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp,
-                    color = OnBackground
-                )
-                Spacer(Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (sale.isCredit) "Crédit enregistré" else "Vente enregistrée",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        color = OnBackground
+                    )
+                }
                 IconButton(onClick = onFermer, modifier = Modifier.size(32.dp)) {
                     Icon(
                         imageVector = LissafiIcons.Fermer,
@@ -1029,10 +1051,10 @@ private fun ReceiptSheet(
             }
             if (!sale.isCredit && sale.changeGiven > 0) {
                 Spacer(Modifier.height(12.dp))
-                HelpHint(text = "Monnaie à rendre : ${FormatUtils.formatFCFA(sale.changeGiven)}")
+                HelpHint(text = "Monnaie à rendre : ${FormatUtils.formatFCFA(sale.changeGiven)}", tint = Primary)
             }
             Spacer(Modifier.height(12.dp))
-            LissafiCard(cornerRadius = 12) {
+            LissafiCard(cornerRadius = 16, containerColor = SurfaceAlt, elevation = 0) {
                 Text(
                     text = receiptText,
                     fontSize = 11.sp,
@@ -1056,7 +1078,7 @@ private fun ReceiptSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary)
                 ) {
                     Text("WhatsApp", fontSize = 14.sp, fontWeight = FontWeight.Medium)
@@ -1100,7 +1122,8 @@ private fun BluetoothPrinterSheet(
 
     ModalBottomSheet(
         onDismissRequest = { if (!printing) onDismiss() },
-        containerColor = Surface
+        containerColor = Surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1109,12 +1132,21 @@ private fun BluetoothPrinterSheet(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Border)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(16.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = LissafiIcons.Imprimer,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(24.dp)
+                IconCircle(
+                    icon = LissafiIcons.Imprimer,
+                    size = 48,
+                    iconSize = 24
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
@@ -1133,20 +1165,12 @@ private fun BluetoothPrinterSheet(
                     lineHeight = 18.sp
                 )
                 printing -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        color = Primary,
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
+                    CircularProgressIndicator(color = Primary, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
                     Text("Impression en cours…", fontSize = 14.sp)
                 }
                 else -> {
-                    Text(
-                        text = "Choisir une imprimante :",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = "Choisir une imprimante :", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     printers.forEach { printer ->
                         Row(
@@ -1177,11 +1201,7 @@ private fun BluetoothPrinterSheet(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = printer.name,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
+                            Text(text = printer.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
                         }
                     }
                 }
@@ -1197,10 +1217,7 @@ private fun BluetoothPrinterSheet(
             }
             if (!printing) {
                 Spacer(Modifier.height(16.dp))
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                     Text("Fermer", color = TextSecondary)
                 }
             }
@@ -1241,7 +1258,8 @@ private fun ClientPickerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Surface
+        containerColor = Surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1250,12 +1268,23 @@ private fun ClientPickerSheet(
                 .imePadding()
                 .padding(bottom = 32.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Border)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(16.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = LissafiIcons.Client,
-                    contentDescription = null,
-                    tint = Secondary,
-                    modifier = Modifier.size(24.dp)
+                IconCircle(
+                    icon = LissafiIcons.Client,
+                    backgroundColor = Secondary.copy(alpha = 0.1f),
+                    iconTint = Secondary,
+                    size = 48,
+                    iconSize = 24
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
@@ -1268,31 +1297,23 @@ private fun ClientPickerSheet(
             Spacer(Modifier.height(16.dp))
 
             if (showNewClientForm) {
-                OutlinedTextField(
+                CapsuleTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Nom du client *") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "Nom du client *"
                 )
                 Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
+                CapsuleTextField(
                     value = newPhone,
                     onValueChange = { newPhone = it.filter { c -> c.isDigit() || c == '+' } },
-                    label = { Text("Téléphone (optionnel)") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "Téléphone (optionnel)"
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = { showNewClientForm = false },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) { Text("Retour") }
                     Button(
                         onClick = {
@@ -1316,10 +1337,8 @@ private fun ClientPickerSheet(
                                 }
                             }
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary)
                     ) { Text("Ajouter", fontWeight = FontWeight.SemiBold) }
                 }
@@ -1347,9 +1366,7 @@ private fun ClientPickerSheet(
                 Spacer(Modifier.height(8.dp))
                 when {
                     loading -> Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = Primary, modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -1366,33 +1383,22 @@ private fun ClientPickerSheet(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(SurfaceAlt)
                                     .clickable { onClientSelected(c) }
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(Secondary.copy(alpha = 0.10f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = LissafiIcons.Client,
-                                        contentDescription = null,
-                                        tint = Secondary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                                IconCircle(
+                                    icon = LissafiIcons.Client,
+                                    backgroundColor = Secondary.copy(alpha = 0.1f),
+                                    iconTint = Secondary,
+                                    size = 40,
+                                    iconSize = 18
+                                )
                                 Spacer(Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = c.name,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 14.sp
-                                    )
+                                    Text(text = c.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
                                     if (c.phone.isNotBlank()) {
                                         Text(c.phone, fontSize = 12.sp, color = TextSecondary)
                                     }
@@ -1408,10 +1414,7 @@ private fun ClientPickerSheet(
             }
 
             Spacer(Modifier.height(8.dp))
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text("Fermer", color = TextSecondary)
             }
         }
@@ -1419,7 +1422,7 @@ private fun ClientPickerSheet(
 }
 
 // ============================================================
-// TEXTE DU REÇU — fonction publique utilisée par ReceiptService
+// TEXTE DU REÇU
 // ============================================================
 fun buildReceiptText(sale: LastSale, context: Context, shopName: String = "LISSAFI", shopPhone: String = ""): String {
     return ReceiptService.formatReceipt(
