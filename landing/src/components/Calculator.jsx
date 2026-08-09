@@ -3,7 +3,7 @@ import { useMotionValue, useSpring, useMotionValueEvent } from "motion/react";
 import { Kicker, Reveal } from "./ui";
 import { formatFCFA } from "../lib/format";
 
-const PRICE = 15000;
+const PRICE = 25000;
 
 export default function Calculator() {
   const [slider, setSlider] = useState(15000);
@@ -58,7 +58,7 @@ export default function Calculator() {
               </div>
               <div className="calc-line">
                 <span>Lissafi Premium</span>
-                <b>15 000 F /an</b>
+                <b>25 000 F /an</b>
               </div>
               <div className="calc-line saving">
                 <span>Tu récupères jusqu'à</span>
@@ -67,7 +67,7 @@ export default function Calculator() {
             </div>
 
             <div className="calc-verdict">
-              Pour <b>41 F par jour</b>, Lissafi se rentabilise dès le premier crédit récupéré.
+              Pour <b>68 F par jour</b>, Lissafi se rentabilise dès le premier crédit récupéré.
             </div>
           </div>
         </Reveal>

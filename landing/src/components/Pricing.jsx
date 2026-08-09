@@ -7,7 +7,7 @@ export default function Pricing() {
       <div className="container">
         <Reveal>
           <Kicker>N° 004 — Les tarifs</Kicker>
-          <h2>Gratuit pour tester. 41 F par jour pour tout débloquer.</h2>
+          <h2>Gratuit pour tester. 68 F par jour pour tout débloquer.</h2>
         </Reveal>
 
         <div className="pricing-grid">
@@ -34,11 +34,11 @@ export default function Pricing() {
           <Reveal delay={0.1}>
             <div className="price-card premium">
               <span className="price-badge">Populaire</span>
-              <div className="price-plan">Lissafi Premium</div>
+              <div className="price-plan">Lissafi Essentiel</div>
               <div className="price-amount">
-                15 000 F<small>/an</small>
+                25 000 F<small>/an</small>
               </div>
-              <div className="price-sub">= 41 F par jour · tout illimité</div>
+              <div className="price-sub">= 68 F par jour · tout illimité</div>
               <ul className="price-features">
                 <li>Produits illimités</li>
                 <li>Clients & crédits illimités</li>
@@ -50,7 +50,7 @@ export default function Pricing() {
                 <li>Support prioritaire WhatsApp</li>
               </ul>
               <a className="btn btn-primary" href={WHATSAPP} target="_blank" rel="noreferrer">
-                Je passe Premium →
+                Je passe à Essentiel →
               </a>
             </div>
           </Reveal>

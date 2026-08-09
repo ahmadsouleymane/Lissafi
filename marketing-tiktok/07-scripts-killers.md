@@ -13,7 +13,7 @@
 | **1. LA CAISSE** (le WOW) | Le scan, le total, la monnaie — « comment ça marche » | S2, S7 |
 | **2. L'ARGENT QUI FUIT** (la douleur) | Crédits oubliés, stock perdu, erreurs de monnaie | S1, S4, S9 |
 | **3. SANS RÉSEAU** (le différentiateur) | Ça marche au marché, dans la foule, sans barre | S3 |
-| **4. L'ACCESSIBILITÉ** (le prix + l'installation) | 0 F pour tester, 41 F/jour, installation en 3 étapes | S5, S6, S8 |
+| **4. L'ACCESSIBILITÉ** (le prix + l'installation) | 0 F pour tester, 68 F/jour, installation en 3 étapes | S5, S6, S8 |
 | **5. LA PREUVE** (social proof) | Témoignages réels, avant/après | S10 (plus tard) |
 
 **Règle : une vidéo = un seul argument.** Chaque vidéo agite une douleur, montre la
@@ -30,7 +30,7 @@ Le hook décide tout : si les 3 premières secondes ne retiennent pas, le reste 
 3. « Le réseau meurt au marché. Ton commerce, lui, continue. »
 4. « Tu sais combien de sachets d'eau il te reste, là, maintenant ? »
 5. « Tu fermes ta boutique. Aujourd'hui, tu as fait combien ? »
-6. « Une caisse enregistreuse, c'est 150 000 F. Lissafi, c'est 41 F par jour. »
+6. « Une caisse enregistreuse, c'est 150 000 F. Lissafi, c'est 68 F par jour. »
 7. « Un commerçant perd en moyenne 15 000 F tous les 3 mois. »
 8. « Le client doute. "Comment je prouve que j'ai payé ?" »
 9. « Ton commerce perd de l'argent à 3 endroits. »
@@ -107,7 +107,7 @@ Le hook décide tout : si les 3 premières secondes ne retiennent pas, le reste 
 
 **Hook :** « Une caisse enregistreuse : 150 000 F. Un employé qui note les crédits : 40 000 F par mois. »
 
-- **V/O :** « Lissafi, c'est 41 F par jour. »
+- **V/O :** « Lissafi, c'est 68 F par jour. »
 - **Screenrec :** Réglages → Premium actif → la boutique avec 23 produits et 8 clients (impossible en gratuit).
 - **V/O :** « Toute une boutique dans ton téléphone. 0 F pour tester. Et pour les 30 premiers... un prix de lancement. »
 - **ACTION :** Le lien est dans la bio.

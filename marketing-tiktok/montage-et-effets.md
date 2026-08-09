@@ -48,7 +48,7 @@ Un tournage de 30-45 minutes au marché, tôt le matin ou en fin d'après-midi, 
 - **Vidéo 3** : le bruit sourd sur « il part » ; le plan du client qui s'en va au ralenti.
 - **Vidéo 4** : le bruit de coupure quand le réseau meurt ; le flash quand « la vente continue ».
 - **Vidéo 5** : la bulle WhatsApp qui pop ; le zoom sur le sourire (mains/visages flous si besoin) quand « il sourit ».
-- **Vidéo 6** : le compteur qui tape « 27 F/jour » ; le sachet d'eau qui apparaît avec un pop.
+- **Vidéo 6** : le compteur qui tape « 68 F/jour » ; le ticket de transport qui apparaît avec un pop.
 
 ## 5. Texte à l'écran — style « marque »
 

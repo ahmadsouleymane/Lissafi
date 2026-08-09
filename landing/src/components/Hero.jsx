@@ -63,7 +63,7 @@ export default function Hero() {
           >
             <span><b>Android uniquement</b> · APK direct</span>
             <span><b>Gratuit</b> pour tester</span>
-            <span>Premium <b>15 000 F/an</b> = 41 F/jour</span>
+            <span>Essentiel <b>25 000 F/an</b> = 68 F/jour</span>
           </motion.div>
         </div>
 

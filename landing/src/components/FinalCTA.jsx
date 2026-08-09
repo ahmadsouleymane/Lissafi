@@ -52,7 +52,7 @@ export default function FinalCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          Gratuit pour tester. Premium à 15 000 F/an pour tout débloquer.
+          Gratuit pour tester. Essentiel à 25 000 F/an pour tout débloquer.
           L'installation prend 2 minutes.
         </motion.p>
 

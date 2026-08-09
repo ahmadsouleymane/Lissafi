@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Vue d'ensemble
 
-**Lissafi** — caisse enregistreuse Android pour petits commerces informels (Niamey, Niger). App native Kotlin + Jetpack Compose, **local-first** : SQLite est la source de vérité, Supabase (PostgREST) sert de sauvegarde cloud en synchro asynchrone. APK distribué hors Play Store. La stratégie produit complète est dans `plan-lissafi.md`.
+**Lissafi** — caisse enregistreuse Android pour petits commerces informels (Niamey, Niger). App native Kotlin + Jetpack Compose, **local-first** : SQLite est la source de vérité, Supabase (PostgREST) sert de sauvegarde cloud en synchro asynchrone. APK distribué hors Play Store. Le repo contient aussi un **back-office web** (`backoffice/`, Next.js) et une **landing page** (`landing/`, Vite + React). La stratégie produit complète est dans `plan-lissafi.md`.
 
 ## Commandes
 
@@ -17,10 +17,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Couches dans `app/src/main/java/com/lissafi/app/` :
 
-- **UI (Jetpack Compose, Material 3)** — `ui/screen/*` (Caisse, Produits, Clients, Rapports, Réglages, Admin, Auth), `ui/viewmodel/*` (un ViewModel par écran, `remember {}` dans `LissafiNavHost`), `ui/navigation/LissafiNavHost.kt` (routes + bottom bar), `ui/components/LissafiComponents.kt` (composants partagés), `ui/theme/`.
+- **UI (Jetpack Compose, Material 3)** — `ui/screen/*` (Caisse, Produits, Clients, Rapports, Réglages, Admin, Auth, BarcodeScanner), `ui/viewmodel/*` (un ViewModel par écran, `remember {}` dans `LissafiNavHost`), `ui/navigation/LissafiNavHost.kt` (routes + bottom bar), `ui/components/LissafiComponents.kt` (composants partagés), `ui/theme/`.
 - **Repository** — `data/repository/LissafiRepository.kt` : seule porte d'entrée pour les ViewModels. Connaît la DB locale + l'API distante.
 - **Données locales** — `data/LissafiDatabase.kt` : `SQLiteOpenHelper` **brut (SQL brut, pas Room** — le plan doc dit Room mais le code réel est du raw SQL). Contient aussi les extensions `Cursor.toX()` et les méthodes de synchro (getUnsyncedSales, reassignSaleId…). `DATABASE_VERSION = 2` (v2 = ajout de la colonne `user_id`).
-- **Remote** — `data/remote/SupabaseApi.kt` : client REST PostgREST via Ktor 3. **Chaque méthode lève `SupabaseException` en cas d'échec** — jamais avalé, pour que la synchro puisse retenter. `data/remote/SupabaseManager.kt` : config URL/anon key + session (tokens) en `SharedPreferences`.
+- **Remote** — `data/remote/SupabaseApi.kt` : client REST PostgREST via Ktor 3. **Chaque méthode lève `SupabaseException` en cas d'échec** — jamais avalé, pour que la synchro puisse retenter. `data/remote/SupabaseManager.kt` : config URL/anon key + session (tokens) en `SharedPreferences`. `data/remote/ProductLookupService.kt` : recherche produit par code-barres via l'API publique **Open Food Facts** (sans clé) — retourne `null` si non trouvé, repli sur la saisie manuelle.
 - **Auth** — `data/auth/AuthManager.kt` : appelle directement l'API GoTrue (`/auth/v1/signup`, `/auth/v1/token`, `/auth/v1/logout`, `/auth/v1/recover`) — **pas de SDK Supabase**.
 - **Synchro** — `data/sync/SyncManager.kt` : push/pull bidirectionnel (products, clients, sales, dettes, settings), protégé par `Mutex`, déclenché au démarrage, à la connexion, au retour réseau, toutes les 15 min. `SyncWorker.kt` : WorkManager périodique.
 - **Services** — `service/ReceiptService.kt` (ticket texte + partage WhatsApp + impression Bluetooth ESC/POS), `service/PremiumManager.kt`, `service/FormatUtils.kt`.
@@ -37,10 +37,22 @@ Couches dans `app/src/main/java/com/lissafi/app/` :
 - Les entités (`data/entity/*.kt`) sont `@Serializable` (kotlinx.serialization) — les noms de champs doivent coller aux colonnes PostgREST.
 - Les dates sont des `Long` (epoch millis), les booléens SQLite sont des 0/1.
 
+## Back-office web (`backoffice/`)
+
+Interface d'administration indépendante de l'app : activation premium manuelle, stats globales, connexions, logs, support. Next.js 15 (App Router) + TypeScript + Tailwind, déployable sur Vercel. Détails complets dans `backoffice/README.md`.
+
+- **Auth** : l'admin est un utilisateur Supabase Auth inscrit dans la table `admins`. Connexion → cookie httpOnly `lissafi_admin_token` (JWT). Côté serveur, `SUPABASE_SERVICE_ROLE_KEY` (env, jamais exposée au navigateur) donne accès à tout via bypass RLS. Session validée par `getAdminSession()` (`src/lib/session.ts`).
+- **Schéma** : créé par `supabase-admin.sql` (racine) — à exécuter APRÈS `supabase-schema.sql`. Ajoute `admins`, `app_logs`, `support_tickets`, `ticket_replies`, `admin_settings`, `admin_actions`, plus des fonctions SECURITY DEFINER (`admin_stats()`, `admin_user_summaries()`, `admin_logs()`, séries…).
+- **Serveur actions** : `src/actions/*.ts` (Server Actions) + `src/lib/supabase.ts` (client service_role) + `src/lib/data.ts` (requêtes aux fonctions d'agrégation). Env requises dans `backoffice/.env.example`.
+- L'app Android alimente le back-office en fire-and-forget : `logEvent` / `reportSupportTicket` dans `SupabaseApi.kt`.
+
 ## Outils non-Android dans le repo
 
+- `supabase-schema.sql` : schéma de l'app (tables, RLS par `auth.uid() = user_id`). Miroir de `LissafiDatabase` — voir Patterns clés.
+- `supabase-admin.sql` : schéma du back-office (voir section dédiée). Idempotent, à exécuter après `supabase-schema.sql`.
 - `scripts/seed-demo.sql` + `scripts/README-demo.md` : seed Supabase du **compte démo** `demo@lissafi.app` / `demo123456` (boutique fictive complète pour vidéos TikTok). À coller dans le SQL Editor Supabase (projet `fnyuhpfzkvunscuylvqv`). Idempotent, ne touche que les données du compte démo.
-- `docs/demo-scenario-video.md` : scénario de tournage des 6 vidéos de démo.
+- `landing/` : page de vente statique Vite + React (motion, framer-motion). `npm run dev` / `npm run build`. Coordonnées WhatsApp/APK à configurer dans `src/config.js`.
+- `docs/demo-scenario-video.md` : scénario de tournage des 6 vidéos de démo. `docs/etude-marche-et-prix.md` : étude de marché.
 - `marketing-tiktok/` : scripts de vidéos TikTok + guide montage.
 - `prospection/` : outil Python séparé (scraper Google Maps + workflow n8n) pour générer des leads commerçants Niamey.
 - `plan-lissafi.md` : doc stratégique/commerciale (pricing, roadmap). Utile pour le contexte produit, mais ne décris pas le code réel.

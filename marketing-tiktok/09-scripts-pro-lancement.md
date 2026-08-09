@@ -30,7 +30,7 @@ recording** de l'app + **images de stock** (marché, billets, cahier, mains qui 
 | 4 | Pourquoi j'ai construit Lissafi | Envers du décor |
 | 5 | J'ai vu mon père perdre son argent | Moment personnel |
 | 6 | Fais le calcul avec moi | Le calcul / data reveal |
-| 7 | 41 F par jour. C'est tout. | Le prix |
+| 7 | 68 F par jour. C'est tout. | Le prix |
 | 8 | Fait pour le marché, pas pour un bureau | Sans réseau |
 | 9 | Ce message rouge qui fait peur | L'installation (APK) |
 | 10 | Le soir, tout est là | La vie du commerce |
@@ -279,20 +279,19 @@ Quatre fois trois mois. Quatre fois quinze mille.
 Soixante mille francs. Par an.
 Soixante mille francs... qui s'évaporent dans un cahier.
 
-Lissafi, ça coûte quinze mille francs par an. Pour tout garder.
-Un an de Lissafi. Ou un trimestre de pertes. Réfléchis.
+Lissafi, ça coûte vingt-cinq mille francs par an. Pour tout garder.
+Un an de Lissafi. Ou moins de la moitié de ce que le cahier te fait perdre. Réfléchis.
 Tu peux continuer à payer le cahier... soixante mille par an.
-Ou payer Lissafi... et garder ton argent.
+Ou payer Lissafi... et garder trente-cinq mille net dans ta poche.
 
 Le calcul, il est fait.
 ```
 
 **Textes à l'écran :**
 - « FAIS LE CALCUL AVEC MOI. »
-- « 15 000 F / 3 MOIS » *(compteur qui tape)*
-- « ×4 = **60 000 F / AN** » *(gros, choc)*
-- « 60 000 F QUI S'ÉVAPORENT DANS UN CAHIER. »
-- « LISSAFI : 15 000 F / AN. »
+- « 60 000 F / AN DE CRÉDITS OUBLIÉS » *(compteur qui tape)*
+- « LISSAFI : 25 000 F / AN. »
+- « 60 000 - 25 000 = **35 000 F NET DANS TA POCHE** »
 - « LE CAHIER OU TON ARGENT. »
 - « Commente LISSAFI 👇 »
 
@@ -300,12 +299,12 @@ Le calcul, il est fait.
 
 ---
 
-## 7 — « 41 F par jour. C'est tout. »
+## 7 — « 68 F par jour. C'est tout. »
 
 **Format :** Le prix (découpage, anti-objection)
 **Durée :** ~35 s
-**Angle :** pas « c'est pas cher », mais « regarde ce que tu dépenses déjà ». Le call de 3
-minutes, le téléphone qu'on a déjà payé, et le cahier qui coûte rien... et qui coûte tout.
+**Angle :** pas « c'est pas cher », mais « regarde ce que tu dépenses déjà ». Le ticket de
+transport, le téléphone qu'on a déjà payé, et le cahier qui coûte rien... et qui coûte tout.
 Le prix découpé en jour, puis le gratuit pour tester.
 
 **HOOK (0-3 s) :** « "Ça coûte combien ?" ... je l'entends à chaque fois. Normal. »
@@ -314,17 +313,17 @@ Le prix découpé en jour, puis le gratuit pour tester.
 
 ```
 « Ça coûte combien ? »... je l'entends à chaque fois. Normal.
-Quinze mille francs par an. Ça, c'est le prix.
+Vingt-cinq mille francs par an. Ça, c'est le prix.
 Mais attends... laisse-moi te le découper.
 
-Quinze mille francs. Divisé par trois cent soixante-cinq jours.
-Quarante et un francs. Par jour.
-Quarante et un francs. Tu dépenses plus que ça pour un call de trois minutes.
+Vingt-cinq mille francs. Divisé par trois cent soixante-cinq jours.
+Soixante-huit francs. Par jour.
+Soixante-huit francs. C'est moins qu'un ticket de transport.
 
 Ton téléphone, toi, tu l'as payé combien ?
-Et le cahier... il ne coûte rien, mais il te bouffe des milliers chaque année.
-Quarante et un francs par jour, c'est ta caisse. Ton stock. Tes crédits. Ton chiffre du soir.
-Tout ça. Pour le prix d'un call.
+Et le cahier... il ne coûte rien, mais il te bouffe soixante mille par an.
+Soixante-huit francs par jour, c'est ta caisse. Ton stock. Tes crédits. Ton chiffre du soir.
+Tout ça. Pour moins qu'un ticket.
 
 Et tu peux tester avant. Zéro franc. Gratuit.
 Quand tu auras vu ce que ça donne... là, tu décides.
@@ -332,9 +331,9 @@ Quand tu auras vu ce que ça donne... là, tu décides.
 
 **Textes à l'écran :**
 - « ÇA COÛTE COMBIEN ? »
-- « 15 000 F / AN »
-- « ÷ 365 = **41 F / JOUR** » *(compteur animé)*
-- « 41 F. UN CALL DE 3 MINUTES. »
+- « 25 000 F / AN »
+- « ÷ 365 = **68 F / JOUR** » *(compteur animé)*
+- « 68 F. MOINS QU'UN TICKET DE TRANSPORT. »
 - « GRATUIT POUR TESTER. ZÉRO FRANC. »
 - « Commente LISSAFI 👇 »
 

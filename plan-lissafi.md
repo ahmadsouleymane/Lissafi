@@ -11,11 +11,12 @@
 | Nom | **Lissafi** (« calcul, compte » en haoussa) |
 | Plateforme | **Android natif (Kotlin)**, APK distribué hors Play Store |
 | iOS | Plus tard, quand l'argent rentre |
-| Prix payant | **10 000 FCFA/an** — tarif unique, pas de licence à vie |
+| Modèle | **Abonnement annuel**, pas de licence à vie, pas de mensuel |
+| Offres payantes | **Essentiel 25 000 F/an** (logiciel seul) + **Pack Boutique 60 000 F** (imprimante + logiciel) |
 | Version gratuite | 10 produits, 10 crédits clients, historique 30 jours |
 | Activation Premium | **Manuelle** — le commerçant paie en espèces/mobile money, toi tu actives via code admin |
-| Imprimante | Pas vendue par toi — partenariat avec importateur local |
-| Rouleaux papier | Optionnels, plus tard |
+| Imprimante | **Pack Boutique à la demande** (dropshipping local, zéro stock) — imprimante 58 mm Bluetooth + 2 rouleaux + installation + 1 an Essentiel inclus |
+| Rouleaux papier | Offerts dans le Pack, vendus séparément à la demande |
 
 ---
 
@@ -44,12 +45,13 @@
 
 ### Modèle
 - **Gratuit** : scan, panier, 10 produits, 10 crédits, historique 30j, ticket WhatsApp
-- **Payant** : 10 000 FCFA/an. Tout illimité.
+- **Essentiel (25 000 FCFA/an)** : tout illimité, rapports, export CSV, support prioritaire
+- **Pack Boutique (60 000 FCFA)** : imprimante 58 mm Bluetooth + 2 rouleaux + installation + 1 an Essentiel inclus — à la demande, zéro stock (dropshipping local)
 
 ### Objectif 12 mois
-- 50 clients payants = 500 000 FCFA/an récurrent
+- 50 clients payants = 1 382 000 FCFA/an net (dont ~140 000 F de marge matérielle)
 - 100 utilisateurs gratuits actifs
-- 1 partenariat importateur imprimantes
+- 1 fournisseur d'imprimantes validé et testé
 
 ### Condition de succès
 1. MVP codé en 1 semaine
@@ -85,23 +87,35 @@ Tutoiement. Français simple. Zéro jargon. Toujours parler en francs CFA.
 
 ## 3. BUSINESS MODEL & PRICING
 
-### Structure
+### Structure — 3 offres
 
-| | Gratuit | Lissafi Premium |
+| | Gratuit | **Essentiel** | **Pack Boutique** |
+|---|---|---|---|
+| **Prix** | 0 FCFA | **25 000 FCFA/an** | **60 000 FCFA** (une fois) |
+| Scan codes-barres | ✅ | ✅ | ✅ |
+| Panier + calcul monnaie | ✅ | ✅ | ✅ |
+| Ticket WhatsApp | ✅ | ✅ | ✅ |
+| Mode hors-ligne | ✅ | ✅ | ✅ |
+| Produits au catalogue | **10 max** | Illimité | Illimité |
+| Crédits clients | **10 débiteurs max** | Illimité | Illimité |
+| Historique ventes | **30 jours** | Illimité | Illimité |
+| Gestion de stock | Consultation seule | Gestion complète + alertes | Gestion complète + alertes |
+| Export CSV | ❌ | ✅ | ✅ |
+| Rapports (jour/semaine/mois) | ❌ | ✅ | ✅ |
+| Support WhatsApp | Standard | Prioritaire (<2h) | Prioritaire (<2h) |
+| Imprimante 58 mm Bluetooth | ❌ | ❌ | ✅ |
+| Rouleaux thermiques | ❌ | ❌ | 2 offerts |
+| Installation + formation | ❌ | ❌ | ✅ (sur place) |
+
+**Le Pack Boutique = Essentiel 1 an (25 000 F) + imprimante 58 mm + 2 rouleaux + installation (35 000 F).** Le logiciel est facturé normalement dans le pack — il n'est jamais offert. Au renouvellement (année 2), le client Pack paie 25 000 F/an comme tout le monde.
+
+### Pourquoi 25 000 F/an ?
+
+| Référence | Montant | Ce que ça justifie |
 |---|---|---|
-| **Prix** | 0 FCFA | **10 000 FCFA/an** |
-| Scan codes-barres | ✅ | ✅ |
-| Panier + calcul monnaie | ✅ | ✅ |
-| Ticket WhatsApp | ✅ | ✅ |
-| Mode hors-ligne | ✅ | ✅ |
-| Produits au catalogue | **10 max** | Illimité |
-| Crédits clients | **10 débiteurs max** | Illimité |
-| Historique ventes | **30 jours** | Illimité |
-| Gestion de stock | Consultation seule | Gestion complète |
-| Export CSV | ❌ | ✅ |
-| Rapports (jour/semaine/mois) | ❌ | ✅ |
-| Support WhatsApp | Standard | Prioritaire (<2h) |
-| Visite mensuelle | ❌ | ✅ |
+| Valeur délivrée (crédits récupérés) | ~60 000 F/an | **25 000 F/an = 40 % de la valeur** → prix juste |
+| Coût mensuel des concurrents payants | 11 400–18 400 F/mois | Lissafi (2 083 F/mois) est **5 à 9× moins cher que leur mois** |
+| Psycho prix | 68 F/jour | « Moins qu'un sachet d'eau + un ticket de transport » |
 
 ### Activation Premium
 1. Commerçant te paie (espèces ou Orange Money/Moov Money)
@@ -109,18 +123,60 @@ Tutoiement. Français simple. Zéro jargon. Toujours parler en francs CFA.
 3. Tu entres le code d'activation
 4. Premium actif pour 365 jours
 
-### Projection revenus
+### Économie du Pack Boutique (par unité)
 
-| Clients payants | Revenu brut/an | Net/mois (après charges) |
+| Poste | Montant |
+|---|---|
+| Prix de vente | **60 000 F** |
+| Coût imprimante (fournisseur local) | −20 000 F |
+| Coût 2 rouleaux | −1 000 F |
+| Licence Essentiel 1 an (incluse) | −25 000 F |
+| **Marge nette** | **14 000 F** |
+
+Zéro stock : dropshipping local — le client commande → achat fournisseur → installation → encaissement.
+
+### Projection revenus (scénario réaliste, mix 80 % Essentiel / 20 % Pack)
+
+**Année 1 — 50 clients payants :**
+
+| Poste | Calcul | Montant |
 |---|---|---|
-| 10 | 100 000 F | 7 600 F |
-| 20 | 200 000 F | 16 000 F |
-| 50 | 500 000 F | 41 000 F |
-| 100 | 1 000 000 F | 82 600 F |
-| 200 | 2 000 000 F | 166 000 F |
-| 500 | 5 000 000 F | 411 700 F |
+| Revenu logiciel | 50 × 25 000 | 1 250 000 F |
+| Marge matérielle | 10 × 14 000 | 140 000 F |
+| Chiffre d'affaires brut | | 1 390 000 F |
+| Charges (domaine 8 000 F/an) | | −8 000 F |
+| **Résultat net** | | **1 382 000 F** |
+| **Net / mois** | | **115 000 F** |
 
-**Charges : 700 F/mois** (domaine 8 000 F/an). Hébergement 0 F (Cloudflare Workers gratuit jusqu'à 500+ utilisateurs).
+**Année 2 — 200 clients payants (150 nouveaux) :**
+
+| Poste | Calcul | Montant |
+|---|---|---|
+| Revenu logiciel | 200 × 25 000 | 5 000 000 F |
+| Marge matérielle | 30 × 14 000 | 420 000 F |
+| Chiffre d'affaires brut | | 5 420 000 F |
+| Charges | | −8 000 F |
+| **Résultat net** | | **5 412 000 F** |
+| **Net / mois** | | **451 000 F** |
+
+**Année 3 — 500 clients payants (300 nouveaux) :**
+
+| Poste | Calcul | Montant |
+|---|---|---|
+| Revenu logiciel | 500 × 25 000 | 12 500 000 F |
+| Marge matérielle | 60 × 14 000 | 840 000 F |
+| Chiffre d'affaires brut | | 13 340 000 F |
+| Charges (domaine + hébergement ~5 000 F/mois) | | −68 000 F |
+| **Résultat net** | | **13 272 000 F** |
+| **Net / mois** | | **1 106 000 F** |
+
+### Comparaison ancien prix (10 000 F/an)
+
+| | Ancien | Nouveau | × |
+|---|---|---|---|
+| Année 1 net/mois | 41 000 F | **115 000 F** | ×2,8 |
+| Année 2 net/mois | 166 000 F | **451 000 F** | ×2,7 |
+| Année 3 net/mois | 412 000 F | **1 106 000 F** | ×2,7 |
 
 ---
 
@@ -407,7 +463,7 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 │  Sucre au kg                            │
 │  Stock : —  |  Vente : 500 F           │
 │                                         │
-│  10/10 produits (Gratuit) ⬆ Passer Pro │
+│  10/10 produits (Gratuit) ⬆ Passer à Essentiel │
 └─────────────────────────────────────────┘
 ```
 
@@ -503,19 +559,19 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 
 ### Réponse à « Mon cahier me suffit »
 
-> *Ton cahier, est-ce qu'il te dit combien Moussa te doit au total ? Et le mois dernier, as-tu récupéré TOUT ce qu'on te devait ? Un commerçant perd en moyenne 15 000 F de crédits oubliés tous les 3 mois. Lissafi est gratuit. Teste 2 semaines. Si tu ne récupères pas au moins 5 000 F de dettes oubliées, tu supprimes.*
+> *Ton cahier, est-ce qu'il te dit combien Moussa te doit au total ? Et le mois dernier, as-tu récupéré TOUT ce qu'on te devait ? Un commerçant perd en moyenne 60 000 F de crédits oubliés par an. Lissafi est gratuit pour commencer — et même en payant 25 000 F/an, tu gagnes encore 35 000 F net. Teste 2 semaines gratos. Si tu ne récupères pas au moins 5 000 F de dettes, tu supprimes.*
 
 ### Messages dans l'appli
 
 | Contexte | Texte |
 |---|---|
-| Limite produits atteinte (Gratuit) | *Tu as 10 produits. Passe Premium pour en ajouter autant que tu veux. 10 000 F/an = 27 F/jour.* |
-| Limite crédits atteinte (Gratuit) | *Tu suis déjà 10 débiteurs. Passe Premium pour ne plus perdre un franc.* |
+| Limite produits atteinte (Gratuit) | *Tu as 10 produits. Passe à Essentiel pour en ajouter autant que tu veux. 25 000 F/an = 68 F/jour.* |
+| Limite crédits atteinte (Gratuit) | *Tu suis déjà 10 débiteurs. Passe à Essentiel pour ne plus perdre un franc.* |
 | Alerte stock bas | *Plus que 3 Maggi poulet en stock. Commander ?* |
 | Résumé fin de journée | *Aujourd'hui : 52 500 F | 18 ventes | 3 crédits | Bravo !* |
 | Hors-ligne | *Pas de réseau ? Pas de souci. Lissafi continue.* |
-| Premium activé | *Bienvenue en Premium ! Tout est débloqué pour 365 jours. Merci pour ta confiance.* |
-| Premium expire bientôt | *Ton Premium expire dans 15 jours. Contacte-nous pour renouveler.* |
+| Premium activé | *Bienvenue en Essentiel ! Tout est débloqué pour 365 jours. Merci pour ta confiance.* |
+| Premium expire bientôt | *Ton Essentiel expire dans 15 jours. Contacte-nous pour renouveler. 25 000 F/an = 68 F/jour.* |
 
 ---
 
@@ -534,6 +590,7 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 
 - Présence Grand Marché 4 matinées/semaine (7h-11h)
 - Objectif : 10 installations/semaine, 15 clients payants fin M4
+- Prix de lancement : 20 000 F/an pour les 10 premiers clients (« early adopter »)
 - Recrutement 3 ambassadeurs (affichettes dans leur boutique)
 - 1er témoignage vidéo WhatsApp
 
@@ -604,7 +661,7 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 
 | Jour | Tâche | Priorité |
 |---|---|---|
-| J8-9 | Écran admin (PIN protégé). Activation Premium par code. | P1 |
+| J8-9 | Écran admin (PIN protégé). Activation Essentiel par code. | P1 |
 | J10 | Écran rapports (journalier, hebdo, mensuel). Export CSV. | P1 |
 | J11 | Résumé fin de journée. Alertes stock bas. | P1 |
 | J12 | Gestion stock complète (entrées/sorties manuelles). | P1 |
@@ -642,10 +699,13 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 |---|---|---|---|
 | **Clients payants (fin période)** | 50 | 200 | 500 |
 | Nouveaux dans l'année | 50 | 150 | 300 |
-| Revenus abonnements | 500 000 F | 2 000 000 F | 5 000 000 F |
-| Charges (domaine 8k/an) | -8 000 F | -8 000 F | -60 000 F* |
-| **Résultat net** | **492 000 F** | **1 992 000 F** | **4 940 000 F** |
-| **Net/mois** | **41 000 F** | **166 000 F** | **412 000 F** |
+| Dont Pack Boutique (20 % des nouveaux) | 10 | 30 | 60 |
+| Revenus logiciel (25 000 F/an × total clients) | 1 250 000 F | 5 000 000 F | 12 500 000 F |
+| Marge matérielle (14 000 F × nouveaux packs) | 140 000 F | 420 000 F | 840 000 F |
+| Chiffre d'affaires brut | 1 390 000 F | 5 420 000 F | 13 340 000 F |
+| Charges (domaine 8k/an, hébergement 0→60k) | -8 000 F | -8 000 F | -68 000 F* |
+| **Résultat net** | **1 382 000 F** | **5 412 000 F** | **13 272 000 F** |
+| **Net/mois** | **115 000 F** | **451 000 F** | **1 106 000 F** |
 
 *\*Année 3 : hébergement devient payant (~5 000 F/mois) + domaine.*
 
@@ -656,11 +716,11 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 
 ### Multiples scénarios année 1
 
-| Scénario | Clients payants | Résultat net | Net/mois |
-|---|---|---|---|
-| Pessimiste | 25 | 242 000 F | 20 000 F |
-| Réaliste | 50 | 492 000 F | 41 000 F |
-| Optimiste | 75 | 742 000 F | 62 000 F |
+| Scénario | Clients payants | Revenu logiciel | Marge Pack | Résultat net | Net/mois |
+|---|---|---|---|---|---|
+| Conservateur | 25 (20 Ess. + 5 Pack) | 625 000 F | 70 000 F | 687 000 F | 57 000 F |
+| Réaliste | 50 (40 Ess. + 10 Pack) | 1 250 000 F | 140 000 F | 1 382 000 F | 115 000 F |
+| Optimiste | 75 (60 Ess. + 15 Pack) | 1 875 000 F | 210 000 F | 2 077 000 F | 173 000 F |
 
 ---
 
@@ -690,7 +750,7 @@ Depuis écran caisse → Bouton "+" ou appui long sur "Ajout"
 
 ---
 
-## ANNEXE A — Génération des codes d'activation Premium
+## ANNEXE A — Génération des codes d'activation Essentiel
 
 Pour ne pas avoir à coder un backend complexe tout de suite :
 
@@ -705,7 +765,7 @@ Tu génères les codes sur ton PC avec un petit script. Tu les donnes au commer�
 fun validateCode(code: String): Boolean {
     // Format : LISSAFI-XXXX-XXXX-XXXX
     // Vérification checksum local
-    // Active Premium pour 365 jours
+    // Active Essentiel pour 365 jours
 }
 ```
 
@@ -727,4 +787,4 @@ Faire un tour au Grand Marché électronique pour trouver ces modèles. Tester l
 
 ---
 
-*Document final — 3 août 2026. Nom : Lissafi. Prix unique : 10 000 F/an. Gratuit : 10 produits/10 crédits/30 jours. Kotlin natif. Activation manuelle.*
+*Document final — mis à jour le 9 août 2026. Nom : Lissafi. Prix : Gratuit / Essentiel 25 000 F/an / Pack Boutique 60 000 F. Activation manuelle. Dropshipping imprimantes.*
