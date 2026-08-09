@@ -1,11 +1,18 @@
 import { supabaseAdmin } from "./supabase";
 import { toNumber } from "./format";
+import { getExplorerConfig } from "./explorer";
 import type {
+  AccountSalePage,
   AdminAction,
   AppLog,
   AppSettingRow,
   AuditLog,
+  Client,
+  DebtTransaction,
+  ExplorerData,
+  Product,
   SalesPoint,
+  SaleItem,
   SaleRow,
   SignupPoint,
   Stats,
@@ -174,4 +181,117 @@ export async function getRecentAdminActions(limit = 15): Promise<AdminAction[]> 
 export async function countTable(table: string): Promise<number> {
   const { count } = await supabaseAdmin().from(table).select("*", { count: "exact", head: true });
   return toNumber(count);
+}
+
+// ============================================================
+// Données brutes — consultation complète (lecture seule)
+// ============================================================
+
+/** Produits d'un compte (classe par ordre de mise à jour). */
+export async function getAccountProducts(userId: string): Promise<Product[]> {
+  const { data } = await supabaseAdmin()
+    .from("products")
+    .select("*")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+  return (data ?? []) as Product[];
+}
+
+/** Clients d'un compte (classe par nom). */
+export async function getAccountClients(userId: string): Promise<Client[]> {
+  const { data } = await supabaseAdmin()
+    .from("clients")
+    .select("*")
+    .eq("user_id", userId)
+    .order("name", { ascending: true });
+  return (data ?? []) as Client[];
+}
+
+/** Transactions de dette d'un compte, avec le nom du client résolu. */
+export async function getAccountDebts(userId: string): Promise<(DebtTransaction & { client_name: string })[]> {
+  const [txns, clients] = await Promise.all([
+    supabaseAdmin()
+      .from("debt_transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("date", { ascending: false }),
+    getAccountClients(userId),
+  ]);
+  const names = new Map(clients.map((c) => [c.id, c.name]));
+  return ((txns.data ?? []) as DebtTransaction[]).map((t) => ({
+    ...t,
+    client_name: names.get(t.client_id) ?? t.client_id,
+  }));
+}
+
+/** Ventes d'un compte, paginées, avec les articles de la page. */
+export async function getAccountSales(userId: string, page = 1, limit = 50): Promise<AccountSalePage> {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+  const { data, count } = await supabaseAdmin()
+    .from("sales")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .order("date", { ascending: false })
+    .range(from, to);
+  const sales = (data ?? []) as SaleRow[];
+  const ids = sales.map((s) => s.id);
+  const itemsBySale: Record<number, SaleItem[]> = {};
+  if (ids.length > 0) {
+    const { data: items } = await supabaseAdmin()
+      .from("sale_items")
+      .select("*")
+      .in("sale_id", ids)
+      .order("id", { ascending: true });
+    for (const it of (items ?? []) as SaleItem[]) {
+      (itemsBySale[it.sale_id] ??= []).push(it);
+    }
+  }
+  return { sales, itemsBySale, total: toNumber(count) };
+}
+
+/** Options {id, label} pour le filtre utilisateur de l'explorateur. */
+export async function getAccountOptions(): Promise<{ id: string; label: string }[]> {
+  const users = await getUserSummaries();
+  return users
+    .filter((u) => u.user_id)
+    .map((u) => ({ id: u.user_id, label: `${u.shop_name || "Boutique sans nom"} — ${u.email || "—"}` }))
+    .sort((a, b) => a.label.localeCompare(b.label, "fr"));
+}
+
+/**
+ * Données d'une table du registre pour l'explorateur global.
+ * Valide `table` contre le registre — jamais de requête sur un nom arbitraire.
+ */
+export async function getExplorerData(
+  table: string,
+  opts: { user?: string; q?: string; page?: number; limit?: number } = {}
+): Promise<ExplorerData> {
+  const config = getExplorerConfig(table);
+  if (!config) return { rows: [], total: 0, userEmails: {} };
+
+  const page = Math.max(1, opts.page ?? 1);
+  const limit = Math.min(100, Math.max(1, opts.limit ?? 50));
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabaseAdmin()
+    .from(config.table)
+    .select("*", { count: "exact" })
+    .order(config.orderBy.column, { ascending: config.orderBy.ascending ?? false })
+    .range(from, to);
+
+  if (opts.user) query = query.eq("user_id", opts.user);
+  if (opts.q) {
+    const like = `ilike.*${opts.q.replace(/\*/g, "")}*`;
+    query = query.or(config.searchColumns.map((c) => `${c}.${like}`).join(","));
+  }
+
+  const { data, count } = await query;
+  const userEmails = await getUserEmails();
+  return {
+    rows: (data ?? []) as Record<string, unknown>[],
+    total: toNumber(count),
+    userEmails,
+  };
 }

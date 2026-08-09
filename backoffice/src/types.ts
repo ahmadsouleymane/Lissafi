@@ -119,3 +119,60 @@ export type AdminAction = {
   details: string;
   created_at: string;
 };
+
+export type Product = {
+  barcode: string;
+  name: string;
+  sell_price: number;
+  buy_price: number;
+  stock: number;
+  min_stock: number;
+  category: string;
+  has_barcode: boolean;
+  created_at: number;
+  updated_at: number;
+  user_id: string;
+  deleted: boolean;
+};
+
+export type Client = {
+  id: string;
+  name: string;
+  phone: string;
+  total_debt: number;
+  created_at: number;
+  updated_at: number;
+  user_id: string;
+};
+
+export type DebtTransaction = {
+  id: number;
+  client_id: string;
+  sale_id: number | null;
+  amount: number;
+  date: number;
+  note: string;
+  user_id: string;
+};
+
+export type SaleItem = {
+  id: number;
+  sale_id: number;
+  barcode: string;
+  name: string;
+  price: number;
+  quantity: number;
+  user_id: string;
+};
+
+export type ExplorerData = {
+  rows: Record<string, unknown>[];
+  total: number;
+  userEmails: Record<string, string>;
+};
+
+export type AccountSalePage = {
+  sales: SaleRow[];
+  itemsBySale: Record<number, SaleItem[]>;
+  total: number;
+};
