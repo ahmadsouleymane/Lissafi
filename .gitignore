@@ -11,4 +11,5 @@ build/
 .cxx
 *.apk
 *.aab
+!landing/public/lissafi.apk
 output.json
