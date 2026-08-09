@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -25,6 +27,20 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            // Signature release depuis keystore.properties (jamais commité).
+            // Si le fichier est absent, le build release échoue volontairement.
+            val props = Properties()
+            val propsFile = rootProject.file("keystore.properties")
+            if (propsFile.exists()) props.load(propsFile.inputStream())
+            storeFile = rootProject.file(props.getProperty("storeFile", "app/lissafi-release.keystore"))
+            storePassword = props.getProperty("storePassword", "")
+            keyAlias = props.getProperty("keyAlias", "lissafi")
+            keyPassword = props.getProperty("keyPassword", "")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -32,6 +48,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

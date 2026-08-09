@@ -13,3 +13,5 @@ build/
 *.aab
 !landing/public/lissafi.apk
 output.json
+*.keystore
+keystore.properties
