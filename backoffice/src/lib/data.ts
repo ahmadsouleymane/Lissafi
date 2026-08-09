@@ -1,3 +1,4 @@
+import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { toNumber } from "./format";
 import { getExplorerConfig } from "./explorer";
@@ -120,7 +121,10 @@ export async function getTicketReplies(ticketId: number): Promise<TicketReply[]>
 }
 
 /** Détail d'un compte : récap + ventes récentes + logs + tickets + paramètres. */
-export async function getUserDetail(userId: string): Promise<{
+export async function getUserDetail(
+  userId: string,
+  knownSummary?: UserSummary | null
+): Promise<{
   summary: UserSummary | null;
   sales: SaleRow[];
   settings: Record<string, string>;
@@ -131,7 +135,7 @@ export async function getUserDetail(userId: string): Promise<{
   clientDebtTotal: number;
 }> {
   const [summaries, salesRes, settingsRes, logsRes, ticketsRes, actionsRes, clientsRes] = await Promise.all([
-    getUserSummaries(),
+    knownSummary ? Promise.resolve([knownSummary]) : getUserSummaries(),
     supabaseAdmin().from("sales").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(100),
     supabaseAdmin().from("app_settings").select("*").eq("user_id", userId),
     getLogs({ userId, limit: 60 }),
@@ -189,21 +193,23 @@ export async function countTable(table: string): Promise<number> {
 
 /** Produits d'un compte (classe par ordre de mise à jour). */
 export async function getAccountProducts(userId: string): Promise<Product[]> {
-  const { data } = await supabaseAdmin()
+  const { data, error } = await supabaseAdmin()
     .from("products")
     .select("*")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
+  if (error) logRpcError("getAccountProducts", error);
   return (data ?? []) as Product[];
 }
 
 /** Clients d'un compte (classe par nom). */
 export async function getAccountClients(userId: string): Promise<Client[]> {
-  const { data } = await supabaseAdmin()
+  const { data, error } = await supabaseAdmin()
     .from("clients")
     .select("*")
     .eq("user_id", userId)
     .order("name", { ascending: true });
+  if (error) logRpcError("getAccountClients", error);
   return (data ?? []) as Client[];
 }
 
@@ -217,6 +223,7 @@ export async function getAccountDebts(userId: string): Promise<(DebtTransaction 
       .order("date", { ascending: false }),
     getAccountClients(userId),
   ]);
+  if (txns.error) logRpcError("getAccountDebts", txns.error);
   const names = new Map(clients.map((c) => [c.id, c.name]));
   return ((txns.data ?? []) as DebtTransaction[]).map((t) => ({
     ...t,
@@ -230,21 +237,23 @@ export async function getAccountSales(userId: string, page = 1, limit = 50): Pro
   const limitSafe = Math.min(100, Math.max(1, limit));
   const from = (pageSafe - 1) * limitSafe;
   const to = from + limitSafe - 1;
-  const { data, count } = await supabaseAdmin()
+  const { data, count, error } = await supabaseAdmin()
     .from("sales")
     .select("*", { count: "exact" })
     .eq("user_id", userId)
     .order("date", { ascending: false })
     .range(from, to);
+  if (error) logRpcError("getAccountSales", error);
   const sales = (data ?? []) as SaleRow[];
   const ids = sales.map((s) => s.id);
   const itemsBySale: Record<number, SaleItem[]> = {};
   if (ids.length > 0) {
-    const { data: items } = await supabaseAdmin()
+    const { data: items, error: itemsError } = await supabaseAdmin()
       .from("sale_items")
       .select("*")
       .in("sale_id", ids)
       .order("id", { ascending: true });
+    if (itemsError) logRpcError("getAccountSales (items)", itemsError);
     for (const it of (items ?? []) as SaleItem[]) {
       (itemsBySale[it.sale_id] ??= []).push(it);
     }
@@ -285,11 +294,17 @@ export async function getExplorerData(
 
   if (opts.user) query = query.eq("user_id", opts.user);
   if (opts.q) {
-    const like = `ilike.*${opts.q.replace(/\*/g, "")}*`;
-    query = query.or(config.searchColumns.map((c) => `${c}.${like}`).join(","));
+    // Neutralise les caractères de logique PostgREST (`,` `(` `)` `*`) pour
+    // éviter une requête `.or()` invalide → erreur 400 silencieuse.
+    const clean = opts.q.replace(/[,()*]/g, " ").replace(/\s+/g, " ").trim();
+    if (clean) {
+      const like = `ilike.*${clean}*`;
+      query = query.or(config.searchColumns.map((c) => `${c}.${like}`).join(","));
+    }
   }
 
-  const { data, count } = await query;
+  const { data, count, error } = await query;
+  if (error) logRpcError("getExplorerData", error);
   const userEmails = await getUserEmails();
   return {
     rows: (data ?? []) as Record<string, unknown>[],

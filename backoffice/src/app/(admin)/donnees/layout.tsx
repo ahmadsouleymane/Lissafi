@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 const tabs = [
-  { href: "/donnees", label: "Explorateur", exact: true },
-  { href: "/donnees/schema", label: "Schéma des données", exact: false },
+  { href: "/donnees", label: "Explorateur" },
+  { href: "/donnees/schema", label: "Schéma des données" },
 ];
 
 export default function DonneesLayout({ children }: { children: React.ReactNode }) {

@@ -11,7 +11,7 @@ const ACTIVE =
 const INACTIVE =
   "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50";
 const NAV_LINK =
-  "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40";
+  "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50";
 
 export default async function DonneesPage({
   searchParams,
@@ -80,7 +80,7 @@ export default async function DonneesPage({
             Filtrer
           </button>
           {q && (
-            <a href={buildHref({ page: 1 })} className="rounded-lg px-3 py-2 text-sm text-brand-600 hover:underline">
+            <a href={`/donnees?table=${table}`} className="rounded-lg px-3 py-2 text-sm text-brand-600 hover:underline">
               Effacer
             </a>
           )}

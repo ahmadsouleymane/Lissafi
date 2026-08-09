@@ -4,7 +4,7 @@ import { AccountActions } from "@/components/AccountActions";
 import { Badge, Card, CardHeader, EmptyState, Table, Td, Th, THead, Tr } from "@/components/ui";
 import { LevelBadge, PremiumBadge } from "@/components/badges";
 import { IconMail, IconPhone } from "@/components/icons";
-import { getAccountClients, getAccountDebts, getAccountProducts, getAccountSales, getUserDetail } from "@/lib/data";
+import { getAccountClients, getAccountDebts, getAccountProducts, getAccountSales, getUserDetail, getUserSummaries } from "@/lib/data";
 import { formatDate, formatDateShort, formatFCFA, formatDateTimeIso } from "@/lib/format";
 import type { AppLog, SaleRow } from "@/types";
 
@@ -35,9 +35,11 @@ export default async function CompteDetailPage({
   const page = Math.max(1, Number(sp.page ?? 1) || 1);
   const limit = 50;
 
-  const detail = await getUserDetail(id);
-  if (!detail.summary) notFound();
-  const u = detail.summary;
+  const summaries = await getUserSummaries();
+  const summary = summaries.find((s) => s.user_id === id) ?? null;
+  if (!summary) notFound();
+  const u = summary;
+  const detail = tab === "overview" ? await getUserDetail(id, u) : null;
 
   const [products, clients, debts, salesPage] =
     tab === "overview"
@@ -101,7 +103,7 @@ export default async function CompteDetailPage({
         ))}
       </div>
 
-      {tab === "overview" && <OverviewTab detail={detail} />}
+      {tab === "overview" && detail && <OverviewTab detail={detail} />}
       {tab === "produits" && <ProductsTab products={products ?? []} />}
       {tab === "clients" && <ClientsTab clients={clients ?? []} />}
       {tab === "dettes" && <DebtsTab debts={debts ?? []} />}
@@ -221,6 +223,7 @@ function ProductsTab({ products }: { products: Awaited<ReturnType<typeof getAcco
               <Th className="text-right">Prix vente</Th>
               <Th className="text-right">Prix achat</Th>
               <Th className="text-right">Stock</Th>
+              <Th className="text-right">Stock min.</Th>
               <Th>Catégorie</Th>
               <Th>Statut</Th>
             </THead>
@@ -232,6 +235,7 @@ function ProductsTab({ products }: { products: Awaited<ReturnType<typeof getAcco
                   <Td className="text-right tabular-nums">{formatFCFA(p.sell_price)}</Td>
                   <Td className="text-right tabular-nums text-slate-500">{formatFCFA(p.buy_price)}</Td>
                   <Td className="text-right tabular-nums">{p.stock}</Td>
+                  <Td className="text-right tabular-nums text-slate-500">{p.min_stock}</Td>
                   <Td className="text-xs text-slate-500">{p.category || "—"}</Td>
                   <Td>{p.deleted ? <Badge color="red">Supprimé</Badge> : <Badge color="green">Actif</Badge>}</Td>
                 </Tr>
@@ -387,6 +391,7 @@ function SaleCard({ s, items }: { s: SaleRow; items: Awaited<ReturnType<typeof g
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-semibold text-slate-500">
                 <th className="px-3 py-1.5">Article</th>
+                <th className="px-3 py-1.5 text-left">Code-barres</th>
                 <th className="px-3 py-1.5 text-right">Prix</th>
                 <th className="px-3 py-1.5 text-right">Qté</th>
                 <th className="px-3 py-1.5 text-right">Sous-total</th>
@@ -396,6 +401,7 @@ function SaleCard({ s, items }: { s: SaleRow; items: Awaited<ReturnType<typeof g
               {items.map((it) => (
                 <tr key={it.id} className="border-b border-slate-50 last:border-0">
                   <td className="px-3 py-1.5 text-slate-700">{it.name}</td>
+                  <td className="px-3 py-1.5 font-mono text-xs text-slate-500">{it.barcode}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums text-slate-500">{formatFCFA(it.price)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{it.quantity}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums font-medium">{formatFCFA(it.price * it.quantity)}</td>
