@@ -30,6 +30,7 @@ import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.PremiumManager
 import com.lissafi.app.ui.components.LissafiIcons
+import com.lissafi.app.data.OnboardingManager
 import com.lissafi.app.ui.screen.*
 import com.lissafi.app.ui.theme.*
 import com.lissafi.app.ui.viewmodel.*
@@ -37,6 +38,7 @@ import kotlinx.coroutines.launch
 
 object Routes {
     const val AUTH          = "auth"
+    const val ONBOARDING    = "onboarding"
     const val CAISSE        = "caisse"
     const val PRODUCTS      = "products"
     const val CLIENTS       = "clients"
@@ -99,11 +101,13 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             navController.navigate(Routes.CAISSE) {
                 popUpTo(Routes.AUTH) { inclusive = true }
             }
-        } else {
+        } else if (OnboardingManager.isCompleted(context)) {
+            // Déjà passé par l'onboarding (ou déconnecté) → inscription
             navController.navigate(Routes.AUTH) {
                 popUpTo(0) { inclusive = true }
             }
         }
+        // Sinon : on reste sur ONBOARDING, ne rien faire (évite d'écraser l'onboarding)
     }
 
     val syncStatus by app.syncManager.status.collectAsState()
@@ -195,11 +199,26 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = if (isLoggedIn) Routes.CAISSE else Routes.AUTH,
+                startDestination = when {
+                    isLoggedIn -> Routes.CAISSE
+                    !OnboardingManager.isCompleted(context) -> Routes.ONBOARDING
+                    else -> Routes.AUTH
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                composable(Routes.ONBOARDING) {
+                    OnboardingScreen(
+                        onFinish = {
+                            OnboardingManager.markCompleted(context)
+                            navController.navigate(Routes.AUTH) {
+                                popUpTo(Routes.ONBOARDING) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
                 composable(Routes.AUTH) {
                     AuthScreen(viewModel = authViewModel)
                 }
