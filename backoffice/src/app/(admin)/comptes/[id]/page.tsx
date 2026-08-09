@@ -4,19 +4,49 @@ import { AccountActions } from "@/components/AccountActions";
 import { Badge, Card, CardHeader, EmptyState, Table, Td, Th, THead, Tr } from "@/components/ui";
 import { LevelBadge, PremiumBadge } from "@/components/badges";
 import { IconMail, IconPhone } from "@/components/icons";
-import { getUserDetail } from "@/lib/data";
-import { formatDate, formatFCFA, formatDateTimeIso } from "@/lib/format";
+import { getAccountClients, getAccountDebts, getAccountProducts, getAccountSales, getUserDetail } from "@/lib/data";
+import { formatDate, formatDateShort, formatFCFA, formatDateTimeIso } from "@/lib/format";
 import type { AppLog, SaleRow } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+const TABS = [
+  { key: "overview", label: "Vue d'ensemble" },
+  { key: "produits", label: "Produits" },
+  { key: "clients", label: "Clients" },
+  { key: "dettes", label: "Dettes" },
+  { key: "ventes", label: "Ventes" },
+];
+
+const TAB_CLASS =
+  "rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+const TAB_ACTIVE = "rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white";
+
+export default async function CompteDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
+  const tab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as string) : "overview";
+
   const detail = await getUserDetail(id);
   if (!detail.summary) notFound();
-
   const u = detail.summary;
-  const initials = (u.shop_name || u.email || "?").charAt(0).toUpperCase();
+
+  const [products, clients, debts, salesPage] =
+    tab === "overview"
+      ? [null, null, null, null]
+      : await Promise.all([
+          tab === "produits" ? getAccountProducts(id) : Promise.resolve([]),
+          tab === "clients" ? getAccountClients(id) : Promise.resolve([]),
+          tab === "dettes" ? getAccountDebts(id) : Promise.resolve([]),
+          tab === "ventes" ? getAccountSales(id, 1, 50) : Promise.resolve(null),
+        ]);
+
   const waPhone = u.shop_phone.replace(/\s+/g, "");
 
   return (
@@ -28,7 +58,7 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-2xl font-bold text-brand-700">
-              {initials}
+              {(u.shop_name || u.email || "?").charAt(0).toUpperCase()}
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -60,7 +90,32 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
         </div>
       </Card>
 
-      {/* Mini stats */}
+      {/* Onglets */}
+      <div className="flex flex-wrap gap-1 border-b border-slate-200 pb-3">
+        {TABS.map((t) => (
+          <Link key={t.key} href={`/comptes/${id}?tab=${t.key}`} className={tab === t.key ? TAB_ACTIVE : TAB_CLASS}>
+            {t.label}
+          </Link>
+        ))}
+      </div>
+
+      {tab === "overview" && <OverviewTab detail={detail} />}
+      {tab === "produits" && <ProductsTab products={products ?? []} />}
+      {tab === "clients" && <ClientsTab clients={clients ?? []} />}
+      {tab === "dettes" && <DebtsTab debts={debts ?? []} />}
+      {tab === "ventes" && salesPage && <SalesTab salesPage={salesPage} />}
+    </div>
+  );
+}
+
+// ============================================================
+// Vue d'ensemble (contenu existant)
+// ============================================================
+
+function OverviewTab({ detail }: { detail: Awaited<ReturnType<typeof getUserDetail>> }) {
+  const u = detail.summary!;
+  return (
+    <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <MiniStat label="Produits" value={u.product_count} />
         <MiniStat label="Clients" value={detail.clientCount} />
@@ -71,10 +126,8 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        {/* Colonne gauche */}
         <div className="space-y-5">
-          <AccountActions userId={id} />
-
+          <AccountActions userId={u.user_id} />
           <Card>
             <CardHeader title="Informations" subtitle="Paramètres stockés dans l'app" />
             <dl className="space-y-2 px-5 pb-5 text-sm">
@@ -87,7 +140,6 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
               <InfoRow label="PIN admin (local)" value={detail.settings.admin_pin ? "••••" : "—"} />
             </dl>
           </Card>
-
           {detail.actions.length > 0 && (
             <Card>
               <CardHeader title="Historique admin" subtitle="Actions effectuées sur ce compte" />
@@ -102,8 +154,6 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
             </Card>
           )}
         </div>
-
-        {/* Colonne droite */}
         <div className="space-y-5 lg:col-span-2">
           <Card>
             <CardHeader title="Ventes récentes" subtitle="100 dernières ventes" />
@@ -127,7 +177,6 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
               </div>
             )}
           </Card>
-
           <Card>
             <CardHeader title="Activité (logs)" subtitle="Événements remontés par l'app" />
             {detail.logs.length === 0 ? (
@@ -143,6 +192,189 @@ export default async function CompteDetailPage({ params }: { params: Promise<{ i
     </div>
   );
 }
+
+// ============================================================
+// Onglet Produits
+// ============================================================
+
+function ProductsTab({ products }: { products: Awaited<ReturnType<typeof getAccountProducts>> }) {
+  return (
+    <Card>
+      <CardHeader title="Produits" subtitle={`${products.length} produit${products.length > 1 ? "s" : ""}`} />
+      {products.length === 0 ? (
+        <div className="px-5 pb-5"><EmptyState title="Aucun produit" /></div>
+      ) : (
+        <div className="px-5 pb-4">
+          <Table>
+            <THead>
+              <Th>Nom</Th>
+              <Th>Code-barres</Th>
+              <Th className="text-right">Prix vente</Th>
+              <Th className="text-right">Prix achat</Th>
+              <Th className="text-right">Stock</Th>
+              <Th>Catégorie</Th>
+              <Th>Statut</Th>
+            </THead>
+            <tbody>
+              {products.map((p) => (
+                <Tr key={`${p.barcode}-${p.user_id}`}>
+                  <Td className="font-medium text-slate-900">{p.name}</Td>
+                  <Td className="font-mono text-xs text-slate-500">{p.barcode}</Td>
+                  <Td className="text-right tabular-nums">{formatFCFA(p.sell_price)}</Td>
+                  <Td className="text-right tabular-nums text-slate-500">{formatFCFA(p.buy_price)}</Td>
+                  <Td className="text-right tabular-nums">{p.stock}</Td>
+                  <Td className="text-xs text-slate-500">{p.category || "—"}</Td>
+                  <Td>{p.deleted ? <Badge color="red">Supprimé</Badge> : <Badge color="green">Actif</Badge>}</Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ============================================================
+// Onglet Clients
+// ============================================================
+
+function ClientsTab({ clients }: { clients: Awaited<ReturnType<typeof getAccountClients>> }) {
+  return (
+    <Card>
+      <CardHeader title="Clients" subtitle={`${clients.length} client${clients.length > 1 ? "s" : ""}`} />
+      {clients.length === 0 ? (
+        <div className="px-5 pb-5"><EmptyState title="Aucun client" /></div>
+      ) : (
+        <div className="px-5 pb-4">
+          <Table>
+            <THead>
+              <Th>Nom</Th>
+              <Th>Téléphone</Th>
+              <Th className="text-right">Dette totale</Th>
+              <Th>Créé le</Th>
+            </THead>
+            <tbody>
+              {clients.map((c) => (
+                <Tr key={`${c.id}-${c.user_id}`}>
+                  <Td className="font-medium text-slate-900">{c.name}</Td>
+                  <Td className="text-slate-500">{c.phone || "—"}</Td>
+                  <Td className="text-right tabular-nums">{formatFCFA(c.total_debt)}</Td>
+                  <Td className="whitespace-nowrap text-xs text-slate-500">{formatDateShort(c.created_at)}</Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ============================================================
+// Onglet Dettes
+// ============================================================
+
+function DebtsTab({ debts }: { debts: Awaited<ReturnType<typeof getAccountDebts>> }) {
+  return (
+    <Card>
+      <CardHeader title="Transactions de dette" subtitle={`${debts.length} transaction${debts.length > 1 ? "s" : ""}`} />
+      {debts.length === 0 ? (
+        <div className="px-5 pb-5"><EmptyState title="Aucune transaction" /></div>
+      ) : (
+        <div className="px-5 pb-4">
+          <Table>
+            <THead>
+              <Th>Client</Th>
+              <Th className="text-right">Montant</Th>
+              <Th>Date</Th>
+              <Th>Note</Th>
+            </THead>
+            <tbody>
+              {debts.map((d) => (
+                <Tr key={d.id}>
+                  <Td className="font-medium text-slate-900">{d.client_name}</Td>
+                  <Td className="text-right tabular-nums">{formatFCFA(d.amount)}</Td>
+                  <Td className="whitespace-nowrap text-xs text-slate-500">{formatDateShort(d.date)}</Td>
+                  <Td className="text-xs text-slate-500">{d.note || "—"}</Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ============================================================
+// Onglet Ventes (avec articles)
+// ============================================================
+
+function SalesTab({ salesPage }: { salesPage: Awaited<ReturnType<typeof getAccountSales>> }) {
+  const { sales, itemsBySale, total } = salesPage;
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader title="Historique des ventes" subtitle={`${total} vente${total > 1 ? "s" : ""} au total (50 affichées par page)`} />
+        {sales.length === 0 ? (
+          <div className="px-5 pb-5"><EmptyState title="Aucune vente" /></div>
+        ) : (
+          <div className="divide-y divide-slate-100 px-5 pb-3">
+            {sales.map((s) => <SaleCard key={s.id} s={s} items={itemsBySale[s.id] ?? []} />)}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function SaleCard({ s, items }: { s: SaleRow; items: Awaited<ReturnType<typeof getAccountSales>>["itemsBySale"][number] }) {
+  return (
+    <div className="py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-slate-900">Vente #{s.id}</span>
+          <span className="text-xs text-slate-500">{formatDate(s.date)}</span>
+          {s.is_credit ? <Badge color="orange">Crédit</Badge> : <Badge color="green">Comptant</Badge>}
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className="font-semibold text-slate-900">{formatFCFA(s.total)}</span>
+          <span className="text-xs text-slate-500">Payé {formatFCFA(s.amount_paid)}</span>
+          {s.client_id && <span className="text-xs text-slate-500">Client {s.client_id}</span>}
+        </div>
+      </div>
+      {items.length > 0 && (
+        <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-semibold text-slate-500">
+                <th className="px-3 py-1.5">Article</th>
+                <th className="px-3 py-1.5 text-right">Prix</th>
+                <th className="px-3 py-1.5 text-right">Qté</th>
+                <th className="px-3 py-1.5 text-right">Sous-total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it) => (
+                <tr key={it.id} className="border-b border-slate-50 last:border-0">
+                  <td className="px-3 py-1.5 text-slate-700">{it.name}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-slate-500">{formatFCFA(it.price)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{it.quantity}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums font-medium">{formatFCFA(it.price * it.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Petits composants
+// ============================================================
 
 function MiniStat({ label, value, highlight }: { label: string; value: number | string; highlight?: boolean }) {
   return (
