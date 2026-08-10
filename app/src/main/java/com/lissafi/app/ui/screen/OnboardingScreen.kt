@@ -1,6 +1,7 @@
 package com.lissafi.app.ui.screen
 
 import androidx.compose.foundation.Image
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -14,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.lissafi.app.R
@@ -58,6 +61,7 @@ private val OnboardingSlides = listOf(
 @Composable
 fun OnboardingScreen(onFinish: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     val pagerState = rememberPagerState(pageCount = { OnboardingSlides.size })
 
     Box(
@@ -68,7 +72,10 @@ fun OnboardingScreen(onFinish: () -> Unit) {
     ) {
         // ── PASSER (haut droite) ──
         TextButton(
-            onClick = onFinish,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onFinish()
+            },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 24.dp, end = 16.dp)
@@ -111,6 +118,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
             // ── BOUTON PRINCIPAL ──
             Button(
                 onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (pagerState.currentPage < OnboardingSlides.lastIndex) {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                     } else {
@@ -122,9 +130,12 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                     .padding(horizontal = 24.dp)
                     .height(52.dp)
             ) {
-                Text(
-                    if (pagerState.currentPage == OnboardingSlides.lastIndex) "Commencer" else "Continuer"
-                )
+                AnimatedContent(
+                    targetState = pagerState.currentPage == OnboardingSlides.lastIndex,
+                    label = "onboardingButton"
+                ) { isLast ->
+                    Text(if (isLast) "Commencer" else "Continuer")
+                }
             }
         }
     }
