@@ -1,5 +1,11 @@
 package com.lissafi.app.ui.screen
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,6 +81,7 @@ import com.lissafi.app.ui.viewmodel.AuthViewModel
 @Composable
 fun AuthScreen(viewModel: AuthViewModel) {
     val state by viewModel.state.collectAsState()
+    val haptic = LocalHapticFeedback.current
     var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
@@ -109,38 +118,57 @@ fun AuthScreen(viewModel: AuthViewModel) {
                         options = listOf("Connexion", "Nouveau compte"),
                         selectedIndex = if (state.mode == AuthMode.SIGN_UP) 1 else 0,
                         onSelect = { index ->
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.setMode(if (index == 0) AuthMode.SIGN_IN else AuthMode.SIGN_UP)
                         }
                     )
 
                     Spacer(Modifier.height(16.dp))
 
-                    when (state.mode) {
-                        AuthMode.SIGN_IN -> SignInForm(
-                            state = state,
-                            passwordVisible = passwordVisible,
-                            onTogglePassword = { passwordVisible = !passwordVisible },
-                            onEmailChange = { viewModel.setEmail(it) },
-                            onPasswordChange = { viewModel.setPassword(it) },
-                            onSubmit = { viewModel.signIn() },
-                            onSwitchToReset = { viewModel.setMode(AuthMode.RESET_PASSWORD) }
-                        )
-                        AuthMode.SIGN_UP -> SignUpForm(
-                            state = state,
-                            passwordVisible = passwordVisible,
-                            onTogglePassword = { passwordVisible = !passwordVisible },
-                            onEmailChange = { viewModel.setEmail(it) },
-                            onPasswordChange = { viewModel.setPassword(it) },
-                            onConfirmPasswordChange = { viewModel.setConfirmPassword(it) },
-                            onShopNameChange = { viewModel.setShopName(it) },
-                            onSubmit = { viewModel.signUp() }
-                        )
-                        AuthMode.RESET_PASSWORD -> ResetPasswordForm(
-                            state = state,
-                            onEmailChange = { viewModel.setEmail(it) },
-                            onSubmit = { viewModel.resetPassword() },
-                            onSwitchToSignIn = { viewModel.setMode(AuthMode.SIGN_IN) }
-                        )
+                    AnimatedContent(
+                        targetState = state.mode,
+                        transitionSpec = {
+                            (fadeIn() + slideInVertically { -it / 8 }) togetherWith
+                                (fadeOut() + slideOutVertically { it / 8 })
+                        },
+                        label = "authMode"
+                    ) { mode ->
+                        when (mode) {
+                            AuthMode.SIGN_IN -> SignInForm(
+                                state = state,
+                                passwordVisible = passwordVisible,
+                                onTogglePassword = { passwordVisible = !passwordVisible },
+                                onEmailChange = { viewModel.setEmail(it) },
+                                onPasswordChange = { viewModel.setPassword(it) },
+                                onSubmit = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.signIn()
+                                },
+                                onSwitchToReset = { viewModel.setMode(AuthMode.RESET_PASSWORD) }
+                            )
+                            AuthMode.SIGN_UP -> SignUpForm(
+                                state = state,
+                                passwordVisible = passwordVisible,
+                                onTogglePassword = { passwordVisible = !passwordVisible },
+                                onEmailChange = { viewModel.setEmail(it) },
+                                onPasswordChange = { viewModel.setPassword(it) },
+                                onConfirmPasswordChange = { viewModel.setConfirmPassword(it) },
+                                onShopNameChange = { viewModel.setShopName(it) },
+                                onSubmit = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.signUp()
+                                }
+                            )
+                            AuthMode.RESET_PASSWORD -> ResetPasswordForm(
+                                state = state,
+                                onEmailChange = { viewModel.setEmail(it) },
+                                onSubmit = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.resetPassword()
+                                },
+                                onSwitchToSignIn = { viewModel.setMode(AuthMode.SIGN_IN) }
+                            )
+                        }
                     }
                 }
             }
