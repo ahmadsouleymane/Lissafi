@@ -579,6 +579,39 @@ fun StatusBadge(
 }
 
 // ============================================================
+// PASTILLE DE TENDANCE — Comparaison vs période précédente
+// ============================================================
+@Composable
+fun TrendBadge(
+    percentage: Int,
+    modifier: Modifier = Modifier
+) {
+    val isPositive = percentage >= 0
+    val color = if (isPositive) Success else Secondary
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(color.copy(alpha = 0.10f))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isPositive) Lucide.TrendingUp else Lucide.TrendingDown,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(11.dp)
+        )
+        Spacer(Modifier.width(3.dp))
+        Text(
+            text = "${if (isPositive) "+" else ""}$percentage%",
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+// ============================================================
 // STEPPER — Horizontal compact
 // ============================================================
 @Composable
