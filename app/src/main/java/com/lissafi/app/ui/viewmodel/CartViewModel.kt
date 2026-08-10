@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.lissafi.app.data.entity.*
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.PremiumManager
+import com.lissafi.app.service.FormatUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,6 +51,9 @@ class CartViewModel(
     private val _lastSale = MutableStateFlow<LastSale?>(null)
     val lastSale: StateFlow<LastSale?> = _lastSale.asStateFlow()
 
+    private val _todayTotal = MutableStateFlow(0)
+    val todayTotal: StateFlow<Int> = _todayTotal.asStateFlow()
+
     fun clearScanResult() { _scanResult.value = null }
     fun clearLastSale() { _lastSale.value = null }
 
@@ -57,7 +61,13 @@ class CartViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
             loadRecentProducts()
+            refreshTodayTotal()
         }
+    }
+
+    private suspend fun refreshTodayTotal() {
+        val (start, end) = FormatUtils.todayRange()
+        _todayTotal.value = repository.sumTotalBetween(start, end)
     }
 
     /** Vérifie si l'utilisateur peut ajouter un client (limite gratuite). */
@@ -181,6 +191,7 @@ class CartViewModel(
             isCredit = s.isCredit,
             date = System.currentTimeMillis()
         )
+        refreshTodayTotal()
         return true
     }
 
