@@ -76,9 +76,13 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
                 hourly[cal.get(Calendar.HOUR_OF_DAY)]++
             }
 
-            // Comparaison avec la période équivalente immédiatement précédente
-            // (même durée que [start, end), juste avant start).
-            val (prevStart, prevEnd) = getPreviousDateRange(start, end)
+            // Comparaison avec la période précédente, alignée au calendrier : on prend
+            // le début calendaire de la période précédente (hier 00h, lundi précédent,
+            // 1er du mois précédent) puis on lui applique la même durée d'écoulement que
+            // la période actuelle — pour comparer ce qui est comparable ("aujourd'hui
+            // jusqu'à 14h" ↔ "hier jusqu'à 14h", "lundi-mercredi" ↔ "lundi-mercredi
+            // précédents", "1er-10" ↔ "1er-10 du mois précédent").
+            val (prevStart, prevEnd) = getPreviousDateRange(period, start, end)
             val prevTotal = repository.sumTotalBetween(prevStart, prevEnd)
             val prevCredit = repository.sumCreditBetween(prevStart, prevEnd)
             val prevComptant = prevTotal - prevCredit
@@ -158,10 +162,20 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
         return start to end
     }
 
-    // Période équivalente précédente : même durée que [start, end), juste avant `start`.
-    private fun getPreviousDateRange(start: Long, end: Long): Pair<Long, Long> {
+    // Début calendaire de la période équivalente précédente + même durée d'écoulement
+    // que la période actuelle. Exemples : TODAY → hier 00h ; WEEK → lundi précédent ;
+    // MONTH → 1er du mois précédent.
+    private fun getPreviousDateRange(period: ReportPeriod, start: Long, end: Long): Pair<Long, Long> {
         val duration = end - start
-        return (start - duration) to start
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = start
+        when (period) {
+            ReportPeriod.TODAY -> cal.add(Calendar.DAY_OF_YEAR, -1)
+            ReportPeriod.WEEK -> cal.add(Calendar.WEEK_OF_YEAR, -1)
+            ReportPeriod.MONTH -> cal.add(Calendar.MONTH, -1)
+        }
+        val prevStart = cal.timeInMillis
+        return prevStart to (prevStart + duration)
     }
 
     // Ramène un timestamp au début du jour (minuit) pour regrouper les ventes par jour
