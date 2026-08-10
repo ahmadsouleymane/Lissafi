@@ -1,5 +1,6 @@
 package com.lissafi.app.ui.components
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -1103,6 +1104,44 @@ fun IconCircle(
     ) {
         Icon(
             imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(iconSize.dp)
+        )
+    }
+}
+
+// ============================================================
+// PULSE DE SUCCÈS — Animation de confirmation (vente encaissée)
+// ============================================================
+@Composable
+fun SuccessPulse(
+    modifier: Modifier = Modifier,
+    size: Int = 48,
+    iconSize: Int = 24,
+    backgroundColor: Color = PrimaryContainer,
+    iconTint: Color = Primary
+) {
+    var started by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (started) 1f else 0.6f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "successPulseScale"
+    )
+    LaunchedEffect(Unit) { started = true }
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .scale(scale)
+            .clip(CircleShape)
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = LissafiIcons.Succes,
             contentDescription = null,
             tint = iconTint,
             modifier = Modifier.size(iconSize.dp)

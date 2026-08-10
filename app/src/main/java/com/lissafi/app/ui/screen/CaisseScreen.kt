@@ -62,6 +62,7 @@ import com.lissafi.app.ui.components.SearchField
 import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.SegmentedControl
+import com.lissafi.app.ui.components.SuccessPulse
 import com.lissafi.app.ui.components.SyncIndicator
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
@@ -1024,13 +1025,7 @@ private fun ReceiptSheet(
             Spacer(Modifier.height(16.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconCircle(
-                    icon = LissafiIcons.Succes,
-                    backgroundColor = PrimaryContainer,
-                    iconTint = Primary,
-                    size = 48,
-                    iconSize = 24
-                )
+                SuccessPulse(size = 48, iconSize = 24)
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
