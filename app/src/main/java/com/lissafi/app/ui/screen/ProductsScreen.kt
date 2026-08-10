@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -77,6 +79,8 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
     var addLookupBusy by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(ProductFilter.TOUS) }
 
+    val haptic = LocalHapticFeedback.current
+    val stockCount = state.products.count { it.stock > 0 }
     val alertCount = state.products.count { isStockAlert(it) }
     val filtered = when (filter) {
         ProductFilter.TOUS -> state.products
@@ -109,15 +113,29 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ProductFilter.values().forEach { f ->
+                val count = when (f) {
+                    ProductFilter.TOUS -> state.products.size
+                    ProductFilter.EN_STOCK -> stockCount
+                    ProductFilter.ALERTE -> alertCount
+                }
                 FilterChip(
                     selected = filter == f,
                     onClick = { filter = f },
                     label = {
-                        Text(
-                            text = f.label,
-                            fontSize = 12.sp,
-                            fontWeight = if (filter == f) FontWeight.Medium else FontWeight.Normal
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = f.label,
+                                fontSize = 12.sp,
+                                fontWeight = if (filter == f) FontWeight.Medium else FontWeight.Normal
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "$count",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (filter == f) OnPrimary else TextSecondary
+                            )
+                        }
                     },
                     shape = RoundedCornerShape(10.dp),
                     colors = FilterChipDefaults.filterChipColors(
@@ -242,6 +260,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
             initialProduct = prefill,
             onDismiss = { newProductPrefill = null },
             onSave = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.addProduct(it)
                 newProductPrefill = null
             }
@@ -256,6 +275,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
             initialProduct = product,
             onDismiss = { editingProduct = null },
             onSave = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.addProduct(it)
                 editingProduct = null
             }
