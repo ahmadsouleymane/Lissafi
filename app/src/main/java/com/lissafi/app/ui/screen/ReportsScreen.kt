@@ -26,8 +26,10 @@ import com.lissafi.app.ui.components.InfoRow
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
+import com.lissafi.app.ui.components.LowStockBanner
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.SegmentedControl
+import com.lissafi.app.ui.components.TrendBadge
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.Primary
@@ -35,6 +37,7 @@ import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
 import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
+import com.lissafi.app.ui.theme.TextTertiary
 import com.lissafi.app.ui.theme.White
 import com.lissafi.app.ui.viewmodel.ReportPeriod
 import com.lissafi.app.ui.viewmodel.ReportState
@@ -48,6 +51,8 @@ import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 // ============================================================
 // ÉCRAN ACTIVITÉ — Dashboard avec sparkline Vico + KPIs
@@ -55,7 +60,8 @@ import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 @Composable
 fun ReportsScreen(
     viewModel: ReportViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToProducts: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -117,6 +123,17 @@ fun ReportsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
             ) {
+                // ── STOCK BAS — la plus actionnable, en premier ──
+                if (state.lowStockProducts.isNotEmpty()) {
+                    item {
+                        LowStockBanner(
+                            products = state.lowStockProducts,
+                            onViewAll = onNavigateToProducts,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+                }
+
                 // ── CARTE CHIFFRE D'AFFAIRES + SPARKLINE ──
                 item { RevenueCard(state) }
 
@@ -134,6 +151,7 @@ fun ReportsScreen(
                             icon = LissafiIcons.Encaisser,
                             color = Primary,
                             percentage = if (state.totalVentes > 0) (state.totalComptant.toLong() * 100 / state.totalVentes).toInt() else 0,
+                            trend = state.comptantTrend,
                             modifier = Modifier.weight(1f)
                         )
                         KpiTile(
@@ -142,6 +160,7 @@ fun ReportsScreen(
                             icon = LissafiIcons.Credit,
                             color = Secondary,
                             percentage = if (state.totalVentes > 0) (state.totalCredits.toLong() * 100 / state.totalVentes).toInt() else 0,
+                            trend = state.creditTrend,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -157,6 +176,7 @@ fun ReportsScreen(
                             icon = LissafiIcons.Marge,
                             color = Success,
                             percentage = if (state.totalVentes > 0) (state.estimatedProfit.toLong() * 100 / state.totalVentes).toInt() else 0,
+                            trend = state.profitTrend,
                             modifier = Modifier.weight(1f)
                         )
                         KpiTile(
@@ -167,6 +187,27 @@ fun ReportsScreen(
                             percentage = null,
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                }
+
+                // ── HEURES DE POINTE — peu lisible sur un mois entier ──
+                if (state.period != ReportPeriod.MONTH && state.hourlyBreakdown.any { it > 0 }) {
+                    item {
+                        SectionHeader(
+                            text = "Heures de pointe",
+                            icon = LissafiIcons.Recents,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    item {
+                        LissafiCard(cornerRadius = 18, elevation = 2) {
+                            HourlyBarsChart(
+                                hourly = state.hourlyBreakdown,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            )
+                        }
                     }
                 }
 
@@ -266,6 +307,14 @@ private fun RevenueCard(state: ReportState) {
                 color = White.copy(alpha = 0.8f),
                 fontSize = 12.sp
             )
+            if (state.bestDay != null && state.revenueSeries.size >= 2) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Meilleur jour : ${formatDayLabel(state.bestDay.date)} · ${FormatUtils.formatFCFA(state.bestDay.amount)}",
+                    color = White.copy(alpha = 0.75f),
+                    fontSize = 11.sp
+                )
+            }
 
             // Sparkline du CA par jour — seulement si assez de points
             if (state.revenueSeries.size >= 2) {
@@ -274,6 +323,11 @@ private fun RevenueCard(state: ReportState) {
             }
         }
     }
+}
+
+private fun formatDayLabel(timestamp: Long): String {
+    val sdf = SimpleDateFormat("EEE d", Locale.FRENCH)
+    return sdf.format(java.util.Date(timestamp))
 }
 
 // ============================================================
@@ -317,6 +371,42 @@ private fun RevenueSparkline(series: List<RevenuePoint>) {
 }
 
 // ============================================================
+// BARRES HORAIRES — Répartition des ventes par heure (0-23h)
+// Composant Compose natif (comme TopProductBar), pas Vico : évite
+// la complexité d'un axe personnalisé pour 24 barres compactes.
+// ============================================================
+@Composable
+private fun HourlyBarsChart(hourly: List<Int>, modifier: Modifier = Modifier) {
+    val maxCount = (hourly.maxOrNull() ?: 0).coerceAtLeast(1)
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            hourly.forEach { count ->
+                val fraction = (count.toFloat() / maxCount).coerceIn(0.04f, 1f)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(fraction)
+                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                        .background(if (count > 0) Primary else SurfaceAlt)
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            listOf(0, 6, 12, 18, 23).forEach { h ->
+                Text(text = "${h}h", fontSize = 10.sp, color = TextTertiary)
+            }
+        }
+    }
+}
+
+// ============================================================
 // TUILE KPI — Petite carte blanche avec icône en cercle
 // ============================================================
 @Composable
@@ -326,7 +416,8 @@ private fun KpiTile(
     icon: ImageVector,
     color: Color,
     percentage: Int?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    trend: Int? = null
 ) {
     LissafiCard(modifier = modifier, cornerRadius = 18, elevation = 2) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -362,6 +453,10 @@ private fun KpiTile(
                 color = color,
                 fontWeight = FontWeight.Bold
             )
+            if (trend != null) {
+                Spacer(Modifier.height(4.dp))
+                TrendBadge(percentage = trend)
+            }
         }
     }
 }

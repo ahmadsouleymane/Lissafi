@@ -265,7 +265,8 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                 composable(Routes.ACTIVITY) {
                     ReportsScreen(
                         viewModel = reportViewModel,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) }
                     )
                 }
                 composable(Routes.SETTINGS) {
