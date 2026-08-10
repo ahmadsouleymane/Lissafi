@@ -42,6 +42,7 @@ class LissafiRepository(
     suspend fun searchProducts(query: String): List<Product> = db.searchProducts(query, currentUserId)
     suspend fun getProductCount(): Int = db.getProductCount(currentUserId)
     suspend fun getRecentProducts(limit: Int = 8): List<Product> = db.getRecentProducts(limit, currentUserId)
+    suspend fun getLowStockProducts(): List<Product> = db.getLowStockProducts(currentUserId)
 
     suspend fun upsertProduct(product: Product) {
         val p = product.copy(userId = currentUserId)

@@ -211,6 +211,20 @@ class LissafiDatabase private constructor(context: Context) :
         list
     }
 
+    /** Produits dont le stock est descendu au niveau ou en dessous du seuil d'alerte. */
+    suspend fun getLowStockProducts(userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<Product>()
+        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId) else null
+        readableDatabase.rawQuery(
+            "SELECT * FROM products WHERE deleted = 0 AND stock <= min_stock $where ORDER BY stock ASC",
+            args
+        ).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toProduct())
+        }
+        list
+    }
+
     suspend fun upsertProduct(product: Product) = withContext(Dispatchers.IO) {
         val cv = ContentValues().apply {
             put("barcode", product.barcode)
