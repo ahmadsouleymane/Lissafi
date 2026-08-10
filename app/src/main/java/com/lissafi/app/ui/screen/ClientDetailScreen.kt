@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,6 +58,7 @@ fun ClientDetailScreen(
 ) {
     val client by viewModel.selectedClient.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
+    val haptic = LocalHapticFeedback.current
     var showAddDebtDialog by remember { mutableStateOf(false) }
     var showRepayDialog by remember { mutableStateOf(false) }
     val hasDebt = (client?.totalDebt ?: 0) > 0
@@ -168,6 +171,7 @@ fun ClientDetailScreen(
         AddDebtDialog(
             onDismiss = { showAddDebtDialog = false },
             onSave = { amount, note ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.addDebt(clientId, amount, note)
                 showAddDebtDialog = false
             }
@@ -179,6 +183,7 @@ fun ClientDetailScreen(
             currentDebt = client?.totalDebt ?: 0,
             onDismiss = { showRepayDialog = false },
             onSave = { amount ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.addRepayment(clientId, amount)
                 showRepayDialog = false
             }
@@ -286,17 +291,25 @@ private fun DebtCard(client: Client, transactions: List<DebtTransaction>) {
 @Composable
 private fun MiniStats(client: Client, transactions: List<DebtTransaction>) {
     val purchaseCount = transactions.count { it.amount > 0 }
+    val totalRepaid = transactions.filter { it.amount < 0 }.sumOf { -it.amount }
     val daysSince = ((System.currentTimeMillis() - client.createdAt) / (24 * 3600 * 1000)).toInt()
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatMiniCard(
             icon = LissafiIcons.Panier,
             value = "$purchaseCount",
             label = "ventes à crédit",
             color = Secondary,
+            modifier = Modifier.weight(1f)
+        )
+        StatMiniCard(
+            icon = LissafiIcons.Rembourser,
+            value = FormatUtils.formatFCFA(totalRepaid).removeSuffix(" FCFA"),
+            label = "total remboursé",
+            color = Success,
             modifier = Modifier.weight(1f)
         )
         StatMiniCard(
