@@ -175,9 +175,11 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
                         product = product,
                         onEdit = { editingProduct = product },
                         onDelete = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.deleteProduct(product)
                             Toast.makeText(context, "${product.name} supprimé", Toast.LENGTH_SHORT).show()
-                        }
+                        },
+                        modifier = Modifier.animateItem()
                     )
                 }
                 item {
@@ -290,7 +292,8 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
 private fun ProductCard(
     product: Product,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -307,7 +310,7 @@ private fun ProductCard(
         else -> "En stock · ${product.stock}"
     }
 
-    LissafiCard(modifier = Modifier.padding(vertical = 4.dp), cornerRadius = 18, elevation = 2) {
+    LissafiCard(modifier = modifier.padding(vertical = 4.dp), cornerRadius = 18, elevation = 2) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -343,6 +346,14 @@ private fun ProductCard(
             Column(horizontalAlignment = Alignment.End) {
                 AmountText(amount = product.sellPrice, fontSize = 18)
                 if (product.buyPrice > 0) {
+                    val margin = product.sellPrice - product.buyPrice
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "Marge ${FormatUtils.formatFCFA(margin)}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (margin >= 0) Success else Error
+                    )
                     Text(
                         text = "Achat ${FormatUtils.formatFCFA(product.buyPrice)}",
                         fontSize = 11.sp,
