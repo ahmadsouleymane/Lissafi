@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,6 +23,7 @@ import com.lissafi.app.LissafiApp
 import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.data.sync.SyncStatus
 import com.lissafi.app.service.FormatUtils
+import com.lissafi.app.service.PremiumManager
 import com.lissafi.app.ui.components.CapsuleTextField
 import com.lissafi.app.ui.components.IconCircle
 import com.lissafi.app.ui.components.InfoRow
@@ -51,6 +54,7 @@ fun SettingsScreen(
     onSignOut: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val haptic = LocalHapticFeedback.current
     var showShopDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -118,6 +122,23 @@ fun SettingsScreen(
                             color = TextSecondary,
                             lineHeight = 16.sp
                         )
+                        if (!state.isPremium) {
+                            Spacer(Modifier.height(10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FreeLimitBar(
+                                    label = "produits",
+                                    count = state.productCount,
+                                    max = PremiumManager.MAX_FREE_PRODUCTS,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FreeLimitBar(
+                                    label = "clients",
+                                    count = state.clientCount,
+                                    max = PremiumManager.MAX_FREE_CREDITS,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -200,7 +221,10 @@ fun SettingsScreen(
                             color = TextSecondary
                         )
                     }
-                    TextButton(onClick = { onSignOut() }) {
+                    TextButton(onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onSignOut()
+                    }) {
                         Text(
                             text = "Déconnexion",
                             color = Error,
@@ -337,6 +361,7 @@ fun SettingsScreen(
             currentPhone = state.shopPhone,
             onDismiss = { showShopDialog = false },
             onSave = { name, phone ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.saveShopInfo(name, phone)
                 showShopDialog = false
             }
@@ -347,6 +372,7 @@ fun SettingsScreen(
         ReportIssueDialog(
             onDismiss = { showReportDialog = false },
             onSend = { subject, message ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 showReportDialog = false
                 app.supabaseApi.reportSupportTicket(subject, message)
                 Toast.makeText(context, "Message envoyé ! Merci.", Toast.LENGTH_LONG).show()
@@ -527,4 +553,47 @@ private fun ShopInfoDialog(
             }
         }
     )
+}
+
+// ============================================================
+// BARRE DE PROGRESSION DE LIMITE — Usage de la version gratuite
+// ============================================================
+@Composable
+private fun FreeLimitBar(label: String, count: Int, max: Int, modifier: Modifier = Modifier) {
+    val fraction = (count.toFloat() / max).coerceIn(0f, 1f)
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                color = TextSecondary,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "$count/$max",
+                fontSize = 10.sp,
+                color = TextSecondary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(Modifier.height(3.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Secondary.copy(alpha = 0.15f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (count >= max) Error else Secondary)
+            )
+        }
+    }
 }
