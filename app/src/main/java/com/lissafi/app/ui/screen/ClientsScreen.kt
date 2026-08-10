@@ -196,12 +196,13 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                items(filtered) { client ->
+                items(filtered, key = { it.id }) { client ->
                     val daysSince = (System.currentTimeMillis() - client.updatedAt) / DAY_MS
                     ClientCard(
                         client = client,
                         daysSince = daysSince.toInt(),
-                        onClick = { onClientClick(client.id) }
+                        onClick = { onClientClick(client.id) },
+                        modifier = Modifier.animateItem()
                     )
                 }
                 item {
@@ -226,6 +227,7 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
         AddClientDialog(
             onDismiss = { showAddDialog = false },
             onSave = { name, phone ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.addClient(name, phone)
                 showAddDialog = false
             }
@@ -252,7 +254,8 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
 private fun ClientCard(
     client: Client,
     daysSince: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val hasDebt = client.totalDebt > 0
     // L'urgence ne concerne que les clients qui doivent encore de l'argent
@@ -263,7 +266,7 @@ private fun ClientCard(
         else -> null to Success
     }
 
-    LissafiCard(modifier = Modifier.padding(vertical = 4.dp), onClick = onClick, cornerRadius = 18, elevation = 2) {
+    LissafiCard(modifier = modifier.padding(vertical = 4.dp), onClick = onClick, cornerRadius = 18, elevation = 2) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
