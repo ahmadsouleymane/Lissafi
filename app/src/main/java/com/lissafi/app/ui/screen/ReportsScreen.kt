@@ -102,6 +102,15 @@ fun ReportsScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
+        // ── STOCK BAS — la plus actionnable : visible même quand aucune vente ──
+        if (state.lowStockProducts.isNotEmpty()) {
+            LowStockBanner(
+                products = state.lowStockProducts,
+                onViewAll = onNavigateToProducts,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
         if (state.isLoading) {
             Box(
                 modifier = Modifier
@@ -123,17 +132,6 @@ fun ReportsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
             ) {
-                // ── STOCK BAS — la plus actionnable, en premier ──
-                if (state.lowStockProducts.isNotEmpty()) {
-                    item {
-                        LowStockBanner(
-                            products = state.lowStockProducts,
-                            onViewAll = onNavigateToProducts,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                }
-
                 // ── CARTE CHIFFRE D'AFFAIRES + SPARKLINE ──
                 item { RevenueCard(state) }
 
