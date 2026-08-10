@@ -21,6 +21,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -624,6 +626,7 @@ fun QuantityStepper(
     modifier: Modifier = Modifier,
     color: Color = Primary
 ) {
+    val haptic = LocalHapticFeedback.current
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -634,7 +637,10 @@ fun QuantityStepper(
                 .size(32.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(Color(0xFF000000).copy(alpha = 0.04f))
-                .clickable(onClick = onDecrease),
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onDecrease()
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -657,7 +663,10 @@ fun QuantityStepper(
                 .size(32.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(color.copy(alpha = 0.10f))
-                .clickable(onClick = onIncrease),
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onIncrease()
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(
