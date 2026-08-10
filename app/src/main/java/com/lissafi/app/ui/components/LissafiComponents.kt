@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lissafi.app.data.sync.SyncStatus
+import com.lissafi.app.data.entity.Product
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.theme.*
 import com.composables.icons.lucide.Lucide
@@ -955,6 +956,80 @@ fun InfoRow(
                         .clip(CircleShape)
                         .background(Secondary)
                 )
+            }
+        }
+    }
+}
+
+// ============================================================
+// BANNIÈRE STOCK BAS — Liste compacte des produits sous le seuil
+// ============================================================
+@Composable
+fun LowStockBanner(
+    products: List<Product>,
+    onViewAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (products.isEmpty()) return
+    LissafiCard(
+        modifier = modifier,
+        cornerRadius = 18,
+        elevation = 2,
+        containerColor = SecondaryContainer
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = LissafiIcons.Alerte,
+                    contentDescription = null,
+                    tint = Secondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Stock bas",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = OnSecondaryContainer
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            products.take(3).forEach { product ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = product.name,
+                        fontSize = 13.sp,
+                        color = OnSecondaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "${product.stock} restant${if (product.stock > 1) "s" else ""}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Secondary
+                    )
+                }
+            }
+            if (products.size > 3) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "et ${products.size - 3} autre${if (products.size - 3 > 1) "s" else ""}",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            TextButton(onClick = onViewAll, contentPadding = PaddingValues(0.dp)) {
+                Text("Voir les produits", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Secondary)
             }
         }
     }
