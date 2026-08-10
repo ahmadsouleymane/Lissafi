@@ -17,6 +17,7 @@ data class SettingsState(
     val premiumExpiry: Long? = null,
     val premiumExpiryText: String = "",
     val productCount: Int = 0,
+    val clientCount: Int = 0,
     val isSaving: Boolean = false
 )
 
@@ -36,6 +37,8 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
             val adminPin = repository.getAdminPin()
             val premium = repository.isPremium()
             val expiry = repository.getPremiumExpiry()
+            val productCount = repository.getProductCount()
+            val clientCount = repository.getClientCount()
 
             _state.value = _state.value.copy(
                 shopName = shopName,
@@ -43,7 +46,9 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
                 adminPin = adminPin,
                 isPremium = premium,
                 premiumExpiry = expiry,
-                premiumExpiryText = if (expiry != null) FormatUtils.formatDate(expiry) else ""
+                premiumExpiryText = if (expiry != null) FormatUtils.formatDate(expiry) else "",
+                productCount = productCount,
+                clientCount = clientCount
             )
         }
     }
