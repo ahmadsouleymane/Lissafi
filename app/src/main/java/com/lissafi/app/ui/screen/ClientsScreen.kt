@@ -14,6 +14,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.ChevronRight
@@ -37,6 +39,8 @@ import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
+import com.lissafi.app.ui.theme.OnSecondaryContainer
+import com.lissafi.app.ui.theme.SecondaryContainer
 import com.lissafi.app.ui.theme.Success
 import com.lissafi.app.ui.theme.Surface
 import com.lissafi.app.ui.theme.SurfaceAlt
@@ -65,7 +69,10 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
     var showPremiumDialog by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(ClientFilter.TOUS) }
 
+    val haptic = LocalHapticFeedback.current
     val recentCutoff = System.currentTimeMillis() - RECENT_WINDOW_DAYS * DAY_MS
+    val debtCount = state.clients.count { it.totalDebt > 0 }
+    val recentCount = state.clients.count { it.updatedAt >= recentCutoff }
     val filtered = when (filter) {
         ClientFilter.TOUS -> state.clients
         ClientFilter.AVEC_DETTE -> state.clients.filter { it.totalDebt > 0 }
@@ -97,15 +104,29 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ClientFilter.values().forEach { f ->
+                val count = when (f) {
+                    ClientFilter.TOUS -> state.clients.size
+                    ClientFilter.AVEC_DETTE -> debtCount
+                    ClientFilter.RECENTS -> recentCount
+                }
                 FilterChip(
                     selected = filter == f,
                     onClick = { filter = f },
                     label = {
-                        Text(
-                            text = f.label,
-                            fontSize = 12.sp,
-                            fontWeight = if (filter == f) FontWeight.Medium else FontWeight.Normal
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = f.label,
+                                fontSize = 12.sp,
+                                fontWeight = if (filter == f) FontWeight.Medium else FontWeight.Normal
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "$count",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (filter == f) OnPrimary else TextSecondary
+                            )
+                        }
                     },
                     shape = RoundedCornerShape(10.dp),
                     colors = FilterChipDefaults.filterChipColors(
@@ -115,6 +136,41 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
                         labelColor = TextSecondary
                     )
                 )
+            }
+        }
+
+        val totalDettes = state.clients.sumOf { it.totalDebt }
+        if (state.searchQuery.isBlank() && totalDettes > 0) {
+            LissafiCard(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                cornerRadius = 18,
+                elevation = 2,
+                containerColor = SecondaryContainer
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconCircle(
+                        icon = LissafiIcons.Encaisser,
+                        backgroundColor = Secondary.copy(alpha = 0.1f),
+                        iconTint = Secondary,
+                        size = 40,
+                        iconSize = 20
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Total à recouvrer",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = OnSecondaryContainer
+                        )
+                        AmountText(amount = totalDettes, fontSize = 20, color = Secondary, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
 
