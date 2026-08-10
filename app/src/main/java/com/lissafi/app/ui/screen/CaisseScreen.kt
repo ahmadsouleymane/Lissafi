@@ -31,6 +31,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -99,6 +101,7 @@ fun CaisseScreen(
     val lastSale by viewModel.lastSale.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
 
     var shopName by remember { mutableStateOf("LISSAFI") }
     var shopPhone by remember { mutableStateOf("") }
@@ -145,6 +148,7 @@ fun CaisseScreen(
     LaunchedEffect(scanResult) {
         scanResult?.let {
             scanIsSuccess = it.startsWith("OK:")
+            if (scanIsSuccess) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             scanFeedback = when {
                 it.startsWith("OK:") -> "${it.removePrefix("OK:")} ajouté"
                 it.startsWith("NOT_FOUND:") -> "Code-barres inconnu"
@@ -184,6 +188,26 @@ fun CaisseScreen(
                 titleFontSize = 18.sp,
                 titleFontWeight = FontWeight.Bold,
                 actions = {
+                    val todayTotal by viewModel.todayTotal.collectAsState()
+                    if (todayTotal > 0) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Primary.copy(alpha = 0.08f))
+                                .clickable(onClick = onNavigateToReports)
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Aujourd'hui · ${FormatUtils.formatFCFA(todayTotal)}",
+                                color = Primary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = LissafiIcons.Reglages,
@@ -409,14 +433,18 @@ fun CaisseScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
-                        itemsIndexed(state.items) { index, item ->
+                        itemsIndexed(
+                            items = state.items,
+                            key = { _, item -> item.barcode }
+                        ) { index, item ->
                             CartItemRow(
                                 item = item,
                                 onDecrease = {
                                     if (item.quantity > 1) viewModel.updateQuantity(index, item.quantity - 1)
                                     else viewModel.removeItem(index)
                                 },
-                                onIncrease = { viewModel.updateQuantity(index, item.quantity + 1) }
+                                onIncrease = { viewModel.updateQuantity(index, item.quantity + 1) },
+                                modifier = Modifier.animateItem()
                             )
                             if (index < state.items.size - 1) {
                                 HorizontalDivider(
@@ -505,9 +533,12 @@ fun CaisseScreen(
                                 creditError = true
                                 showClientPicker = true
                             }
-                            state.isCredit -> scope.launch {
-                                viewModel.encaisser(0)
-                                viewModel.clearCart()
+                            state.isCredit -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                scope.launch {
+                                    viewModel.encaisser(0)
+                                    viewModel.clearCart()
+                                }
                             }
                             else -> {
                                 amountText = ""
@@ -542,6 +573,7 @@ fun CaisseScreen(
             paid = paid,
             change = realTimeChange,
             onValidate = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 scope.launch {
                     viewModel.encaisser(paid)
                     viewModel.clearCart()
@@ -792,10 +824,11 @@ private fun ProductSearchDropdown(
 private fun CartItemRow(
     item: CartItem,
     onDecrease: () -> Unit,
-    onIncrease: () -> Unit
+    onIncrease: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
