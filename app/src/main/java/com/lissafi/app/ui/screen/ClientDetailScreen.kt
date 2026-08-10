@@ -286,7 +286,7 @@ private fun DebtCard(client: Client, transactions: List<DebtTransaction>) {
 }
 
 // ============================================================
-// MINI-STATS — Deux cartes côte à côte
+// MINI-STATS — Trois tuiles de stats
 // ============================================================
 @Composable
 private fun MiniStats(client: Client, transactions: List<DebtTransaction>) {
@@ -343,7 +343,7 @@ private fun StatMiniCard(
             Text(
                 text = value,
                 fontWeight = FontWeight.Bold,
-                fontSize = 17.sp,
+                fontSize = 14.sp,
                 color = OnBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
