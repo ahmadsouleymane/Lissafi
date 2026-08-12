@@ -176,3 +176,17 @@ export type AccountSalePage = {
   itemsBySale: Record<number, SaleItem[]>;
   total: number;
 };
+
+export type NotificationLog = {
+  id: number;
+  kind: "manuel" | "recap_quotidien";
+  title: string;
+  body: string;
+  admin_user_id: string | null;
+  target_summary: string;
+  recap_date: string | null;
+  recipients: number;
+  success: number;
+  failed: number;
+  created_at: string;
+};

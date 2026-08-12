@@ -11,6 +11,7 @@ import type {
   Client,
   DebtTransaction,
   ExplorerData,
+  NotificationLog,
   Product,
   SalesPoint,
   SaleItem,
@@ -311,4 +312,38 @@ export async function getExplorerData(
     total: toNumber(count),
     userEmails,
   };
+}
+
+// ============================================================
+// Notifications push
+// ============================================================
+
+/** Historique des envois manuels de notifications (les plus récents d'abord). */
+export async function getManualNotificationHistory(limit = 20): Promise<NotificationLog[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("notification_log")
+    .select("*")
+    .eq("kind", "manuel")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) logRpcError("getManualNotificationHistory", error);
+  return (data ?? []) as NotificationLog[];
+}
+
+/** Historique des exécutions du récap automatique quotidien. */
+export async function getRecapHistory(limit = 5): Promise<NotificationLog[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("notification_log")
+    .select("*")
+    .eq("kind", "recap_quotidien")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) logRpcError("getRecapHistory", error);
+  return (data ?? []) as NotificationLog[];
+}
+
+/** État du réglage "récap quotidien activé" (activé par défaut si non défini). */
+export async function getRecapEnabled(): Promise<boolean> {
+  const settings = await getAdminSettings();
+  return settings["recap_notifications_enabled"] !== "false";
 }
