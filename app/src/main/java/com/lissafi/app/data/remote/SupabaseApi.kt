@@ -44,10 +44,8 @@ private data class SupportTicketPayload(
 )
 
 @Serializable
-private data class DeviceTokenPayload(
-    val user_id: String,
-    val fcm_token: String,
-    val updated_at: Long
+private data class UpsertDeviceTokenRpcPayload(
+    val p_token: String
 )
 
 /**
@@ -474,17 +472,14 @@ class SupabaseApi(private val context: Context) {
 
         logScope.launch {
             try {
-                val response = http.post(restUrl("device_tokens")) {
+                // Appel RPC : la fonction SECURITY DEFINER `upsert_device_token` réassigne
+                // le token au compte connecté (auth.uid()) même s'il était lié à un autre
+                // compte sur ce même appareil (la RLS directe sur device_tokens l'empêcherait).
+                val response = http.post(restUrl("rpc/upsert_device_token")) {
                     header("apikey", anonKey)
                     header("Authorization", "Bearer $authToken")
-                    header("Prefer", "resolution=merge-duplicates")
-                    parameter("on_conflict", "fcm_token")
                     contentType(ContentType.Application.Json)
-                    setBody(DeviceTokenPayload(
-                        user_id = uid,
-                        fcm_token = fcmToken,
-                        updated_at = System.currentTimeMillis()
-                    ))
+                    setBody(UpsertDeviceTokenRpcPayload(p_token = fcmToken))
                 }
                 if (response.status.value !in 200..299) {
                     Log.w("LissafiLog", "upsertDeviceToken HTTP ${response.status.value}")

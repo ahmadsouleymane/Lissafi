@@ -63,7 +63,7 @@ export async function sendManualNotificationForm(_prev: ActionResult | undefined
   const tokens = (tokenRows ?? []).map((r) => r.fcm_token as string);
   const { success, failed } = await sendPushToTokens(tokens, title, body);
 
-  await supabaseAdmin().from("notification_log").insert({
+  const { error: logError } = await supabaseAdmin().from("notification_log").insert({
     kind: "manuel",
     title,
     body,
@@ -73,6 +73,11 @@ export async function sendManualNotificationForm(_prev: ActionResult | undefined
     success,
     failed,
   });
+  if (logError) {
+    // L'envoi a réussi mais le journal n'est pas enregistré : on le signale
+    // plutôt que de faire échouer l'action (le push est déjà parti).
+    console.error("[notifications] journal non enregistré :", logError.message);
+  }
 
   await logAdminAction("notification_send", null, { title, targetSummary, recipients: tokens.length, success, failed });
   revalidatePath("/notifications", "layout");

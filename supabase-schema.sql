@@ -142,3 +142,21 @@ CREATE POLICY "User sees own settings" ON app_settings
 DROP POLICY IF EXISTS "User sees own device_tokens" ON device_tokens;
 CREATE POLICY "User sees own device_tokens" ON device_tokens
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Réassigne un token FCM au compte connecté (auth.uid()).
+-- SECURITY DEFINER : contourne la RLS pour permettre à un 2e utilisateur de
+-- reprendre un token déjà lié à un autre compte sur le même appareil.
+CREATE OR REPLACE FUNCTION public.upsert_device_token(p_token text)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+BEGIN
+    INSERT INTO device_tokens (user_id, fcm_token, updated_at)
+    VALUES (auth.uid(), p_token, (extract(epoch FROM now()) * 1000)::bigint)
+    ON CONFLICT (fcm_token) DO UPDATE
+        SET user_id = EXCLUDED.user_id, updated_at = EXCLUDED.updated_at;
+END;
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.upsert_device_token(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.upsert_device_token(text) TO authenticated;

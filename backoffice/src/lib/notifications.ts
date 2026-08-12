@@ -57,7 +57,13 @@ export async function sendPushToTokens(tokens: string[], title: string, body: st
   }
 
   if (staleTokens.length > 0) {
-    await supabaseAdmin().from("device_tokens").delete().in("fcm_token", staleTokens);
+    try {
+      await supabaseAdmin().from("device_tokens").delete().in("fcm_token", staleTokens);
+    } catch (e) {
+      // Best-effort : un échec de nettoyage ne doit pas faire perdre les compteurs
+      // { success, failed } déjà calculés, ni faire échouer l'envoi.
+      console.error("[notifications] nettoyage des tokens invalides ignoré :", e instanceof Error ? e.message : e);
+    }
   }
 
   return { success, failed };

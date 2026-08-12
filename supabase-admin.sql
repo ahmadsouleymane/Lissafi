@@ -162,6 +162,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_log_recap_date
     ON public.notification_log(recap_date) WHERE kind = 'recap_quotidien';
 CREATE INDEX IF NOT EXISTS idx_notification_log_created ON public.notification_log(created_at DESC);
 
+ALTER TABLE public.notification_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "admins manage notification_log" ON public.notification_log;
+CREATE POLICY "admins manage notification_log" ON public.notification_log
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 -- ============================================================
 -- 6. FONCTIONS D'AGRÉGATION (SECURITY DEFINER)
 --    Appelables côté serveur via le rôle service — aucun accès
@@ -367,6 +373,8 @@ AS $func$
     WHERE s.date BETWEEN from_ts AND to_ts
     GROUP BY s.user_id;
 $func$;
+
+REVOKE EXECUTE ON FUNCTION public.admin_recap_yesterday(bigint, bigint) FROM PUBLIC, anon, authenticated;
 
 -- ============================================================
 -- 7. MISE À JOUR du schéma existant : index sur app_settings pour les pivots

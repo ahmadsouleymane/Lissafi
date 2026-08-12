@@ -65,50 +65,71 @@ export async function GET(request: NextRequest) {
     failed: 0,
   });
   if (insertError) {
-    return NextResponse.json({ skipped: "already_sent_or_error", detail: insertError.message });
+    // 23505 = violation de contrainte unique → le récap du jour a déjà été traité.
+    // Toute autre erreur (réseau transitoire…) ne doit PAS être confondue avec ça.
+    const alreadySent = insertError.code === "23505";
+    return NextResponse.json(
+      { skipped: alreadySent ? "already_sent" : "error", detail: insertError.message },
+      { status: alreadySent ? 200 : 500 }
+    );
   }
 
   const { from, to } = yesterdayWindowMs(now);
 
-  const [{ data: recapRows }, { data: deviceRows }] = await Promise.all([
-    supabaseAdmin().rpc("admin_recap_yesterday", { from_ts: from, to_ts: to }),
-    supabaseAdmin().from("device_tokens").select("user_id, fcm_token"),
-  ]);
+  try {
+    const [{ data: recapRows }, { data: deviceRows }] = await Promise.all([
+      supabaseAdmin().rpc("admin_recap_yesterday", { from_ts: from, to_ts: to }),
+      supabaseAdmin().from("device_tokens").select("user_id, fcm_token"),
+    ]);
 
-  const recapByUser = new Map<string, { sales_total: number; sales_count: number; new_debts_total: number }>();
-  for (const row of recapRows ?? []) {
-    recapByUser.set(row.user_id, {
-      sales_total: row.sales_total,
-      sales_count: row.sales_count,
-      new_debts_total: row.new_debts_total,
-    });
+    const recapByUser = new Map<string, { sales_total: number; sales_count: number; new_debts_total: number }>();
+    for (const row of recapRows ?? []) {
+      recapByUser.set(row.user_id, {
+        sales_total: row.sales_total,
+        sales_count: row.sales_count,
+        new_debts_total: row.new_debts_total,
+      });
+    }
+
+    const tokensByUser = new Map<string, string[]>();
+    for (const row of (deviceRows ?? []) as { user_id: string; fcm_token: string }[]) {
+      const list = tokensByUser.get(row.user_id) ?? [];
+      list.push(row.fcm_token);
+      tokensByUser.set(row.user_id, list);
+    }
+
+    let recipients = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const [userId, tokens] of tokensByUser) {
+      const recap = recapByUser.get(userId) ?? { sales_total: 0, sales_count: 0, new_debts_total: 0 };
+      const { title, body } = buildMessage(recap.sales_total, recap.sales_count, recap.new_debts_total);
+      const result = await sendPushToTokens(tokens, title, body);
+      recipients += tokens.length;
+      success += result.success;
+      failed += result.failed;
+    }
+
+    await supabaseAdmin()
+      .from("notification_log")
+      .update({ recipients, success, failed })
+      .eq("kind", "recap_quotidien")
+      .eq("recap_date", recapDate);
+
+    return NextResponse.json({ recipients, success, failed });
+  } catch (e) {
+    // Échec en cours d'envoi : lève la réservation pour permettre un re-run du jour
+    // (sinon l'index unique sur recap_date condamne la journée à zéro envoi).
+    try {
+      await supabaseAdmin()
+        .from("notification_log")
+        .delete()
+        .eq("kind", "recap_quotidien")
+        .eq("recap_date", recapDate);
+    } catch {
+      // Nettoyage best-effort ; on propage l'erreur d'origine.
+    }
+    throw e;
   }
-
-  const tokensByUser = new Map<string, string[]>();
-  for (const row of (deviceRows ?? []) as { user_id: string; fcm_token: string }[]) {
-    const list = tokensByUser.get(row.user_id) ?? [];
-    list.push(row.fcm_token);
-    tokensByUser.set(row.user_id, list);
-  }
-
-  let recipients = 0;
-  let success = 0;
-  let failed = 0;
-
-  for (const [userId, tokens] of tokensByUser) {
-    const recap = recapByUser.get(userId) ?? { sales_total: 0, sales_count: 0, new_debts_total: 0 };
-    const { title, body } = buildMessage(recap.sales_total, recap.sales_count, recap.new_debts_total);
-    const result = await sendPushToTokens(tokens, title, body);
-    recipients += tokens.length;
-    success += result.success;
-    failed += result.failed;
-  }
-
-  await supabaseAdmin()
-    .from("notification_log")
-    .update({ recipients, success, failed })
-    .eq("kind", "recap_quotidien")
-    .eq("recap_date", recapDate);
-
-  return NextResponse.json({ recipients, success, failed });
 }
