@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   activatePremiumQuick,
+  activateBusinessQuick,
   activatePremiumWithDays,
   addPremiumDaysQuick,
   deactivatePremiumQuick,
@@ -32,10 +33,13 @@ export function AccountActions({ userId }: { userId: string }) {
         {/* Activation / prolongation rapide */}
         <div className="flex flex-wrap gap-2">
           <form action={activatePremiumQuick.bind(null, userId, 365)}>
-            <Button type="submit" size="sm">Activer 1 an</Button>
+            <Button type="submit" size="sm">Plus 1 an</Button>
+          </form>
+          <form action={activateBusinessQuick.bind(null, userId, 365)}>
+            <Button type="submit" size="sm" variant="accent">Business 1 an</Button>
           </form>
           <form action={activatePremiumQuick.bind(null, userId, 30)}>
-            <Button type="submit" size="sm" variant="secondary">Activer 30 j</Button>
+            <Button type="submit" size="sm" variant="secondary">Plus 30 j</Button>
           </form>
           <form action={addPremiumDaysQuick.bind(null, userId, 30)}>
             <Button type="submit" size="sm" variant="secondary">+30 j</Button>
@@ -55,6 +59,10 @@ export function AccountActions({ userId }: { userId: string }) {
             <div className="flex items-center gap-2">
               <Input type="number" name="days" min={1} max={3650} defaultValue={365} className="w-28" />
               <span className="text-xs text-slate-500">jours</span>
+              <select name="plan" defaultValue="plus" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                <option value="plus">Lissafi Plus</option>
+                <option value="business">Lissafi Business</option>
+              </select>
               <Button type="submit" disabled={activatePending} size="sm">
                 {activatePending && <Spinner />} Activer
               </Button>

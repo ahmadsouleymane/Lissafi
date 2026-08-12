@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { activatePremiumQuick, addPremiumDaysQuick, deactivatePremiumQuick } from "@/actions/admin";
+import { activatePremiumQuick, activateBusinessQuick, addPremiumDaysQuick, deactivatePremiumQuick } from "@/actions/admin";
 import { ConfirmForm } from "@/components/ConfirmForm";
 import { Badge, Button, Card, EmptyState, PageHeader, Table, Td, Th, THead, Tr } from "@/components/ui";
 import { IconCrown } from "@/components/icons";
@@ -151,10 +151,13 @@ function PremiumRow({ u, now }: { u: UserSummary & { _priority: number }; now: n
       <Td>
         <div className="flex flex-wrap items-center gap-1.5">
           <form action={activatePremiumQuick.bind(null, u.user_id, 365)}>
-            <Button type="submit" size="sm">1 an</Button>
+            <Button type="submit" size="sm">Plus 1 an</Button>
+          </form>
+          <form action={activateBusinessQuick.bind(null, u.user_id, 365)}>
+            <Button type="submit" size="sm" variant="accent">Business</Button>
           </form>
           <form action={activatePremiumQuick.bind(null, u.user_id, 30)}>
-            <Button type="submit" size="sm" variant="secondary">30 j</Button>
+            <Button type="submit" size="sm" variant="secondary">Plus 30 j</Button>
           </form>
           <form action={addPremiumDaysQuick.bind(null, u.user_id, 30)}>
             <Button type="submit" size="sm" variant="secondary">+30 j</Button>

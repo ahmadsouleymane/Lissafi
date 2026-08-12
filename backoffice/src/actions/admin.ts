@@ -13,8 +13,8 @@ const DAY_MS = 86400000;
 
 export type ActionResult = { ok?: boolean; error?: string; newExpiry?: number };
 
-/** Active le premium pour N jours (défaut 365). */
-export async function activatePremium(userId: string, days = 365): Promise<ActionResult> {
+/** Active le premium pour N jours (défaut 365) — plan "plus" (défaut) ou "business". */
+export async function activatePremium(userId: string, days = 365, plan = "plus"): Promise<ActionResult> {
   await requireAdmin();
   const n = Math.max(1, Math.floor(days));
   const expiry = Date.now() + n * DAY_MS;
@@ -22,6 +22,7 @@ export async function activatePremium(userId: string, days = 365): Promise<Actio
   const { error } = await supabaseAdmin().from("app_settings").upsert(
     [
       { key: "is_premium", value: "true", user_id: userId },
+      { key: "plan", value: plan === "business" ? "business" : "plus", user_id: userId },
       { key: "premium_expiry", value: String(expiry), user_id: userId },
       { key: "activation_method", value: "admin", user_id: userId },
     ],
@@ -29,7 +30,7 @@ export async function activatePremium(userId: string, days = 365): Promise<Actio
   );
   if (error) return { error: error.message };
 
-  await logAction("premium_activate", userId, { days: n, expiry });
+  await logAction("premium_activate", userId, { days: n, expiry, plan });
   revalidatePath("/", "layout");
   return { ok: true, newExpiry: expiry };
 }
@@ -68,8 +69,9 @@ export async function addPremiumDays(userId: string, days: number): Promise<Acti
 export async function activatePremiumWithDays(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const userId = String(formData.get("userId") || "");
   const days = Math.floor(Number(formData.get("days")) || 365);
+  const plan = String(formData.get("plan") || "plus");
   if (!userId) return { error: "Utilisateur manquant." };
-  return activatePremium(userId, days);
+  return activatePremium(userId, days, plan);
 }
 
 /** Désactive le premium. */
@@ -78,6 +80,7 @@ export async function deactivatePremium(userId: string): Promise<ActionResult> {
   const { error } = await supabaseAdmin().from("app_settings").upsert(
     [
       { key: "is_premium", value: "false", user_id: userId },
+      { key: "plan", value: "free", user_id: userId },
       { key: "premium_expiry", value: "0", user_id: userId },
     ],
     { onConflict: "key,user_id" }
@@ -199,6 +202,13 @@ export async function activatePremiumQuick(userId: string, days = 365) {
   "use server";
   const r = await activatePremium(userId, days);
   if (r && "error" in r) console.error("[admin] activatePremiumQuick:", r.error);
+}
+
+/** Activation rapide du plan Business (tout illimité). */
+export async function activateBusinessQuick(userId: string, days = 365) {
+  "use server";
+  const r = await activatePremium(userId, days, "business");
+  if (r && "error" in r) console.error("[admin] activateBusinessQuick:", r.error);
 }
 
 export async function addPremiumDaysQuick(userId: string, days = 30) {
