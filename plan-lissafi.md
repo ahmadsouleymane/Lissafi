@@ -12,8 +12,8 @@
 | Plateforme | **Android natif (Kotlin)**, APK distribué hors Play Store |
 | iOS | Plus tard, quand l'argent rentre |
 | Modèle | **Abonnement annuel**, pas de licence à vie, pas de mensuel |
-| Offres payantes | **Essentiel 25 000 F/an** (logiciel seul) + **Pack Boutique 60 000 F** (imprimante + logiciel) |
-| Version gratuite | 10 produits, 10 crédits clients, historique 30 jours |
+| Offres payantes | **Lissafi Plus 30 000 F/an** + **Lissafi Business 75 000 F/an** + **Pack Boutique 60 000 F** (imprimante + 1 an Plus) |
+| Version gratuite | 10 produits, 10 clients, 10 ventes/jour |
 | Activation Premium | **Manuelle** — le commerçant paie en espèces/mobile money, toi tu actives via code admin |
 | Imprimante | **Pack Boutique à la demande** (dropshipping local, zéro stock) — imprimante 58 mm Bluetooth + 2 rouleaux + installation + 1 an Essentiel inclus |
 | Rouleaux papier | Offerts dans le Pack, vendus séparément à la demande |
@@ -44,9 +44,10 @@
 **Lissafi** — une appli Android de caisse qui remplace le cahier des petits commerçants de Niamey. Scan, panier, crédits clients, stock. Fonctionne sans Internet.
 
 ### Modèle
-- **Gratuit** : scan, panier, 10 produits, 10 crédits, historique 30j, ticket WhatsApp
-- **Essentiel (25 000 FCFA/an)** : tout illimité, rapports, export CSV, support prioritaire
-- **Pack Boutique (60 000 FCFA)** : imprimante 58 mm Bluetooth + 2 rouleaux + installation + 1 an Essentiel inclus — à la demande, zéro stock (dropshipping local)
+- **Gratuit** : scan, panier, 10 produits, 10 clients, 10 ventes/jour, ticket WhatsApp
+- **Lissafi Plus (30 000 FCFA/an)** : 100 produits, 100 clients, ventes illimitées, rapports, export CSV
+- **Lissafi Business (75 000 FCFA/an)** : tout illimité, multi-utilisateurs, formation, support prioritaire
+- **Pack Boutique (60 000 FCFA)** : imprimante 58 mm Bluetooth + 2 rouleaux + 1 an Plus inclus — à la demande, zéro stock (dropshipping local)
 
 ### Objectif 12 mois
 - 50 clients payants = 1 382 000 FCFA/an net (dont ~140 000 F de marge matérielle)
@@ -87,27 +88,30 @@ Tutoiement. Français simple. Zéro jargon. Toujours parler en francs CFA.
 
 ## 3. BUSINESS MODEL & PRICING
 
-### Structure — 3 offres
+### Structure — 4 offres (pricing v2, 2026-08-12)
 
-| | Gratuit | **Essentiel** | **Pack Boutique** |
-|---|---|---|---|
-| **Prix** | 0 FCFA | **25 000 FCFA/an** | **60 000 FCFA** (une fois) |
-| Scan codes-barres | ✅ | ✅ | ✅ |
-| Panier + calcul monnaie | ✅ | ✅ | ✅ |
-| Ticket WhatsApp | ✅ | ✅ | ✅ |
-| Mode hors-ligne | ✅ | ✅ | ✅ |
-| Produits au catalogue | **10 max** | Illimité | Illimité |
-| Crédits clients | **10 débiteurs max** | Illimité | Illimité |
-| Historique ventes | **30 jours** | Illimité | Illimité |
-| Gestion de stock | Consultation seule | Gestion complète + alertes | Gestion complète + alertes |
-| Export CSV | ❌ | ✅ | ✅ |
-| Rapports (jour/semaine/mois) | ❌ | ✅ | ✅ |
-| Support WhatsApp | Standard | Prioritaire (<2h) | Prioritaire (<2h) |
-| Imprimante 58 mm Bluetooth | ❌ | ❌ | ✅ |
-| Rouleaux thermiques | ❌ | ❌ | 2 offerts |
-| Installation + formation | ❌ | ❌ | ✅ (sur place) |
+| | Gratuit | **Lissafi Plus** | **Lissafi Business** | **Pack Boutique** |
+|---|---|---|---|---|
+| **Prix** | 0 FCFA | **30 000 FCFA/an** | **75 000 FCFA/an** | **60 000 FCFA** (une fois) |
+| Scan codes-barres | ✅ | ✅ | ✅ | ✅ |
+| Panier + calcul monnaie | ✅ | ✅ | ✅ | ✅ |
+| Ticket WhatsApp | ✅ | ✅ | ✅ | ✅ |
+| Mode hors-ligne | ✅ | ✅ | ✅ | ✅ |
+| Produits au catalogue | **10 max** | **100 max** | Illimité | 100 max (1 an Plus) |
+| Crédits clients | **10 max** | **100 max** | Illimité | 100 max (1 an Plus) |
+| Ventes | **10/jour** | Illimitées | Illimitées | Illimitées |
+| Gestion de stock | Consultation seule | Gestion complète + alertes | Gestion complète + alertes | Gestion complète + alertes |
+| Export CSV | ❌ | ✅ | ✅ | ✅ |
+| Rapports (jour/semaine/mois) | ❌ | ✅ | ✅ | ✅ |
+| Multi-utilisateurs | ❌ | ❌ | ✅ | ❌ |
+| Formation / accompagnement | ❌ | ❌ | ✅ | ✅ (installation) |
+| Support | Standard | Standard | Prioritaire (<2h) | Standard |
+| Imprimante 58 mm Bluetooth | ❌ | ❌ | ❌ | ✅ |
+| Rouleaux thermiques | ❌ | ❌ | ❌ | 2 offerts |
 
-**Le Pack Boutique = Essentiel 1 an (25 000 F) + imprimante 58 mm + 2 rouleaux + installation (35 000 F).** Le logiciel est facturé normalement dans le pack — il n'est jamais offert. Au renouvellement (année 2), le client Pack paie 25 000 F/an comme tout le monde.
+**Le Pack Boutique = imprimante 58 mm + 2 rouleaux + 1 an Lissafi Plus (30 000 F) offert.**
+L'imprimante revient à moins de 15 000 F à l'achat → marge du pack saine. Au
+renouvellement (année 2), le client paie Lissafi Plus ou Business comme tout le monde.
 
 ### Pourquoi 25 000 F/an ?
 
