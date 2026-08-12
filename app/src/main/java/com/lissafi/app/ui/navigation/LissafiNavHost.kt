@@ -1,5 +1,10 @@
 package com.lissafi.app.ui.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.firebase.messaging.FirebaseMessaging
 import com.lissafi.app.LissafiApp
 import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.data.repository.LissafiRepository
@@ -89,6 +96,9 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val premiumManager = remember(userId) { PremiumManager(repository) }
 
     val navController = rememberNavController()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* refus = pas de notifications, non bloquant */ }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -98,6 +108,19 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
             app.syncManager.syncInBackground()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+
+            // Enregistre le token FCM de cet appareil pour le compte connecté
+            // (fire-and-forget : onNewToken() le renverra si ça échoue ici).
+            FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
+                api.upsertDeviceToken(fcmToken)
+            }
+
             navController.navigate(Routes.CAISSE) {
                 // launchSingleTop : au démarrage déjà connecté, startDestination
                 // est déjà CAISSE → évite d'empiler un doublon.
