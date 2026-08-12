@@ -6,7 +6,7 @@ export default function Pricing() {
     <section className="section" id="tarifs">
       <div className="container">
         <Reveal>
-          <Kicker>N° 004 — Les tarifs</Kicker>
+          <Kicker>Les tarifs</Kicker>
           <h2>Un tarif pour chaque étape de ta boutique.</h2>
         </Reveal>
 
@@ -17,9 +17,8 @@ export default function Pricing() {
               <div className="price-amount">0 F</div>
               <div className="price-sub">pour découvrir la caisse</div>
               <ul className="price-features">
-                <li>50 produits au catalogue</li>
-                <li>50 clients suivis</li>
-                <li>50 crédits actifs</li>
+                <li>10 produits au catalogue</li>
+                <li>10 clients suivis</li>
                 <li>Ventes illimitées</li>
                 <li>Historique complet et illimité</li>
                 <li>Marche sans réseau</li>

@@ -24,8 +24,8 @@ export default function Install() {
     <section className="section" id="installation">
       <div className="container">
         <Reveal>
-          <Kicker>N° 005 — L'installation</Kicker>
-          <h2>3 étapes, 2 minutes, et ta boutique est dans ton téléphone.</h2>
+          <Kicker>L'installation</Kicker>
+          <h2>Trois étapes, deux minutes, et ta boutique est dans ton téléphone.</h2>
         </Reveal>
 
         <div className={`install-layout ${INSTALL_SCREENSHOT ? "has-shot" : ""}`}>

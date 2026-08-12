@@ -20,7 +20,7 @@ export default function Calculator() {
     <section className="section" id="calcul">
       <div className="container calc-wrap">
         <Reveal>
-          <Kicker>N° 003 — Fais le calcul</Kicker>
+          <Kicker>Fais le calcul</Kicker>
           <h2>Combien ton cahier te fait-il perdre ?</h2>
           <p style={{ marginTop: 16, color: "var(--text-secondary)", fontSize: 16, maxWidth: "30em" }}>
             Glisse le curseur : c'est ce que tes clients te doivent en crédits oubliés,
