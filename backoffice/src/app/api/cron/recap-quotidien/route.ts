@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendPushToTokens } from "@/lib/notifications";
@@ -36,8 +37,19 @@ function buildMessage(salesTotal: number, salesCount: number, newDebtsTotal: num
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail-closed : si CRON_SECRET est absent/vide, l'endpoint est désactivé
+  // (auparavant, la comparaison contre "Bearer undefined" le rendait public).
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    console.error("CRON_SECRET non configuré — endpoint /api/cron/recap-quotidien désactivé");
+    return NextResponse.json({ error: "not configured" }, { status: 500 });
+  }
+  const expected = `Bearer ${secret}`;
+  const provided = request.headers.get("authorization") ?? "";
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  // Comparaison en temps constant pour éviter les timing attacks.
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -68,8 +80,12 @@ export async function GET(request: NextRequest) {
     // 23505 = violation de contrainte unique → le récap du jour a déjà été traité.
     // Toute autre erreur (réseau transitoire…) ne doit PAS être confondue avec ça.
     const alreadySent = insertError.code === "23505";
+    if (!alreadySent) {
+      // Log serveur uniquement — ne pas fuiter le message DB brut vers l'appelant.
+      console.error("recap-quotidien: échec de réservation notification_log", insertError);
+    }
     return NextResponse.json(
-      { skipped: alreadySent ? "already_sent" : "error", detail: insertError.message },
+      { skipped: alreadySent ? "already_sent" : "error" },
       { status: alreadySent ? 200 : 500 }
     );
   }

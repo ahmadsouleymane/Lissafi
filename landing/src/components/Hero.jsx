@@ -59,7 +59,7 @@ export default function Hero() {
         >
           <div className="hero-glow" aria-hidden="true" />
           <div className="hero-pill top">
-            <span className="dot" /> Monnaie rendue : 1.750 F
+            <span className="dot" /> Monnaie rendue : 1 750 F
           </div>
           <img
             className="hero-shot"

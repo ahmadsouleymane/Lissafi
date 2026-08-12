@@ -1329,6 +1329,18 @@ button {
   font-size: 13px;
   color: var(--ink-text-2);
 }
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-text-2);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-link:hover {
+  color: var(--ink-accent);
+}
 
 /* ============ Révélation au scroll (fallback + Motion) ============ */
 

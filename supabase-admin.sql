@@ -24,6 +24,16 @@ AS $func$
     SELECT EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid());
 $func$;
 
+-- SÉCURITÉ : active RLS sur admins — sans RLS, n'importe qui (clé anon publique
+-- embarquée dans l'APK) pouvait lire la liste des admins et S'AUTO-PROMOUVOIR
+-- en admin via POST /rest/v1/admins. L'insertion du premier admin se fait via
+-- le SQL Editor (rôle postgres) ou via le back-office (service_role, bypass RLS).
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.admins FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage admins" ON public.admins;
+CREATE POLICY "admins manage admins" ON public.admins
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 -- ============================================================
 -- 2. Journal des événements de l'application (logs, erreurs, reçus)
 --    Rempli par l'app Android (fire-and-forget, jamais bloquant).
@@ -103,11 +113,23 @@ ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "ticket replies insert" ON public.ticket_replies;
 CREATE POLICY "ticket replies insert" ON public.ticket_replies
-    FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin());
+    FOR INSERT WITH CHECK (
+        public.is_admin()
+        OR (
+            auth.uid() = user_id
+            AND NOT is_admin
+            AND EXISTS (SELECT 1 FROM public.support_tickets t
+                        WHERE t.id = ticket_id AND t.user_id = auth.uid())
+        )
+    );
 
 DROP POLICY IF EXISTS "ticket replies read" ON public.ticket_replies;
 CREATE POLICY "ticket replies read" ON public.ticket_replies
-    FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+    FOR SELECT USING (
+        public.is_admin()
+        OR EXISTS (SELECT 1 FROM public.support_tickets t
+                   WHERE t.id = ticket_id AND t.user_id = auth.uid())
+    );
 
 CREATE INDEX IF NOT EXISTS idx_ticket_replies_ticket ON public.ticket_replies(ticket_id);
 
@@ -126,6 +148,14 @@ INSERT INTO public.admin_settings (key, value) VALUES
     ('recap_notifications_enabled', 'true')
 ON CONFLICT (key) DO NOTHING;
 
+-- SÉCURITÉ : RLS sur admin_settings — sans RLS, la clé anon pouvait lire ET
+-- modifier les paramètres globaux (prix/durée premium, récap désactivé).
+ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.admin_settings FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage admin settings" ON public.admin_settings;
+CREATE POLICY "admins manage admin settings" ON public.admin_settings
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 -- ============================================================
 -- 5. Journal des actions admin (traçabilité : qui a fait quoi)
 -- ============================================================
@@ -140,6 +170,14 @@ CREATE TABLE IF NOT EXISTS public.admin_actions (
 
 CREATE INDEX IF NOT EXISTS idx_admin_actions_created ON public.admin_actions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON public.admin_actions(target_user_id);
+
+-- SÉCURITÉ : RLS sur admin_actions — sans RLS, la piste d'audit admin était
+-- lisible ET forgeable par n'importe qui (clé anon).
+ALTER TABLE public.admin_actions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.admin_actions FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage admin_actions" ON public.admin_actions;
+CREATE POLICY "admins manage admin_actions" ON public.admin_actions
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- ============================================================
 -- 5bis. Journal des notifications push (manuelles + récap auto)
@@ -375,6 +413,59 @@ AS $func$
 $func$;
 
 REVOKE EXECUTE ON FUNCTION public.admin_recap_yesterday(bigint, bigint) FROM PUBLIC, anon, authenticated;
+-- (service_role doit garder l'exécution : le cron back-office l'appelle)
+GRANT EXECUTE ON FUNCTION public.admin_recap_yesterday(bigint, bigint) TO service_role;
+
+-- ============================================================
+-- 6bis. SÉCURITÉ — RESTREINDRE L'EXÉCUTION DES FONCTIONS ADMIN
+-- ============================================================
+-- Sans REVOKE, PostgreSQL accorde EXECUTE à PUBLIC par défaut : n'importe qui
+-- avec la clé anon (embarquée dans l'APK, publique) pouvait appeler ces
+-- fonctions SECURITY DEFINER et dumper TOUTES les données (emails, téléphones,
+-- codes d'activation premium, logs, IP d'authentification) via
+-- /rest/v1/rpc/<nom>. On restreint l'exécution au service_role (back-office).
+REVOKE EXECUTE ON FUNCTION public.admin_stats() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_sales_series(int) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_signups_series(int) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_user_summaries() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_user_emails() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_audit_logs(bigint, bigint, int) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_logs(bigint, bigint, text, text, uuid, int) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.admin_stats() TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_sales_series(int) TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_signups_series(int) TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_user_summaries() TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_user_emails() TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_audit_logs(bigint, bigint, int) TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_logs(bigint, bigint, text, text, uuid, int) TO service_role;
+
+-- ============================================================
+-- 6ter. SÉCURITÉ — INTERDIRE L'AUTO-OCTROI DU PREMIUM VIA POSTGREST
+-- ============================================================
+-- La policy app_settings (auth.uid() = user_id) permettait à n'importe quel
+-- utilisateur de se passer lui-même en premium (is_premium, premium_expiry,
+-- activation_code, demo_taken) par simple UPDATE REST. Ce trigger bloque ces
+-- clés pour tout non-admin ; le service_role (back-office) et les admins
+-- restent autorisés. L'app Android garde son fonctionnement local (un échec
+-- de synchro de ces clés est ignoré par runStep).
+CREATE OR REPLACE FUNCTION public.guard_premium_keys() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+BEGIN
+    IF NEW.key IN ('is_premium', 'premium_expiry', 'activation_code', 'demo_taken')
+       AND auth.uid() IS NOT NULL
+       AND NOT public.is_admin() THEN
+        RAISE EXCEPTION 'forbidden key: %', NEW.key;
+    END IF;
+    RETURN NEW;
+END;
+$func$;
+
+DROP TRIGGER IF EXISTS trg_guard_premium ON public.app_settings;
+CREATE TRIGGER trg_guard_premium
+    BEFORE INSERT OR UPDATE ON public.app_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_premium_keys();
 
 -- ============================================================
 -- 7. MISE À JOUR du schéma existant : index sur app_settings pour les pivots
