@@ -79,6 +79,15 @@ CREATE TABLE IF NOT EXISTS app_settings (
     PRIMARY KEY (key, user_id)
 );
 
+-- 7. Table des tokens d'appareil (notifications push FCM)
+CREATE TABLE IF NOT EXISTS device_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    fcm_token TEXT NOT NULL,
+    updated_at BIGINT NOT NULL,
+    UNIQUE (fcm_token)
+);
+
 -- ============================================================
 -- INDEX
 -- ============================================================
@@ -100,6 +109,7 @@ ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE debt_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Chaque utilisateur ne voit QUE ses propres données
 -- auth.uid() = l'ID de l'utilisateur connecté
@@ -127,4 +137,8 @@ CREATE POLICY "User sees own debt_transactions" ON debt_transactions
 
 DROP POLICY IF EXISTS "User sees own settings" ON app_settings;
 CREATE POLICY "User sees own settings" ON app_settings
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User sees own device_tokens" ON device_tokens;
+CREATE POLICY "User sees own device_tokens" ON device_tokens
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
