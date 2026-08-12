@@ -35,7 +35,7 @@ const TIERS = [
       ["Support prioritaire", true],
     ],
     cta: "Télécharger l'APK",
-    note: "Paiement en espèces ou mobile money · activation dans l'app",
+    note: "Paiement en espèces ou mobile money",
   },
   {
     name: "Lissafi Premium",
@@ -46,6 +46,7 @@ const TIERS = [
     sub: "= 274 F par jour · le service complet",
     features: [
       ["Tout Lissafi Essentiel", true],
+      ["Plusieurs utilisateurs sur le même compte", true],
       ["Sauvegarde cloud renforcée", true],
       ["Accompagnement au démarrage", true],
       ["Formation de ton équipe sur place", true],
@@ -53,7 +54,7 @@ const TIERS = [
       ["Accès en avant-première aux nouveautés", true],
     ],
     cta: "Télécharger l'APK",
-    note: "Paiement en espèces ou mobile money · activation dans l'app",
+    note: "Paiement en espèces ou mobile money",
   },
 ];
 
