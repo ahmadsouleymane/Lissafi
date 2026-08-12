@@ -22,7 +22,7 @@ export default function Calculator() {
         <Reveal>
           <Kicker>N° 003 — Fais le calcul</Kicker>
           <h2>Combien ton cahier te fait-il perdre ?</h2>
-          <p style={{ marginTop: 16, color: "var(--ink-soft)", fontSize: 17, maxWidth: "30em" }}>
+          <p style={{ marginTop: 16, color: "var(--text-secondary)", fontSize: 16, maxWidth: "30em" }}>
             Glisse le curseur : c'est ce que tes clients te doivent en crédits oubliés,
             chaque mois. Regarde la différence.
           </p>
@@ -57,7 +57,7 @@ export default function Calculator() {
                 <b>{formatFCFA(annualLoss)}</b>
               </div>
               <div className="calc-line">
-                <span>Lissafi Premium</span>
+                <span>Lissafi Essentiel</span>
                 <b>25 000 F /an</b>
               </div>
               <div className="calc-line saving">
