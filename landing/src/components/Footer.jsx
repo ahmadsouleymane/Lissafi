@@ -8,9 +8,9 @@ export default function Footer() {
           <img src="/assets/logo-master.png" alt="Logo Lissafi" />
           <span>Lissafi</span>
         </div>
-        <div className="footer-meta">Le cahier, c'est fini · Android</div>
+        <div className="footer-meta">La caisse de ta boutique, dans ta poche · Android</div>
         <div className="footer-meta">
-          <a href={WHATSAPP} target="_blank" rel="noreferrer" style={{ color: "var(--green-deep)", fontWeight: 700 }}>
+          <a href={WHATSAPP} target="_blank" rel="noreferrer" className="link-primary">
             WhatsApp
           </a>{" "}
           · © 2026 Lissafi
