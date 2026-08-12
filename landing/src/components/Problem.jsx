@@ -4,7 +4,7 @@ const PAINS = [
   {
     n: "01",
     t: "Les crédits oubliés",
-    d: "Le « je paie demain » s'efface du cahier — et de ta mémoire. À la fin du mois, tu ne sais plus qui te doit quoi.",
+    d: "Le « je paie demain » s'efface du cahier et de ta mémoire. À la fin du mois, tu ne sais plus qui te doit quoi.",
   },
   {
     n: "02",
@@ -23,9 +23,9 @@ export default function Problem() {
     <section className="section" id="probleme">
       <div className="container problem-grid">
         <Reveal>
-          <Kicker>N° 001 — Le problème</Kicker>
+          <Kicker>Le problème</Kicker>
           <p className="problem-lede">
-            Le cahier ne coûte rien. <em>Et chaque mois, il te fait perdre de l'argent.</em>
+            Le cahier ne coûte rien. <span className="accent">Et chaque mois, il te fait perdre de l'argent.</span>
           </p>
           <span className="problem-stat">≈ 15 000 F de crédits oubliés tous les 3 mois</span>
         </Reveal>
