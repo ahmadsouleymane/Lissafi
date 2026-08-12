@@ -122,7 +122,8 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
 INSERT INTO public.admin_settings (key, value) VALUES
     ('premium_price_fcfa', '10000'),
     ('premium_days', '365'),
-    ('demo_days', '7')
+    ('demo_days', '7'),
+    ('recap_notifications_enabled', 'true')
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================
@@ -139,6 +140,27 @@ CREATE TABLE IF NOT EXISTS public.admin_actions (
 
 CREATE INDEX IF NOT EXISTS idx_admin_actions_created ON public.admin_actions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON public.admin_actions(target_user_id);
+
+-- ============================================================
+-- 5bis. Journal des notifications push (manuelles + récap auto)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.notification_log (
+    id BIGSERIAL PRIMARY KEY,
+    kind TEXT NOT NULL,                        -- 'manuel' | 'recap_quotidien'
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    admin_user_id UUID,                        -- NULL pour les envois automatiques
+    target_summary TEXT NOT NULL DEFAULT '',
+    recap_date TEXT,                            -- 'YYYY-MM-DD' (heure Niamey), recap uniquement
+    recipients INT NOT NULL DEFAULT 0,
+    success INT NOT NULL DEFAULT 0,
+    failed INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_log_recap_date
+    ON public.notification_log(recap_date) WHERE kind = 'recap_quotidien';
+CREATE INDEX IF NOT EXISTS idx_notification_log_created ON public.notification_log(created_at DESC);
 
 -- ============================================================
 -- 6. FONCTIONS D'AGRÉGATION (SECURITY DEFINER)
@@ -321,6 +343,29 @@ AS $func$
       AND (uid IS NULL OR l.user_id = uid)
     ORDER BY l.created_at DESC
     LIMIT CASE WHEN lim <= 0 THEN 200 ELSE lim END;
+$func$;
+
+
+-- Agrégats de la veille par utilisateur, pour le récap automatique quotidien.
+-- Ne renvoie que les utilisateurs ayant eu au moins une vente dans la fenêtre ;
+-- les utilisateurs sans vente sont traités côté application (valeurs à 0).
+CREATE OR REPLACE FUNCTION public.admin_recap_yesterday(from_ts bigint, to_ts bigint)
+RETURNS TABLE(user_id uuid, sales_total bigint, sales_count bigint, new_debts_total bigint)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $func$
+    SELECT
+        s.user_id,
+        coalesce(sum(s.total), 0)::bigint AS sales_total,
+        count(s.id)::bigint AS sales_count,
+        coalesce((
+            SELECT sum(dt.amount) FROM debt_transactions dt
+            WHERE dt.user_id = s.user_id
+              AND dt.date BETWEEN from_ts AND to_ts
+              AND dt.amount > 0
+        ), 0)::bigint AS new_debts_total
+    FROM sales s
+    WHERE s.date BETWEEN from_ts AND to_ts
+    GROUP BY s.user_id;
 $func$;
 
 -- ============================================================
