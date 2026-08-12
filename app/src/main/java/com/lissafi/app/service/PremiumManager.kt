@@ -18,9 +18,9 @@ class PremiumManager(private val repository: LissafiRepository) {
         const val MAX_PLUS_PRODUCTS = 100
         const val MAX_PLUS_CREDITS = 100
 
-        // ⚠️ AVANT DE DISTRIBUER L'APK : remplace `227XXXXXXXX` par le numéro
-        // de contact pour l'activation (format international, sans espaces ni +).
-        const val SUPPORT_WHATSAPP_NUMBER = "227XXXXXXXX"
+        // Numéro de contact pour l'activation Premium (format international,
+        // sans espaces ni +).
+        const val SUPPORT_WHATSAPP_NUMBER = "2250160726314"
 
         /** Message pré-rempli envoyé sur WhatsApp pour demander l'activation. */
         fun buildActivationMessage(shopName: String, email: String?, userId: String?): String {
