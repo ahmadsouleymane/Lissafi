@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import {
   IconActivity,
+  IconBell,
   IconChat,
   IconCrown,
   IconDatabase,
@@ -24,6 +25,7 @@ const NAV = [
   { href: "/", label: "Tableau de bord", icon: IconGrid, exact: true },
   { href: "/comptes", label: "Comptes", icon: IconUsers },
   { href: "/premium", label: "Premium", icon: IconCrown },
+  { href: "/notifications", label: "Notifications", icon: IconBell },
   { href: "/logs", label: "Erreurs & activité", icon: IconActivity },
   { href: "/connexions", label: "Connexions", icon: IconLogIn },
   { href: "/support", label: "Support", icon: IconChat },
