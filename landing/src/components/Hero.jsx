@@ -4,7 +4,7 @@ import { Kicker } from "./ui";
 
 export default function Hero() {
   return (
-    <section className="hero" id="top">
+    <section className="hero on-ink" id="top">
       <div className="container hero-grid">
         <div>
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>

@@ -25,7 +25,7 @@ export default function LocalFirst() {
       <div className="container">
         <Reveal>
           <Kicker>Fiabilité</Kicker>
-          <h2>Le réseau n'est pas fiable à Niamey. Lissafi, si.</h2>
+          <h2>Le réseau n'est pas toujours fiable. Lissafi, si.</h2>
         </Reveal>
 
         <div className="local-first-grid">

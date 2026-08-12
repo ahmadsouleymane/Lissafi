@@ -1,7 +1,7 @@
 import { Reveal } from "./ui";
 
 const POINTS = [
-  "Conçu avec des commerçants de Niamey",
+  "Conçu avec des commerçants africains",
   "Fonctionne même sans réseau",
   "Tes données restent sur ton téléphone",
 ];

@@ -95,9 +95,7 @@ export default function PhoneDemo() {
                 ref={(el) => (refs.current[i] = el)}
               >
                 <span className="num">{f.num}</span>
-                <h3 style={{ opacity: active === i ? 1 : 0.55, transition: "opacity 0.35s ease" }}>
-                  {f.title}
-                </h3>
+                <h3>{f.title}</h3>
                 <p>{f.desc}</p>
               </div>
             ))}
