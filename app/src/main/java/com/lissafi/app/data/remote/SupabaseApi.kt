@@ -43,6 +43,13 @@ private data class SupportTicketPayload(
     val updated_at: Long
 )
 
+@Serializable
+private data class DeviceTokenPayload(
+    val user_id: String,
+    val fcm_token: String,
+    val updated_at: Long
+)
+
 /**
  * Client REST Supabase (PostgREST).
  *
@@ -451,6 +458,39 @@ class SupabaseApi(private val context: Context) {
                 }
             } catch (e: Exception) {
                 Log.w("LissafiLog", "reportTicket ignoré : ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Enregistre/rafraîchit le token FCM de cet appareil pour l'utilisateur connecté.
+     * Fire-and-forget : un échec réseau n'empêche pas l'usage de l'app — le token
+     * sera renvoyé au prochain onNewToken() ou au prochain démarrage connecté.
+     */
+    fun upsertDeviceToken(fcmToken: String) {
+        val authToken = token
+        val uid = currentUserId
+        if (!hasValidSession || uid.isEmpty() || fcmToken.isBlank()) return
+
+        logScope.launch {
+            try {
+                val response = http.post(restUrl("device_tokens")) {
+                    header("apikey", anonKey)
+                    header("Authorization", "Bearer $authToken")
+                    header("Prefer", "resolution=merge-duplicates")
+                    parameter("on_conflict", "fcm_token")
+                    contentType(ContentType.Application.Json)
+                    setBody(DeviceTokenPayload(
+                        user_id = uid,
+                        fcm_token = fcmToken,
+                        updated_at = System.currentTimeMillis()
+                    ))
+                }
+                if (response.status.value !in 200..299) {
+                    Log.w("LissafiLog", "upsertDeviceToken HTTP ${response.status.value}")
+                }
+            } catch (e: Exception) {
+                Log.w("LissafiLog", "upsertDeviceToken ignoré : ${e.message}")
             }
         }
     }
