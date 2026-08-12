@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 data class SettingsState(
     val shopName: String = "",
     val shopPhone: String = "",
+    val receiptFooterMessage: String = "",
     val adminPin: String = "0000",
     val isPremium: Boolean = false,
     val premiumExpiry: Long? = null,
@@ -34,6 +35,7 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
         viewModelScope.launch {
             val shopName = repository.getShopName()
             val shopPhone = repository.getShopPhone()
+            val receiptFooterMessage = repository.getSetting("receipt_footer_message") ?: ""
             val adminPin = repository.getAdminPin()
             val premium = repository.isPremium()
             val expiry = repository.getPremiumExpiry()
@@ -43,6 +45,7 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
             _state.value = _state.value.copy(
                 shopName = shopName,
                 shopPhone = shopPhone,
+                receiptFooterMessage = receiptFooterMessage,
                 adminPin = adminPin,
                 isPremium = premium,
                 premiumExpiry = expiry,
@@ -53,14 +56,16 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
         }
     }
 
-    fun saveShopInfo(name: String, phone: String) {
+    fun saveShopInfo(name: String, phone: String, footerMessage: String) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isSaving = true)
             repository.setSetting("shop_name", name)
             repository.setSetting("shop_phone", phone)
+            repository.setSetting("receipt_footer_message", footerMessage)
             _state.value = _state.value.copy(
                 shopName = name,
                 shopPhone = phone,
+                receiptFooterMessage = footerMessage,
                 isSaving = false
             )
         }

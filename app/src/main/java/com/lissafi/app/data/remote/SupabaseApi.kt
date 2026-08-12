@@ -205,8 +205,12 @@ class SupabaseApi(private val context: Context) {
             t?.let { header("Authorization", "Bearer $it") }
             header("Prefer", "return=representation")
             contentType(ContentType.Application.Json)
-            // encodeDefaults=false → id=0 (valeur par défaut) n'est pas sérialisé → le serveur génère l'id (BIGSERIAL)
-            setBody(sale)
+            // id forcé à 0 (valeur par défaut, omise par encodeDefaults=false) : l'id local
+            // SQLite (ex. 1, 2…) ne doit jamais être envoyé, sinon il entre en collision avec
+            // le BIGSERIAL distant — celui-ci est une séquence GLOBALE partagée par tous les
+            // comptes, donc la 1ère vente de chaque nouvel utilisateur (id local = 1) provoque
+            // un 409 (unique_violation) et ne se synchronise jamais.
+            setBody(sale.copy(id = 0))
         }
         ensureSuccess(response, "insertSale")
         val inserted = response.body<List<Sale>>().firstOrNull()

@@ -8,39 +8,39 @@ import androidx.compose.ui.graphics.Color
 // Style SaaS premium, inspiration Fintech POS moderne
 // ============================================================
 
-// ── Primary — Vert forêt moderne ────────────────────────────
+// ── Primary — Vert forêt moderne (identique clair/sombre) ──
 val Primary = Color(0xFF0F6E46)
 val OnPrimary = Color(0xFFFFFFFF)
-val PrimaryContainer = Color(0xFFE8F5E9)
-val OnPrimaryContainer = Color(0xFF0A3D24)
+val PrimaryContainer: Color get() = if (ThemeManager.isDark) Color(0xFF123825) else Color(0xFFE8F5E9)
+val OnPrimaryContainer: Color get() = if (ThemeManager.isDark) Color(0xFFA8E6C4) else Color(0xFF0A3D24)
 
 // ── Secondary — Orange brûlé (dettes, alertes) ─────────────
 val Secondary = Color(0xFFE67E22)
 val OnSecondary = Color(0xFFFFFFFF)
-val SecondaryContainer = Color(0xFFFFF3E8)
-val OnSecondaryContainer = Color(0xFF5C2D0E)
+val SecondaryContainer: Color get() = if (ThemeManager.isDark) Color(0xFF3D2610) else Color(0xFFFFF3E8)
+val OnSecondaryContainer: Color get() = if (ThemeManager.isDark) Color(0xFFFFD9AE) else Color(0xFF5C2D0E)
 
-// ── Background — Gris très clair ────────────────────────────
-val Background = Color(0xFFF8F9FA)
-val OnBackground = Color(0xFF121212)
+// ── Background ──────────────────────────────────────────────
+val Background: Color get() = if (ThemeManager.isDark) Color(0xFF121212) else Color(0xFFF8F9FA)
+val OnBackground: Color get() = if (ThemeManager.isDark) Color(0xFFF5F5F5) else Color(0xFF121212)
 
-// ── Surface — Blanc pur pour les cartes ────────────────────
-val Surface = Color(0xFFFFFFFF)
-val OnSurface = Color(0xFF121212)
-val SurfaceAlt = Color(0xFFF4F5F6)
+// ── Surface — Cartes ─────────────────────────────────────────
+val Surface: Color get() = if (ThemeManager.isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+val OnSurface: Color get() = if (ThemeManager.isDark) Color(0xFFF5F5F5) else Color(0xFF121212)
+val SurfaceAlt: Color get() = if (ThemeManager.isDark) Color(0xFF2A2A2A) else Color(0xFFF4F5F6)
 
 // ── Texte ───────────────────────────────────────────────────
-val TextSecondary = Color(0xFF6B7280)
-val TextTertiary = Color(0xFF9CA3AF)
+val TextSecondary: Color get() = if (ThemeManager.isDark) Color(0xFFAEB4BC) else Color(0xFF6B7280)
+val TextTertiary: Color get() = if (ThemeManager.isDark) Color(0xFF7D8590) else Color(0xFF9CA3AF)
 
 // ── Border ──────────────────────────────────────────────────
-val Border = Color(0xFFE5E7EB)
+val Border: Color get() = if (ThemeManager.isDark) Color(0xFF33383F) else Color(0xFFE5E7EB)
 
 // ── Error / Success ─────────────────────────────────────────
 val Error = Color(0xFFEF4444)
-val ErrorContainer = Color(0xFFFEE2E2)
+val ErrorContainer: Color get() = if (ThemeManager.isDark) Color(0xFF4A1515) else Color(0xFFFEE2E2)
 val Success = Color(0xFF10B981)
-val SuccessContainer = Color(0xFFD1FAE5)
+val SuccessContainer: Color get() = if (ThemeManager.isDark) Color(0xFF0F3D2A) else Color(0xFFD1FAE5)
 
 // ── Info ────────────────────────────────────────────────────
 val Info = Color(0xFF3B82F6)
@@ -56,9 +56,9 @@ val LissafiGreenDark = Primary
 val LissafiOrange = Secondary
 val LissafiOrangeLight = Secondary
 val LissafiOrangeDark = Secondary
-val LissafiCream = Background
-val LissafiWhite = Surface
-val LissafiBlack = OnBackground
+val LissafiCream: Color get() = Background
+val LissafiWhite: Color get() = Surface
+val LissafiBlack: Color get() = OnBackground
 val LissafiWarning = Secondary
 val LissafiDanger = Error
 val LissafiSuccess = Success

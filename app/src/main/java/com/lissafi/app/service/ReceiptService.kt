@@ -37,7 +37,8 @@ object ReceiptService {
         val total: Int,
         val amountPaid: Int,
         val changeGiven: Int,
-        val isCredit: Boolean
+        val isCredit: Boolean,
+        val footerMessage: String = ""
     )
 
     data class ReceiptItem(
@@ -87,7 +88,7 @@ object ReceiptService {
 
         // ── Pied de page ──
         sb.appendLine(sep('='))
-        sb.appendLine(center("Merci pour votre achat !"))
+        sb.appendLine(center(data.footerMessage.ifBlank { "Merci pour votre achat !" }))
         sb.appendLine(center("Lissafi - Ton commerce, maîtrise."))
         sb.appendLine(sep('='))
         sb.appendLine()

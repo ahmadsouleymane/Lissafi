@@ -3,6 +3,7 @@ package com.lissafi.app.ui.screen
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,6 +40,7 @@ import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PremiumLimitDialog
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SearchField
+import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
@@ -253,6 +255,10 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
         )
     }
 
+    val existingCategories = remember(state.products) {
+        state.products.mapNotNull { it.category.trim().takeIf(String::isNotBlank) }.distinct()
+    }
+
     // Nouveau produit (pré-rempli ou non) — l'utilisateur complète avant d'enregistrer.
     newProductPrefill?.let { prefill ->
         ProductFormDialog(
@@ -260,6 +266,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
             subtitle = "Complète les informations puis enregistre.",
             isNew = true,
             initialProduct = prefill,
+            existingCategories = existingCategories,
             onDismiss = { newProductPrefill = null },
             onSave = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -275,6 +282,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
             subtitle = "Corrige les informations du produit.",
             isNew = false,
             initialProduct = product,
+            existingCategories = existingCategories,
             onDismiss = { editingProduct = null },
             onSave = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -409,6 +417,7 @@ fun ProductFormDialog(
     subtitle: String? = null,
     isNew: Boolean = true,
     initialProduct: Product? = null,
+    existingCategories: List<String> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (Product) -> Unit
 ) {
@@ -492,96 +501,116 @@ fun ProductFormDialog(
                 if (showNameError) {
                     Text("Le nom est obligatoire.", color = Error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 2.dp))
                 }
-                Spacer(Modifier.height(10.dp))
-                AmountField(
-                    value = sellPrice,
-                    onValueChange = {
-                        sellPrice = it
-                        showPriceWarning = false
-                        showSellPriceError = false
-                    },
-                    label = "Prix de vente *"
-                )
-                if (showSellPriceError) {
-                    Text(
-                        text = "Le prix de vente est obligatoire.",
-                        color = Error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+                Spacer(Modifier.height(16.dp))
+
+                SectionHeader(text = "PRIX", modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+                LissafiCard(cornerRadius = 16, containerColor = SurfaceAlt, elevation = 0) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        AmountField(
+                            value = sellPrice,
+                            onValueChange = {
+                                sellPrice = it
+                                showPriceWarning = false
+                                showSellPriceError = false
+                            },
+                            label = "Prix de vente *"
+                        )
+                        if (showSellPriceError) {
+                            Text(
+                                text = "Le prix de vente est obligatoire.",
+                                color = Error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        AmountField(
+                            value = buyPrice,
+                            onValueChange = {
+                                buyPrice = it
+                                showPriceWarning = false
+                            },
+                            label = "Prix d'achat (optionnel)"
+                        )
+                        AnimatedVisibility(showPriceWarning) {
+                            Text(
+                                text = "Le prix d'achat est plus élevé que le prix de vente — tu vendras à perte.",
+                                color = Error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.height(10.dp))
-                AmountField(
-                    value = buyPrice,
-                    onValueChange = {
-                        buyPrice = it
-                        showPriceWarning = false
-                    },
-                    label = "Prix d'achat (optionnel)"
-                )
-                AnimatedVisibility(showPriceWarning) {
-                    Text(
-                        text = "Le prix d'achat est plus élevé que le prix de vente — tu vendras à perte.",
-                        color = Error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+
+                Spacer(Modifier.height(16.dp))
+                SectionHeader(text = "DÉTAILS", modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+                LissafiCard(cornerRadius = 16, containerColor = SurfaceAlt, elevation = 0) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CapsuleTextField(
+                            value = stock,
+                            onValueChange = { stock = it.filter { c -> c.isDigit() } },
+                            placeholder = "Stock",
+                            modifier = Modifier.weight(1f)
+                        )
+                        CategoryPickerField(
+                            value = category,
+                            onValueChange = { category = it },
+                            existingCategories = existingCategories,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CapsuleTextField(
-                        value = stock,
-                        onValueChange = { stock = it.filter { c -> c.isDigit() } },
-                        placeholder = "Stock",
-                        modifier = Modifier.weight(1f)
-                    )
-                    CapsuleTextField(
-                        value = category,
-                        onValueChange = { category = it },
-                        placeholder = "Catégorie",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                TextButton(onClick = { hasBarcode = !hasBarcode }) {
-                    Icon(
-                        imageVector = if (hasBarcode) LissafiIcons.Scanner else LissafiIcons.Produit,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = if (hasBarcode) "Avec code-barres" else "Sans code-barres",
-                        fontSize = 13.sp
-                    )
-                }
-                if (hasBarcode) {
-                    CapsuleTextField(
-                        value = barcodeText,
-                        onValueChange = { barcodeText = it },
-                        placeholder = "Code-barres",
-                        leadingIcon = LissafiIcons.Produit,
-                        trailingIcon = {
-                            IconButton(onClick = { showScanner = true }) {
-                                Icon(
-                                    imageVector = LissafiIcons.Scanner,
-                                    contentDescription = "Scanner un code-barres",
-                                    tint = Primary,
-                                    modifier = Modifier.size(20.dp)
+
+                Spacer(Modifier.height(16.dp))
+                SectionHeader(text = "CODE-BARRES", modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+                LissafiCard(cornerRadius = 16, containerColor = SurfaceAlt, elevation = 0) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        TextButton(onClick = { hasBarcode = !hasBarcode }, contentPadding = PaddingValues(0.dp)) {
+                            Icon(
+                                imageVector = if (hasBarcode) LissafiIcons.Scanner else LissafiIcons.Produit,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = if (hasBarcode) "Avec code-barres" else "Sans code-barres",
+                                fontSize = 13.sp
+                            )
+                        }
+                        if (hasBarcode) {
+                            Spacer(Modifier.height(6.dp))
+                            CapsuleTextField(
+                                value = barcodeText,
+                                onValueChange = { barcodeText = it },
+                                placeholder = "Code-barres",
+                                leadingIcon = LissafiIcons.Produit,
+                                trailingIcon = {
+                                    IconButton(onClick = { showScanner = true }) {
+                                        Icon(
+                                            imageVector = LissafiIcons.Scanner,
+                                            contentDescription = "Scanner un code-barres",
+                                            tint = Primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            )
+                            if (lookupBusy) {
+                                Text("Recherche des informations du produit…", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                            }
+                            // Affiche un vrai code-barres RECTANGULAIRE (et non carré) pour le produit.
+                            if (barcodeText.isNotBlank()) {
+                                Spacer(Modifier.height(10.dp))
+                                BarcodeView(
+                                    barcode = barcodeText.trim(),
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
                                 )
                             }
                         }
-                    )
-                    if (lookupBusy) {
-                        Text("Recherche des informations du produit…", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-                    }
-                    // Affiche un vrai code-barres RECTANGULAIRE (et non carré) pour le produit.
-                    if (barcodeText.isNotBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        BarcodeView(
-                            barcode = barcodeText.trim(),
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
                     }
                 }
             }
@@ -634,6 +663,101 @@ fun ProductFormDialog(
             TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) }
         }
     )
+}
+
+// ============================================================
+// SÉLECTEUR DE CATÉGORIE — liste prédéfinie + catégories déjà
+// utilisées dans le catalogue, plutôt qu'une saisie libre.
+// ============================================================
+private val DEFAULT_CATEGORIES = listOf(
+    "Alimentation", "Boissons", "Hygiène & Beauté", "Ménage",
+    "Électronique", "Vêtements", "Divers"
+)
+private const val CATEGORY_CUSTOM = "Autre (nouvelle catégorie)"
+
+@Composable
+private fun CategoryPickerField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    existingCategories: List<String>,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var manualEdit by remember { mutableStateOf(false) }
+
+    val options = remember(existingCategories) {
+        (DEFAULT_CATEGORIES + existingCategories)
+            .distinctBy { it.lowercase() }
+            .sorted()
+    }
+
+    // Édition libre si l'utilisateur l'a demandé, ou si la valeur actuelle (ex. pré-remplie
+    // par le lookup code-barres) ne correspond à aucune catégorie de la liste — sinon
+    // le champ resterait bloqué en lecture seule sur une valeur qu'on ne peut pas choisir.
+    val isUnlistedValue = value.isNotBlank() && options.none { it.equals(value, ignoreCase = true) }
+    val customMode = manualEdit || isUnlistedValue
+
+    Column(modifier = modifier) {
+        if (customMode) {
+            CapsuleTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = "Nouvelle catégorie",
+                trailingIcon = {
+                    IconButton(onClick = { manualEdit = false; onValueChange("") }) {
+                        Icon(
+                            imageVector = LissafiIcons.Fermer,
+                            contentDescription = "Choisir dans la liste",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            )
+        } else {
+            Box {
+                CapsuleTextField(
+                    value = value,
+                    onValueChange = {},
+                    placeholder = "Catégorie",
+                    trailingIcon = {
+                        Icon(
+                            imageVector = LissafiIcons.Recents,
+                            contentDescription = "Choisir une catégorie",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                )
+                // Overlay cliquable transparent — le champ reste en lecture seule,
+                // toute la surface ouvre la liste de choix.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { expanded = true }
+                )
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option, fontSize = 14.sp) },
+                            onClick = {
+                                onValueChange(option)
+                                expanded = false
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text(CATEGORY_CUSTOM, fontSize = 14.sp, color = Primary) },
+                        onClick = {
+                            manualEdit = true
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
 
 // ============================================================

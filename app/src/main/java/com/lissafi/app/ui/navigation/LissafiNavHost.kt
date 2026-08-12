@@ -6,7 +6,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -16,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -136,8 +139,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         // Sinon : on reste sur ONBOARDING, ne rien faire (évite d'écraser l'onboarding)
     }
 
-    val syncStatus by app.syncManager.status.collectAsState()
-
     val cartViewModel: CartViewModel = remember(userId) { CartViewModel(repository, premiumManager) }
     val productViewModel: ProductViewModel = remember(userId) { ProductViewModel(repository, premiumManager) }
     val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
@@ -160,36 +161,45 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
                     ) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, Border, RoundedCornerShape(28.dp)),
+                            shape = RoundedCornerShape(28.dp),
                             color = Surface,
-                            shadowElevation = 8.dp
+                            shadowElevation = 14.dp
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    .padding(horizontal = 10.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
                                 bottomNavItems.forEach { item ->
                                     val selected = currentRoute == item.route
+                                    val bgColor by animateColorAsState(
+                                        targetValue = if (selected) Primary else Color.Transparent,
+                                        label = "navItemBg"
+                                    )
+                                    val contentColor by animateColorAsState(
+                                        targetValue = if (selected) OnPrimary else TextSecondary,
+                                        label = "navItemContent"
+                                    )
+                                    val scale by animateFloatAsState(
+                                        targetValue = if (selected) 1f else 0.94f,
+                                        label = "navItemScale"
+                                    )
                                     Box(
-                                        modifier = Modifier.weight(1f),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .then(
-                                                    if (selected) Modifier.background(
-                                                        PrimaryContainer,
-                                                        RoundedCornerShape(16.dp)
-                                                    ) else Modifier
-                                                )
+                                                .scale(scale)
+                                                .clip(RoundedCornerShape(18.dp))
+                                                .background(bgColor)
                                                 .clickable {
                                                     navController.navigate(item.route) {
                                                         popUpTo(navController.graph.findStartDestination().id) {
@@ -199,21 +209,26 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                                                         restoreState = true
                                                     }
                                                 }
-                                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                                .padding(horizontal = 14.dp, vertical = 10.dp)
                                         ) {
                                             Icon(
                                                 imageVector = item.icon,
                                                 contentDescription = item.label,
-                                                modifier = Modifier.size(22.dp),
-                                                tint = if (selected) Primary else TextSecondary
+                                                modifier = Modifier.size(20.dp),
+                                                tint = contentColor
                                             )
-                                            Spacer(Modifier.height(2.dp))
-                                            Text(
-                                                text = item.label,
-                                                fontSize = 11.sp,
-                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                                color = if (selected) Primary else TextSecondary
-                                            )
+                                            AnimatedVisibility(visible = selected) {
+                                                Row {
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Text(
+                                                        text = item.label,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = contentColor,
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -252,7 +267,6 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                 composable(Routes.CAISSE) {
                     CaisseScreen(
                         viewModel = cartViewModel,
-                        syncStatus = syncStatus,
                         onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) },
                         onNavigateToClients  = { navController.navigate(Routes.CLIENTS) },
                         onNavigateToReports  = { navController.navigate(Routes.ACTIVITY) },

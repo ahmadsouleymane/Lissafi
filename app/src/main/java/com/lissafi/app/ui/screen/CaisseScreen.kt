@@ -45,7 +45,6 @@ import com.lissafi.app.LissafiApp
 import com.lissafi.app.R
 import com.lissafi.app.data.entity.Client
 import com.lissafi.app.data.entity.Product
-import com.lissafi.app.data.sync.SyncStatus
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.service.ReceiptService
 import com.lissafi.app.ui.components.AmountField
@@ -65,7 +64,6 @@ import com.lissafi.app.ui.components.SecondaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.SegmentedControl
 import com.lissafi.app.ui.components.SuccessPulse
-import com.lissafi.app.ui.components.SyncIndicator
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
@@ -84,13 +82,12 @@ import com.lissafi.app.ui.viewmodel.LastSale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val QUICK_CASH = listOf(500, 1000, 2000, 5000)
+private val QUICK_CASH = listOf(100, 500, 1000, 5000, 10000)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaisseScreen(
     viewModel: CartViewModel,
-    syncStatus: SyncStatus = SyncStatus.IDLE,
     onNavigateToProducts: () -> Unit,
     onNavigateToClients: () -> Unit,
     onNavigateToReports: () -> Unit,
@@ -105,10 +102,12 @@ fun CaisseScreen(
 
     var shopName by remember { mutableStateOf("LISSAFI") }
     var shopPhone by remember { mutableStateOf("") }
+    var receiptFooterMessage by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         val app = context.applicationContext as LissafiApp
         shopName = app.database.getSetting("shop_name")?.ifBlank { null } ?: "LISSAFI"
         shopPhone = app.database.getSetting("shop_phone") ?: ""
+        receiptFooterMessage = app.database.getSetting("receipt_footer_message") ?: ""
     }
 
     var showEncaisseSheet by remember { mutableStateOf(false) }
@@ -181,9 +180,9 @@ fun CaisseScreen(
                     Image(
                         painter = painterResource(id = R.drawable.logo_header),
                         contentDescription = "Lissafi",
-                        modifier = Modifier.height(26.dp)
+                        modifier = Modifier.height(18.dp)
                     )
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(8.dp))
                 },
                 titleFontSize = 18.sp,
                 titleFontWeight = FontWeight.Bold,
@@ -218,11 +217,6 @@ fun CaisseScreen(
                     }
                 }
             )
-
-            // ── INDICATEUR SYNCHRO ──
-            if (syncStatus != SyncStatus.IDLE) {
-                SyncIndicator(status = syncStatus)
-            }
 
             // ── AIDE PREMIÈRE UTILISATION ──
             AnimatedVisibility(
@@ -601,6 +595,7 @@ fun CaisseScreen(
             sale = currentReceipt!!,
             shopName = shopName,
             shopPhone = shopPhone,
+            footerMessage = receiptFooterMessage,
             onImprimer = {
                 val adapter = BluetoothAdapter.getDefaultAdapter()
                 if (adapter != null && adapter.isEnabled) {
@@ -621,7 +616,7 @@ fun CaisseScreen(
                 }
             },
             onWhatsApp = {
-                val receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone)
+                val receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone, receiptFooterMessage)
                 ReceiptService.shareViaWhatsApp(context, receiptText)
                 (context.applicationContext as LissafiApp).supabaseApi.logEvent(
                     eventType = "receipt",
@@ -630,7 +625,7 @@ fun CaisseScreen(
                 )
             },
             onPartager = {
-                val receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone)
+                val receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone, receiptFooterMessage)
                 ReceiptService.shareText(context, receiptText)
                 (context.applicationContext as LissafiApp).supabaseApi.logEvent(
                     eventType = "receipt",
@@ -648,7 +643,7 @@ fun CaisseScreen(
         val printers = remember { ReceiptService.getPairedPrinters() }
         BluetoothPrinterSheet(
             printers = printers,
-            receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone),
+            receiptText = buildReceiptText(currentReceipt!!, context, shopName, shopPhone, receiptFooterMessage),
             onDismiss = { showBluetoothPicker = false }
         )
     }
@@ -1027,13 +1022,16 @@ private fun ReceiptSheet(
     sale: LastSale,
     shopName: String = "LISSAFI",
     shopPhone: String = "",
+    footerMessage: String = "",
     onImprimer: () -> Unit,
     onWhatsApp: () -> Unit,
     onPartager: () -> Unit,
     onFermer: () -> Unit
 ) {
     val context = LocalContext.current
-    val receiptText = remember(sale, shopName, shopPhone) { buildReceiptText(sale, context, shopName, shopPhone) }
+    val receiptText = remember(sale, shopName, shopPhone, footerMessage) {
+        buildReceiptText(sale, context, shopName, shopPhone, footerMessage)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onFermer,
@@ -1094,23 +1092,29 @@ private fun ReceiptSheet(
             }
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SecondaryActionButton(
-                    text = "Imprimer",
-                    icon = LissafiIcons.Imprimer,
-                    onClick = onImprimer,
-                    modifier = Modifier.weight(1f),
-                    height = 52
-                )
                 Button(
-                    onClick = onWhatsApp,
+                    onClick = onImprimer,
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary)
                 ) {
-                    Text("WhatsApp", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Icon(
+                        imageVector = LissafiIcons.Imprimer,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Imprimer", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
+                SecondaryActionButton(
+                    text = "WhatsApp",
+                    icon = LissafiIcons.Partager,
+                    onClick = onWhatsApp,
+                    modifier = Modifier.weight(1f),
+                    height = 52
+                )
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1452,7 +1456,13 @@ private fun ClientPickerSheet(
 // ============================================================
 // TEXTE DU REÇU
 // ============================================================
-fun buildReceiptText(sale: LastSale, context: Context, shopName: String = "LISSAFI", shopPhone: String = ""): String {
+fun buildReceiptText(
+    sale: LastSale,
+    context: Context,
+    shopName: String = "LISSAFI",
+    shopPhone: String = "",
+    footerMessage: String = ""
+): String {
     return ReceiptService.formatReceipt(
         ReceiptService.ReceiptData(
             shopName = shopName.ifBlank { "LISSAFI" },
@@ -1462,7 +1472,8 @@ fun buildReceiptText(sale: LastSale, context: Context, shopName: String = "LISSA
             total = sale.total,
             amountPaid = sale.amountPaid,
             changeGiven = sale.changeGiven,
-            isCredit = sale.isCredit
+            isCredit = sale.isCredit,
+            footerMessage = footerMessage
         )
     )
 }

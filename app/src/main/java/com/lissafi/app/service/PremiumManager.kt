@@ -1,5 +1,6 @@
 package com.lissafi.app.service
 
+import android.net.Uri
 import com.lissafi.app.data.repository.LissafiRepository
 
 class PremiumManager(private val repository: LissafiRepository) {
@@ -7,6 +8,26 @@ class PremiumManager(private val repository: LissafiRepository) {
     companion object {
         const val DEMO_DAYS = 7
         const val PREMIUM_DAYS = 365
+
+        // ⚠️ AVANT DE DISTRIBUER L'APK : remplace `227XXXXXXXX` par le numéro
+        // WhatsApp de contact pour l'activation Premium (format international,
+        // sans espaces ni +) — ex : 22790123456.
+        const val SUPPORT_WHATSAPP_NUMBER = "227XXXXXXXX"
+
+        /** Message pré-rempli envoyé sur WhatsApp pour demander l'activation Premium. */
+        fun buildActivationMessage(shopName: String, email: String?, userId: String?): String {
+            val lines = mutableListOf("Bonjour, je voudrais activer Lissafi Premium.")
+            lines += "Boutique : ${shopName.ifBlank { "—" }}"
+            lines += "Compte : ${email ?: "compte local"}"
+            if (!userId.isNullOrBlank()) lines += "ID : $userId"
+            return lines.joinToString("\n")
+        }
+
+        /** Lien wa.me vers le contact d'activation, message pré-rempli inclus. */
+        fun buildActivationWhatsAppLink(shopName: String, email: String?, userId: String?): String {
+            val message = buildActivationMessage(shopName, email, userId)
+            return "https://wa.me/$SUPPORT_WHATSAPP_NUMBER?text=${Uri.encode(message)}"
+        }
 
         // Codes pré-générés pour la V1 (liste statique)
         private val VALID_CODES = setOf(

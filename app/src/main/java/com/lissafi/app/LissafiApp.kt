@@ -7,6 +7,7 @@ import com.lissafi.app.data.remote.SupabaseApi
 import com.lissafi.app.data.remote.SupabaseManager
 import com.lissafi.app.data.sync.SyncManager
 import com.lissafi.app.data.sync.SyncWorker
+import com.lissafi.app.ui.theme.ThemeManager
 
 class LissafiApp : Application() {
     val database: LissafiDatabase by lazy { LissafiDatabase.getInstance(this) }
@@ -16,6 +17,9 @@ class LissafiApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Charge la préférence de thème clair/sombre avant le premier rendu Compose
+        ThemeManager.init(this)
 
         // Initialise le client HTTP Supabase
         SupabaseManager.getHttpClient()

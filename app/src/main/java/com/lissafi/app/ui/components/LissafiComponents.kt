@@ -6,9 +6,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -85,6 +87,7 @@ object LissafiIcons {
     val Recents    = Lucide.Clock
     val Info       = Lucide.Info
     val Version    = Lucide.FileText
+    val ModeSombre = Lucide.Moon
 }
 
 // ============================================================
@@ -430,8 +433,8 @@ fun PrimaryActionButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = OnPrimary,
-            disabledContainerColor = Color(0xFF000000).copy(alpha = 0.06f),
-            disabledContentColor = Color(0xFF000000).copy(alpha = 0.30f)
+            disabledContainerColor = OnSurface.copy(alpha = 0.12f),
+            disabledContentColor = OnSurface.copy(alpha = 0.38f)
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 2.dp,
@@ -692,9 +695,14 @@ fun QuickAmountChips(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Défilement horizontal : sur petit écran, 5 montants ne tiennent pas tous en
+    // largeur égale sans tronquer le libellé le plus long ("10 000") — on préfère
+    // un scroll fluide à un texte coupé.
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         amounts.forEach { amt ->
             FilterChip(
@@ -702,9 +710,10 @@ fun QuickAmountChips(
                 onClick = { onSelect(amt) },
                 label = {
                     Text(
-                        text = FormatUtils.formatFCFA(amt),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        text = FormatUtils.formatFCFA(amt).removeSuffix(" FCFA"),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1
                     )
                 },
                 shape = RoundedCornerShape(10.dp),
@@ -712,8 +721,7 @@ fun QuickAmountChips(
                     selectedContainerColor = Primary,
                     selectedLabelColor = OnPrimary,
                     containerColor = Surface
-                ),
-                modifier = Modifier.weight(1f)
+                )
             )
         }
     }
@@ -927,7 +935,8 @@ fun InfoRow(
     modifier: Modifier = Modifier,
     iconTint: Color = Primary,
     valueColor: Color = OnBackground,
-    valueWeight: FontWeight = FontWeight.Medium
+    valueWeight: FontWeight = FontWeight.Medium,
+    leadingContent: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -937,12 +946,18 @@ fun InfoRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(18.dp)
-            )
+            if (leadingContent != null) {
+                Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+                    leadingContent()
+                }
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
             Spacer(Modifier.width(8.dp))
             Text(
                 text = label,

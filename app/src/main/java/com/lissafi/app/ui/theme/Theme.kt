@@ -136,39 +136,74 @@ val LissafiShapes = Shapes(
 )
 
 // ============================================================
-// COLOR SCHEME — Light uniquement
+// COLOR SCHEME — clair et sombre, recalculé à chaque recomposition
+// (les propriétés de Color.kt réagissent à ThemeManager.isDark)
 // ============================================================
-private val LissafiLightColorScheme = lightColorScheme(
-    primary = Primary,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryContainer,
-    onPrimaryContainer = OnPrimaryContainer,
-    secondary = Secondary,
-    onSecondary = OnSecondary,
-    secondaryContainer = SecondaryContainer,
-    onSecondaryContainer = OnSecondaryContainer,
-    background = Background,
-    onBackground = OnBackground,
-    surface = Surface,
-    onSurface = OnSurface,
-    surfaceVariant = SurfaceAlt,
-    onSurfaceVariant = TextSecondary,
-    surfaceContainerLowest = Surface,
-    surfaceContainerLow = OffWhite,
-    surfaceContainer = SurfaceAlt,
-    surfaceContainerHigh = Color(0xFFF5F2EB),
-    surfaceContainerHighest = Color(0xFFEDE8DD),
-    outline = Border,
-    outlineVariant = Border,
-    error = Error,
-    onError = OnPrimary,
-    errorContainer = ErrorContainer,
-    onErrorContainer = Error,
-    inverseSurface = Color(0xFF1B1B1B),
-    inverseOnSurface = OnPrimary,
-    inversePrimary = Primary,
-    scrim = Scrim
-)
+private fun lissafiColorScheme(isDark: Boolean) = if (isDark) {
+    darkColorScheme(
+        primary = Primary,
+        onPrimary = OnPrimary,
+        primaryContainer = PrimaryContainer,
+        onPrimaryContainer = OnPrimaryContainer,
+        secondary = Secondary,
+        onSecondary = OnSecondary,
+        secondaryContainer = SecondaryContainer,
+        onSecondaryContainer = OnSecondaryContainer,
+        background = Background,
+        onBackground = OnBackground,
+        surface = Surface,
+        onSurface = OnSurface,
+        surfaceVariant = SurfaceAlt,
+        onSurfaceVariant = TextSecondary,
+        surfaceContainerLowest = Surface,
+        surfaceContainerLow = Color(0xFF181818),
+        surfaceContainer = SurfaceAlt,
+        surfaceContainerHigh = Color(0xFF303030),
+        surfaceContainerHighest = Color(0xFF3A3A3A),
+        outline = Border,
+        outlineVariant = Border,
+        error = Error,
+        onError = OnPrimary,
+        errorContainer = ErrorContainer,
+        onErrorContainer = Error,
+        inverseSurface = Color(0xFFF5F5F5),
+        inverseOnSurface = Color(0xFF121212),
+        inversePrimary = Primary,
+        scrim = Scrim
+    )
+} else {
+    lightColorScheme(
+        primary = Primary,
+        onPrimary = OnPrimary,
+        primaryContainer = PrimaryContainer,
+        onPrimaryContainer = OnPrimaryContainer,
+        secondary = Secondary,
+        onSecondary = OnSecondary,
+        secondaryContainer = SecondaryContainer,
+        onSecondaryContainer = OnSecondaryContainer,
+        background = Background,
+        onBackground = OnBackground,
+        surface = Surface,
+        onSurface = OnSurface,
+        surfaceVariant = SurfaceAlt,
+        onSurfaceVariant = TextSecondary,
+        surfaceContainerLowest = Surface,
+        surfaceContainerLow = OffWhite,
+        surfaceContainer = SurfaceAlt,
+        surfaceContainerHigh = Color(0xFFF5F2EB),
+        surfaceContainerHighest = Color(0xFFEDE8DD),
+        outline = Border,
+        outlineVariant = Border,
+        error = Error,
+        onError = OnPrimary,
+        errorContainer = ErrorContainer,
+        onErrorContainer = Error,
+        inverseSurface = Color(0xFF1B1B1B),
+        inverseOnSurface = OnPrimary,
+        inversePrimary = Primary,
+        scrim = Scrim
+    )
+}
 
 // ============================================================
 // THÈME PRINCIPAL
@@ -177,16 +212,16 @@ private val LissafiLightColorScheme = lightColorScheme(
 fun LissafiTheme(
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LissafiLightColorScheme
+    val isDark = ThemeManager.isDark
+    val colorScheme = lissafiColorScheme(isDark)
     val view = LocalView.current
 
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Barre de statut assortie au fond (clair)
             @Suppress("DEPRECATION")
             window.statusBarColor = Background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
         }
     }
 

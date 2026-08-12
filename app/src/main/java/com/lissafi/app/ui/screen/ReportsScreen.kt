@@ -65,6 +65,11 @@ fun ReportsScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    // Rafraîchit le rapport dès l'entrée sur l'écran, sans action de l'utilisateur.
+    LaunchedEffect(Unit) {
+        viewModel.loadReport(state.period)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -140,7 +145,8 @@ fun ReportsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 4.dp)
+                            .height(IntrinsicSize.Max),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         KpiTile(
@@ -150,7 +156,7 @@ fun ReportsScreen(
                             color = Primary,
                             percentage = if (state.totalVentes > 0) (state.totalComptant.toLong() * 100 / state.totalVentes).toInt() else 0,
                             trend = state.comptantTrend,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                         KpiTile(
                             label = "À crédit",
@@ -159,13 +165,14 @@ fun ReportsScreen(
                             color = Secondary,
                             percentage = if (state.totalVentes > 0) (state.totalCredits.toLong() * 100 / state.totalVentes).toInt() else 0,
                             trend = state.creditTrend,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 4.dp),
+                            .padding(bottom = 4.dp)
+                            .height(IntrinsicSize.Max),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         KpiTile(
@@ -175,7 +182,7 @@ fun ReportsScreen(
                             color = Success,
                             percentage = if (state.totalVentes > 0) (state.estimatedProfit.toLong() * 100 / state.totalVentes).toInt() else 0,
                             trend = state.profitTrend,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                         KpiTile(
                             label = "Panier moyen",
@@ -183,7 +190,7 @@ fun ReportsScreen(
                             icon = LissafiIcons.Panier,
                             color = TextSecondary,
                             percentage = null,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                 }

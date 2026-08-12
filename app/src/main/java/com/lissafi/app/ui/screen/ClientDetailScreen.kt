@@ -295,7 +295,9 @@ private fun MiniStats(client: Client, transactions: List<DebtTransaction>) {
     val daysSince = ((System.currentTimeMillis() - client.createdAt) / (24 * 3600 * 1000)).toInt()
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatMiniCard(
@@ -303,21 +305,21 @@ private fun MiniStats(client: Client, transactions: List<DebtTransaction>) {
             value = "$purchaseCount",
             label = "ventes à crédit",
             color = Secondary,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f).fillMaxHeight()
         )
         StatMiniCard(
             icon = LissafiIcons.Rembourser,
             value = FormatUtils.formatFCFA(totalRepaid).removeSuffix(" FCFA"),
             label = "total remboursé",
             color = Success,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f).fillMaxHeight()
         )
         StatMiniCard(
             icon = LissafiIcons.Recents,
             value = if (daysSince <= 0) "Aujourd'hui" else "Il y a ${daysSince}j",
             label = "client depuis",
             color = Primary,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f).fillMaxHeight()
         )
     }
 }

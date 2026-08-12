@@ -1,5 +1,7 @@
 package com.lissafi.app.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -33,6 +35,7 @@ import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.PrimaryActionButton
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.StatusBadge
+import com.lissafi.app.ui.components.SyncIndicator
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
@@ -44,6 +47,7 @@ import com.lissafi.app.ui.theme.Surface
 import com.lissafi.app.ui.theme.SurfaceAlt
 import com.lissafi.app.ui.theme.TextSecondary
 import com.lissafi.app.ui.theme.TextTertiary
+import com.lissafi.app.ui.theme.ThemeManager
 import com.lissafi.app.ui.viewmodel.SettingsViewModel
 
 @Composable
@@ -60,6 +64,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
+    val isDarkMode = ThemeManager.isDark
     val syncLabel = when (syncStatus) {
         SyncStatus.SYNCING -> "Synchronisation…"
         SyncStatus.SUCCESS -> "À jour"
@@ -139,6 +144,27 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                    }
+                }
+                if (!state.isPremium) {
+                    Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
+                        PrimaryActionButton(
+                            text = "ACTIVER PREMIUM SUR WHATSAPP",
+                            icon = LissafiIcons.Partager,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                val link = PremiumManager.buildActivationWhatsAppLink(
+                                    shopName = state.shopName,
+                                    email = authManager.currentUserEmail(),
+                                    userId = authManager.currentUserId()
+                                )
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil.", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -305,7 +331,7 @@ fun SettingsScreen(
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Nom et téléphone sur le reçu",
+                        text = "Nom, téléphone et message perso sur le reçu",
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
                         color = if (state.isPremium) OnBackground else TextSecondary,
@@ -326,6 +352,49 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(20.dp))
 
+            // ── APPARENCE ──
+            SectionHeader(
+                text = "APPARENCE",
+                icon = LissafiIcons.ModeSombre,
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            )
+            LissafiCard(cornerRadius = 20) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconCircle(
+                        icon = LissafiIcons.ModeSombre,
+                        backgroundColor = Primary.copy(alpha = 0.1f),
+                        iconTint = Primary,
+                        size = 36,
+                        iconSize = 18
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Mode sombre", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = OnBackground)
+                        Text(text = "Repose les yeux le soir", fontSize = 12.sp, color = TextSecondary)
+                    }
+                    Switch(
+                        checked = isDarkMode,
+                        onCheckedChange = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            ThemeManager.setDark(context, it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Surface,
+                            checkedTrackColor = Primary,
+                            uncheckedThumbColor = Surface,
+                            uncheckedTrackColor = TextTertiary
+                        )
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
             // ── DONNÉES ──
             SectionHeader(
                 text = "DONNÉES",
@@ -338,17 +407,38 @@ fun SettingsScreen(
                         icon = LissafiIcons.Sync,
                         label = "Synchronisation",
                         value = syncLabel,
+                        leadingContent = { SyncIndicator(status = syncStatus) },
                         valueColor = when (syncStatus) {
                             SyncStatus.ERROR, SyncStatus.NOT_CONFIGURED -> Secondary
                             SyncStatus.NO_SESSION -> TextSecondary
                             else -> OnBackground
                         }
                     )
-                    HorizontalDivider(color = Border, thickness = 0.5.dp)
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── À PROPOS ──
+            SectionHeader(
+                text = "À PROPOS",
+                icon = LissafiIcons.Version,
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            )
+            LissafiCard(cornerRadius = 20) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     InfoRow(
                         icon = LissafiIcons.Version,
                         label = "Version",
                         value = "1.0.0"
+                    )
+                    HorizontalDivider(color = Border, thickness = 0.5.dp)
+                    Text(
+                        text = "Lissafi — caisse enregistreuse pour petits commerces. Fonctionne sans connexion, avec synchronisation automatique dès que le réseau revient.",
+                        fontSize = 12.sp,
+                        color = TextSecondary,
+                        lineHeight = 17.sp,
+                        modifier = Modifier.padding(vertical = 10.dp)
                     )
                 }
             }
@@ -359,10 +449,11 @@ fun SettingsScreen(
         ShopInfoDialog(
             currentName = state.shopName,
             currentPhone = state.shopPhone,
+            currentFooterMessage = state.receiptFooterMessage,
             onDismiss = { showShopDialog = false },
-            onSave = { name, phone ->
+            onSave = { name, phone, footerMessage ->
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.saveShopInfo(name, phone)
+                viewModel.saveShopInfo(name, phone, footerMessage)
                 showShopDialog = false
             }
         )
@@ -476,11 +567,13 @@ private fun ReportIssueDialog(
 private fun ShopInfoDialog(
     currentName: String,
     currentPhone: String,
+    currentFooterMessage: String,
     onDismiss: () -> Unit,
-    onSave: (name: String, phone: String) -> Unit
+    onSave: (name: String, phone: String, footerMessage: String) -> Unit
 ) {
     var name by remember { mutableStateOf(currentName) }
     var phone by remember { mutableStateOf(currentPhone) }
+    var footerMessage by remember { mutableStateOf(currentFooterMessage) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -535,13 +628,20 @@ private fun ShopInfoDialog(
                     placeholder = "Téléphone",
                     leadingIcon = LissafiIcons.Client
                 )
+                Spacer(Modifier.height(10.dp))
+                CapsuleTextField(
+                    value = footerMessage,
+                    onValueChange = { footerMessage = it },
+                    placeholder = "Message de remerciement (reçu)",
+                    leadingIcon = LissafiIcons.Imprimer
+                )
             }
         },
         confirmButton = {
             PrimaryActionButton(
                 text = "ENREGISTRER",
                 icon = LissafiIcons.Valider,
-                onClick = { onSave(name.trim(), phone.trim()) }
+                onClick = { onSave(name.trim(), phone.trim(), footerMessage.trim()) }
             )
         },
         dismissButton = {
