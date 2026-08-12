@@ -10,10 +10,10 @@ const ITEMS = [
   },
   {
     q: "C'est quoi la limite de la version gratuite ?",
-    a: "10 produits et 10 clients. Les ventes et l'historique restent illimités. C'est fait pour que tu testes en conditions réelles. Essentiel ou Premium débloquent tout, sans limite.",
+    a: "10 produits, 10 clients et 10 ventes par jour. C'est fait pour que tu testes en conditions réelles. Lissafi Plus ou Business débloquent beaucoup plus, sans limite de ventes.",
   },
   {
-    q: "Comment je paie Essentiel ou Premium ?",
+    q: "Comment je paie Lissafi Plus ou Business ?",
     a: "En espèces ou par mobile money. Une fois le paiement réglé, tu reçois un code d'activation à entrer dans l'app (Réglages → Mon offre). Ton offre est active 365 jours, sans abonnement qui se renouvelle tout seul.",
   },
   {
