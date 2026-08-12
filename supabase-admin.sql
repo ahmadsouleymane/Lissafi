@@ -453,9 +453,14 @@ CREATE OR REPLACE FUNCTION public.guard_premium_keys() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $func$
 BEGIN
+    -- Fenêtre de passage autorisée UNIQUEMENT par redeem_premium_code()
+    -- (qui positionne la config `lissafi.redeem` en interne — un client ne
+    -- peut pas la poser via PostgREST). Le service_role et les admins passent
+    -- toujours (auth.uid() NULL pour service_role, ou is_admin()).
     IF NEW.key IN ('is_premium', 'premium_expiry', 'activation_code', 'demo_taken')
        AND auth.uid() IS NOT NULL
-       AND NOT public.is_admin() THEN
+       AND NOT public.is_admin()
+       AND coalesce(current_setting('lissafi.redeem', true), '') <> 'true' THEN
         RAISE EXCEPTION 'forbidden key: %', NEW.key;
     END IF;
     RETURN NEW;

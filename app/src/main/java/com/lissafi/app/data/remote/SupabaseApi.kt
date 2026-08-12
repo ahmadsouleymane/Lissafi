@@ -13,6 +13,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +47,18 @@ private data class SupportTicketPayload(
 @Serializable
 private data class UpsertDeviceTokenRpcPayload(
     val p_token: String
+)
+
+@Serializable
+private data class RedeemPremiumPayload(
+    val p_code: String
+)
+
+@Serializable
+data class RedeemPremiumResult(
+    val ok: Boolean = false,
+    val plan: String = "",
+    val premium_expiry: Long? = null
 )
 
 /**
@@ -199,7 +212,7 @@ class SupabaseApi(private val context: Context) {
     suspend fun insertSale(sale: Sale, items: List<SaleItem>): Long = withContext(Dispatchers.IO) {
         ensureValidUser()
         val t = token
-        Log.d("LissafiSupabase", "Insert sale - userId: ${sale.userId}, total: ${sale.total}")
+        Log.d("LissafiSupabase", "Insert sale OK")
         val response = http.post(restUrl("sales")) {
             header("apikey", anonKey)
             t?.let { header("Authorization", "Bearer $it") }
@@ -391,6 +404,30 @@ class SupabaseApi(private val context: Context) {
         }
         ensureSuccess(response, "getAllSettings")
         response.body<List<AppSetting>>()
+    }
+
+    /**
+     * Active un code premium côté serveur (`redeem_premium_code`, SECURITY
+     * DEFINER). Le code est validé, marqué utilisé et les réglages premium
+     * sont posés sur Supabase. Les codes ne vivent plus dans l'APK.
+     * Lève [SupabaseException] si le code est invalide/déjà utilisé ou si
+     * l'appel échoue (le message serveur est conservé pour l'UI).
+     */
+    suspend fun redeemPremiumCode(code: String): RedeemPremiumResult = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        ensureFreshSession()
+        val authToken = token ?: throw SupabaseException("Session invalide")
+        val response = http.post(restUrl("rpc/redeem_premium_code")) {
+            header("apikey", anonKey)
+            header("Authorization", "Bearer $authToken")
+            contentType(ContentType.Application.Json)
+            setBody(RedeemPremiumPayload(p_code = code))
+        }
+        if (response.status.value !in 200..299) {
+            val body = try { response.bodyAsText() } catch (_: Exception) { "" }
+            throw SupabaseException("redeem: HTTP ${response.status.value}: $body")
+        }
+        response.body<RedeemPremiumResult>()
     }
 
     // ==================== LOGS & SUPPORT (back-office) ====================

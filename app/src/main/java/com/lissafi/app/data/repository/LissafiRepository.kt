@@ -114,7 +114,7 @@ class LissafiRepository(
 
     suspend fun isPremium(): Boolean = getSetting("is_premium") == "true"
     suspend fun getPremiumExpiry(): Long? = getSetting("premium_expiry")?.toLongOrNull()
-    suspend fun getAdminPin(): String = getSetting("admin_pin") ?: "0000"
+    suspend fun getAdminPin(): String = getSetting("admin_pin").orEmpty()
     suspend fun getShopName(): String = getSetting("shop_name") ?: ""
     suspend fun getShopPhone(): String = getSetting("shop_phone") ?: ""
 

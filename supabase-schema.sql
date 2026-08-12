@@ -160,3 +160,83 @@ $func$;
 
 REVOKE EXECUTE ON FUNCTION public.upsert_device_token(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.upsert_device_token(text) TO authenticated;
+
+-- ============================================================
+-- 8. ACTIVATION PREMIUM CÔTÉ SERVEUR (les codes ne vivent plus dans l'APK)
+-- ============================================================
+-- Les codes sont ici, à usage unique, validés côté serveur. L'app appelle
+-- redeem_premium_code() avec le code saisi ; la fonction vérifie le code, le
+-- marque utilisé et pose les réglages premium. La table n'est ni lisible ni
+-- modifiable par les clients (RLS + REVOKE) — seul service_role / la fonction.
+CREATE TABLE IF NOT EXISTS public.premium_codes (
+    code TEXT PRIMARY KEY,
+    plan TEXT NOT NULL CHECK (plan IN ('plus', 'business')),
+    used_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    used_at BIGINT,
+    created_at BIGINT NOT NULL DEFAULT (extract(epoch FROM now()) * 1000)::bigint
+);
+
+ALTER TABLE public.premium_codes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.premium_codes FROM anon, authenticated;
+
+-- Génère 20 codes Plus + 5 codes Business la PREMIÈRE fois uniquement
+-- (idempotent : les runs suivants ne recréent rien).
+INSERT INTO public.premium_codes (code, plan)
+SELECT 'LISSAFI-PLUS-' || upper(substr(md5(random()::text || gen_random_uuid()::text), 1, 10)), 'plus'
+FROM generate_series(1, 20)
+WHERE NOT EXISTS (SELECT 1 FROM public.premium_codes);
+
+INSERT INTO public.premium_codes (code, plan)
+SELECT 'LISSAFI-BUSINESS-' || upper(substr(md5(random()::text || gen_random_uuid()::text), 1, 10)), 'business'
+FROM generate_series(1, 5)
+WHERE NOT EXISTS (SELECT 1 FROM public.premium_codes WHERE plan = 'business');
+
+-- Valide et active un code pour l'utilisateur connecté (auth.uid()).
+-- SECURITY DEFINER : pose les réglages malgré la RLS. Ouvre la fenêtre
+-- `lissafi.redeem` que le trigger guard_premium_keys (supabase-admin.sql)
+-- exige pour autoriser l'écriture — un utilisateur lambda ne peut pas la
+-- reproduire lui-même (config non positionnable par PostgREST).
+CREATE OR REPLACE FUNCTION public.redeem_premium_code(p_code text)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE
+    v_plan text;
+    v_expiry bigint;
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'not_authenticated';
+    END IF;
+
+    SELECT plan INTO v_plan
+    FROM public.premium_codes
+    WHERE code = p_code AND used_by IS NULL
+    FOR UPDATE;
+
+    IF v_plan IS NULL THEN
+        RAISE EXCEPTION 'code_invalide_ou_utilise';
+    END IF;
+
+    v_expiry := (extract(epoch FROM now() + interval '365 days') * 1000)::bigint;
+
+    UPDATE public.premium_codes
+    SET used_by = auth.uid(),
+        used_at = (extract(epoch FROM now()) * 1000)::bigint
+    WHERE code = p_code;
+
+    PERFORM set_config('lissafi.redeem', 'true', true);
+
+    INSERT INTO public.app_settings (key, value, user_id) VALUES
+        ('is_premium', 'true', auth.uid()),
+        ('plan', v_plan, auth.uid()),
+        ('premium_expiry', v_expiry::text, auth.uid()),
+        ('activation_code', p_code, auth.uid()),
+        ('demo_taken', 'true', auth.uid())
+    ON CONFLICT (key, user_id) DO UPDATE SET value = EXCLUDED.value;
+
+    RETURN jsonb_build_object('ok', true, 'plan', v_plan, 'premium_expiry', v_expiry);
+END;
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.redeem_premium_code(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.redeem_premium_code(text) TO authenticated;

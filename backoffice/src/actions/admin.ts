@@ -28,7 +28,10 @@ export async function activatePremium(userId: string, days = 365, plan = "plus")
     ],
     { onConflict: "key,user_id" }
   );
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] activatePremium:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAction("premium_activate", userId, { days: n, expiry, plan });
   revalidatePath("/", "layout");
@@ -58,7 +61,10 @@ export async function addPremiumDays(userId: string, days: number): Promise<Acti
     ],
     { onConflict: "key,user_id" }
   );
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] addPremiumDays:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAction("premium_add_days", userId, { days: n, newExpiry });
   revalidatePath("/", "layout");
@@ -85,7 +91,10 @@ export async function deactivatePremium(userId: string): Promise<ActionResult> {
     ],
     { onConflict: "key,user_id" }
   );
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] deactivatePremium:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAction("premium_deactivate", userId, {});
   revalidatePath("/", "layout");
@@ -102,7 +111,10 @@ export async function updateTicketStatus(ticketId: number, status: string): Prom
     .from("support_tickets")
     .update({ status, updated_at: Date.now() })
     .eq("id", ticketId);
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] updateTicketStatus:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAction("ticket_status", null, { ticketId, status });
   revalidatePath("/support", "layout");
@@ -121,7 +133,10 @@ export async function replyToTicket(ticketId: number, message: string): Promise<
     is_admin: true,
     created_at: Date.now(),
   });
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] replyToTicket:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await supabaseAdmin()
     .from("support_tickets")
@@ -144,7 +159,10 @@ export async function replyToTicketForm(_prev: ActionResult | undefined, formDat
 export async function deleteTicket(ticketId: number): Promise<ActionResult> {
   await requireAdmin();
   const { error } = await supabaseAdmin().from("support_tickets").delete().eq("id", ticketId);
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] deleteTicket:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAction("ticket_delete", null, { ticketId });
   revalidatePath("/support", "layout");
@@ -166,10 +184,13 @@ export async function resetUserPasswordForm(_prev: ActionResult | undefined, for
 /** Réinitialise le mot de passe d'un utilisateur (GoTrue admin API). */
 export async function resetUserPassword(userId: string, password: string): Promise<ActionResult> {
   await requireAdmin();
-  if (password.length < 6) return { error: "Mot de passe trop court (6 caractères minimum)." };
+  if (password.length < 8) return { error: "Mot de passe trop court (8 caractères minimum)." };
 
   const { error } = await supabaseAdmin().auth.admin.updateUserById(userId, { password });
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] resetUserPassword:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAction("user_password_reset", userId, {});
   return { ok: true };

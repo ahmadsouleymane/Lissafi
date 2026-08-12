@@ -119,6 +119,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 
+    // Chiffrement des préférences (tokens de session GoTrue au repos)
+    implementation(libs.androidx.security.crypto)
+
     // Core library desugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

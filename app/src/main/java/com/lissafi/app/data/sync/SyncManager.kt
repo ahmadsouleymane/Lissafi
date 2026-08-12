@@ -207,7 +207,7 @@ class SyncManager(
                 // Aligner l'id local sur l'id généré par Supabase → pas de doublons au pull
                 if (remoteId != sale.id) db.reassignSaleId(sale.id, remoteId)
                 db.markSaleSynced(remoteId)
-                Log.d(TAG, "Push vente ${sale.id} → remote $remoteId: OK")
+                Log.d(TAG, "Push vente → remote OK")
             }
         }
     }
@@ -226,8 +226,17 @@ class SyncManager(
 
     private suspend fun pushSettings() {
         val settings = db.getAllSettings()
+        // Clés pilotées par le serveur (premium posé par redeem_premium_code ou
+        // le back-office) ou strictement locales (PIN admin) : on ne les pousse
+        // JAMAIS — le trigger guard_premium_keys les refuserait et le PIN doit
+        // rester sur l'appareil.
+        val serverManaged = setOf(
+            "is_premium", "plan", "premium_expiry", "activation_code",
+            "demo_taken", "activation_method", "admin_pin"
+        )
         for (setting in settings) {
             if (setting.key == "last_sync_timestamp") continue // Ne pas sync le timestamp
+            if (setting.key in serverManaged) continue
             api.setSetting(setting.key, setting.value)
         }
         Log.d(TAG, "Push paramètres terminé")
@@ -237,56 +246,86 @@ class SyncManager(
 
     private suspend fun pullProducts() {
         val remote = api.getAllProducts()
+        val uid = currentUserId
+        var skipped = 0
         for (product in remote) {
+            // Validation d'intégrité : montants/stock non négatifs, nom présent,
+            // ligne liée au compte connecté (RLS en défense, mais on ne fait pas
+            // confiance à un serveur compromis).
+            if (product.userId != uid ||
+                product.name.isBlank() ||
+                product.sellPrice < 0 ||
+                product.buyPrice < 0 ||
+                product.stock < 0
+            ) { skipped++; continue }
             db.upsertProduct(product)
         }
-        Log.d(TAG, "Pull produits: ${remote.size} reçus")
+        Log.d(TAG, "Pull produits: ${remote.size} reçus, $skipped ignorés")
     }
 
     private suspend fun pullClients() {
         val remote = api.getAllClients()
+        val uid = currentUserId
+        var skipped = 0
         for (client in remote) {
+            if (client.userId != uid ||
+                client.name.isBlank() ||
+                client.totalDebt < 0
+            ) { skipped++; continue }
             db.upsertClient(client)
         }
-        Log.d(TAG, "Pull clients: ${remote.size} reçus")
+        Log.d(TAG, "Pull clients: ${remote.size} reçus, $skipped ignorés")
     }
 
     private suspend fun pullSales() {
         // Récupérer TOUT l'historique : après une réinstallation ou sur un 2e appareil,
         // les ventes anciennes ne doivent pas disparaître (avant : limité à 30 jours).
+        val uid = currentUserId
         val remote = api.getSalesBetween(0L, System.currentTimeMillis())
+        var skipped = 0
         for (sale in remote) {
+            if (sale.userId != uid || sale.total < 0 || sale.amountPaid < 0) { skipped++; continue }
             if (!db.saleExists(sale.id)) {
                 // On récupère d'abord les articles : si l'opération échoue, la vente
                 // n'est pas insérée partiellement et sera retentée au prochain sync.
                 val items = api.getSaleItems(sale.id)
                 db.insertSaleIfNotExists(sale)
                 for (item in items) {
+                    if (item.userId != uid || item.price < 0 || item.quantity <= 0) { skipped++; continue }
                     db.insertSaleItemIfNotExists(item)
                 }
             }
         }
-        Log.d(TAG, "Pull ventes: ${remote.size} reçues")
+        Log.d(TAG, "Pull ventes: ${remote.size} reçues, $skipped ignorées")
     }
 
     private suspend fun pullDebtTransactions() {
-        val userId = SupabaseManager.currentUserId(context) ?: ""
-        val clients = db.getAllClients(userId)
+        val uid = currentUserId
+        val clients = db.getAllClients(uid)
+        var skipped = 0
         for (client in clients) {
             val remote = api.getDebtTransactions(client.id)
             for (txn in remote) {
+                if (txn.userId != uid || txn.amount < 0) { skipped++; continue }
                 db.insertDebtTransactionIfNotExists(txn)
             }
         }
-        Log.d(TAG, "Pull dettes terminé")
+        Log.d(TAG, "Pull dettes terminé, $skipped ignorées")
     }
 
     private suspend fun pullSettings() {
         val remote = api.getAllSettings()
         for (setting in remote) {
             if (setting.key == "last_sync_timestamp") continue
+            // Les clés premium/PIN ne sont pas poussées ; au pull on applique
+            // l'état du serveur pour le premium, mais on ne touche pas au PIN
+            // local (il n'existe pas côté serveur).
+            if (setting.key == "admin_pin") continue
             db.setSetting(setting.key, setting.value)
         }
         Log.d(TAG, "Pull paramètres: ${remote.size} reçus")
     }
+
+    private val currentUserId: String
+        get() = SupabaseManager.currentUserId(context) ?: ""
 }

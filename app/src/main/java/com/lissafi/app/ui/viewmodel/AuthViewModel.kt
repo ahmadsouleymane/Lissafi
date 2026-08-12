@@ -75,8 +75,8 @@ class AuthViewModel(
             _state.value = state.copy(message = "Remplis tous les champs.", isError = true)
             return
         }
-        if (state.password.length < 6) {
-            _state.value = state.copy(message = "Le mot de passe doit faire au moins 6 caractères.", isError = true)
+        if (state.password.length < 8) {
+            _state.value = state.copy(message = "Le mot de passe doit faire au moins 8 caractères.", isError = true)
             return
         }
         if (state.password != state.confirmPassword) {

@@ -1,6 +1,9 @@
 package com.lissafi.app.data.remote
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.HttpTimeout
@@ -22,6 +25,25 @@ object SupabaseManager {
     private val UUID_REGEX = Regex(
         "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     )
+
+    /**
+     * Préférences CHIFFRÉES (clé Android Keystore, AES256-GCM).
+     * Les tokens de session GoTrue (dont le refresh token à longue durée)
+     * ne doivent plus vivre en clair sur disque : volés sur un appareil
+     * compromis, ils donnent un accès permanent au compte.
+     */
+    private fun prefs(context: Context): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     const val DEFAULT_URL = "https://fnyuhpfzkvunscuylvqv.supabase.co"
     const val DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZueXVocGZ6a3Z1bnNjdXlsdnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4Mjk3NDgsImV4cCI6MjEwMTQwNTc0OH0.A1lcEsXv8FDsYb4yd3lohd7CtyQy9K5VMXl7QsBuY1Q"
@@ -51,19 +73,19 @@ object SupabaseManager {
     }
 
     fun getUrl(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = prefs(context)
         return prefs.getString(KEY_URL, DEFAULT_URL) ?: DEFAULT_URL
     }
 
     fun getAnonKey(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = prefs(context)
         return prefs.getString(KEY_ANON_KEY, DEFAULT_ANON_KEY) ?: DEFAULT_ANON_KEY
     }
 
     // ==================== Session ====================
 
     fun saveSession(context: Context, accessToken: String, refreshToken: String, userId: String, email: String) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+        prefs(context).edit().apply {
             putString(KEY_ACCESS_TOKEN, accessToken)
             putString(KEY_REFRESH_TOKEN, refreshToken)
             putString(KEY_USER_ID, userId)
@@ -73,7 +95,7 @@ object SupabaseManager {
     }
 
     fun clearSession(context: Context) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+        prefs(context).edit().apply {
             remove(KEY_ACCESS_TOKEN)
             remove(KEY_REFRESH_TOKEN)
             remove(KEY_USER_ID)
@@ -83,11 +105,11 @@ object SupabaseManager {
     }
 
     fun getAccessToken(context: Context): String? {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_ACCESS_TOKEN, null)
+        return prefs(context).getString(KEY_ACCESS_TOKEN, null)
     }
 
     fun getRefreshToken(context: Context): String? {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_REFRESH_TOKEN, null)
+        return prefs(context).getString(KEY_REFRESH_TOKEN, null)
     }
 
     /**
@@ -130,15 +152,15 @@ object SupabaseManager {
         getAccessToken(context) != null && isValidUserId(currentUserId(context))
 
     fun currentUserId(context: Context): String? {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_USER_ID, null)
+        return prefs(context).getString(KEY_USER_ID, null)
     }
 
     fun currentUserEmail(context: Context): String? {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_USER_EMAIL, null)
+        return prefs(context).getString(KEY_USER_EMAIL, null)
     }
 
     fun configure(context: Context, url: String, anonKey: String) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+        prefs(context).edit().apply {
             putString(KEY_URL, url)
             putString(KEY_ANON_KEY, anonKey)
             apply()

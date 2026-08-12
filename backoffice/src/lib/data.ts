@@ -45,6 +45,22 @@ export async function getUserSummaries(): Promise<UserSummary[]> {
   return Array.isArray(data) ? (data as UserSummary[]) : [];
 }
 
+export type AvailablePremiumCode = { code: string; plan: string; created_at: string };
+
+/** Codes premium non utilisés (à vendre). Accès service_role uniquement. */
+export async function getAvailablePremiumCodes(): Promise<AvailablePremiumCode[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("premium_codes")
+    .select("code, plan, created_at")
+    .is("used_by", null)
+    .limit(200);
+  if (error) {
+    console.error("[admin] getAvailablePremiumCodes:", error);
+    return [];
+  }
+  return (data ?? []) as AvailablePremiumCode[];
+}
+
 /** Map user_id → email (léger, pour joindre les emails dans les listes). */
 export async function getUserEmails(): Promise<Record<string, string>> {
   const { data } = await supabaseAdmin().rpc("admin_user_emails");

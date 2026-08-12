@@ -96,7 +96,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         LissafiRepository(db, api, onDataChanged = { app.syncManager.syncInBackground() })
             .withUserId(userId)
     }
-    val premiumManager = remember(userId) { PremiumManager(repository) }
+    val premiumManager = remember(userId) { PremiumManager(repository, api) }
 
     val navController = rememberNavController()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(

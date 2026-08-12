@@ -1,9 +1,13 @@
 package com.lissafi.app.service
 
 import android.net.Uri
+import com.lissafi.app.data.remote.SupabaseApi
 import com.lissafi.app.data.repository.LissafiRepository
 
-class PremiumManager(private val repository: LissafiRepository) {
+class PremiumManager(
+    private val repository: LissafiRepository,
+    private val api: SupabaseApi
+) {
 
     companion object {
         const val DEMO_DAYS = 7
@@ -37,22 +41,6 @@ class PremiumManager(private val repository: LissafiRepository) {
             return "https://wa.me/$SUPPORT_WHATSAPP_NUMBER?text=${Uri.encode(message)}"
         }
 
-        // Codes Plus (V1) — activation du plan de volume
-        private val VALID_CODES = setOf(
-            "LISSAFI-PREMIUM-0001", "LISSAFI-PREMIUM-0002", "LISSAFI-PREMIUM-0003",
-            "LISSAFI-PREMIUM-0004", "LISSAFI-PREMIUM-0005", "LISSAFI-PREMIUM-0006",
-            "LISSAFI-PREMIUM-0007", "LISSAFI-PREMIUM-0008", "LISSAFI-PREMIUM-0009",
-            "LISSAFI-PREMIUM-0010", "LISSAFI-PREMIUM-0011", "LISSAFI-PREMIUM-0012",
-            "LISSAFI-PREMIUM-0013", "LISSAFI-PREMIUM-0014", "LISSAFI-PREMIUM-0015",
-            "LISSAFI-PREMIUM-0016", "LISSAFI-PREMIUM-0017", "LISSAFI-PREMIUM-0018",
-            "LISSAFI-PREMIUM-0019", "LISSAFI-PREMIUM-0020"
-        )
-
-        // Codes Business — activation du plan haut de gamme (tout illimité)
-        private val BUSINESS_CODES = setOf(
-            "LISSAFI-BUSINESS-0001", "LISSAFI-BUSINESS-0002", "LISSAFI-BUSINESS-0003",
-            "LISSAFI-BUSINESS-0004", "LISSAFI-BUSINESS-0005"
-        )
     }
 
     /** Les trois niveaux : gratuits, plan de volume, plan haut de gamme. */
@@ -96,28 +84,29 @@ class PremiumManager(private val repository: LissafiRepository) {
     }
 
     /**
-     * Active Plus (code LISSAFI-PREMIUM-*) ou Business (code LISSAFI-BUSINESS-*).
-     * Un code ne peut être utilisé qu'UNE fois sur cet appareil : sinon, un
-     * code partagé re-grantait 365 jours à l'infini.
+     * Active Plus ou Business via un code VALIDÉ CÔTÉ SERVEUR
+     * (`redeem_premium_code`). Les codes ne sont plus embarqués dans l'APK :
+     * un code est à usage unique, lié au compte qui l'a saisi. Sans réseau ou
+     * sans session, l'activation échoue (retour false).
      */
     suspend fun activateWithCode(code: String): Boolean {
-        val plan = when {
-            BUSINESS_CODES.contains(code) -> "business"
-            VALID_CODES.contains(code) -> "plus"
-            else -> return false
-        }
-        val previous = repository.getSetting("activation_code")
-        if (previous == code) return false
+        val trimmed = code.trim()
+        if (trimmed.isBlank()) return false
+        return try {
+            val result = api.redeemPremiumCode(trimmed)
+            if (!result.ok) return false
 
-        val expiry = System.currentTimeMillis() + PREMIUM_DAYS * 24 * 60 * 60 * 1000L
-        repository.setSetting("is_premium", "true")
-        repository.setSetting("plan", plan)
-        repository.setSetting("premium_expiry", expiry.toString())
-        repository.setSetting("activation_code", code)
-        // La démo est consommée dès qu'un code est utilisé : pas de 7 jours bonus
-        // après l'expiration du code.
-        repository.setSetting("demo_taken", "true")
-        return true
+            // On répercute localement l'état posé par le serveur.
+            repository.setSetting("is_premium", "true")
+            repository.setSetting("plan", if (result.plan == "business") "business" else "plus")
+            result.premium_expiry?.let { repository.setSetting("premium_expiry", it.toString()) }
+            repository.setSetting("activation_code", trimmed)
+            // La démo est consommée dès qu'un code est utilisé.
+            repository.setSetting("demo_taken", "true")
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /** Libre selon le plan : FREE ≤10, PLUS ≤100, BUSINESS illimité. */

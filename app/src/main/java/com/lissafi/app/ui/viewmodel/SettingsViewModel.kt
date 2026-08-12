@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.FormatUtils
+import com.lissafi.app.service.PinHasher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,7 @@ data class SettingsState(
     val shopName: String = "",
     val shopPhone: String = "",
     val receiptFooterMessage: String = "",
-    val adminPin: String = "0000",
+    val adminPin: String = "",
     val isPremium: Boolean = false,
     val plan: String = "free", // "free" | "plus" | "business"
     val premiumExpiry: Long? = null,
@@ -77,8 +78,10 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
     fun changeAdminPin(newPin: String): Boolean {
         if (newPin.length != 4 || !newPin.all { it.isDigit() }) return false
         viewModelScope.launch {
-            repository.setSetting("admin_pin", newPin)
-            _state.value = _state.value.copy(adminPin = newPin)
+            // On ne stocke que le HASH (jamais le PIN en clair), et le PIN
+            // n'est plus synchronisé (voir pushSettings — clé exclue).
+            repository.setSetting("admin_pin", PinHasher.hash(newPin))
+            _state.value = _state.value.copy(adminPin = "")
         }
         return true
     }

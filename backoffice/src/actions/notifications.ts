@@ -58,7 +58,10 @@ export async function sendManualNotificationForm(_prev: ActionResult | undefined
     .from("device_tokens")
     .select("fcm_token")
     .in("user_id", targetUserIds);
-  if (tokenError) return { error: tokenError.message };
+  if (tokenError) {
+    console.error("[notifications] sendManualNotificationForm:", tokenError);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   const tokens = (tokenRows ?? []).map((r) => r.fcm_token as string);
   const { success, failed } = await sendPushToTokens(tokens, title, body);
@@ -90,7 +93,10 @@ export async function setRecapNotificationsEnabled(enabled: boolean): Promise<Ac
   const { error } = await supabaseAdmin()
     .from("admin_settings")
     .upsert({ key: "recap_notifications_enabled", value: enabled ? "true" : "false" });
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[notifications] setRecapNotificationsEnabled:", error);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
 
   await logAdminAction("recap_toggle", null, { enabled });
   revalidatePath("/notifications", "layout");

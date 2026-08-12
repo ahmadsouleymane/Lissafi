@@ -3,7 +3,7 @@ import { activatePremiumQuick, activateBusinessQuick, addPremiumDaysQuick, deact
 import { ConfirmForm } from "@/components/ConfirmForm";
 import { Badge, Button, Card, EmptyState, PageHeader, Table, Td, Th, THead, Tr } from "@/components/ui";
 import { IconCrown } from "@/components/icons";
-import { getUserSummaries } from "@/lib/data";
+import { getAvailablePremiumCodes, getUserSummaries } from "@/lib/data";
 import { daysUntil, formatDate, formatDateTimeIso, toNumber } from "@/lib/format";
 import type { UserSummary } from "@/types";
 
@@ -12,6 +12,7 @@ export default async function PremiumPage({ searchParams }: { searchParams: Prom
   const status = params.status ?? "all";
   const q = (params.q ?? "").toLowerCase().trim();
   const users = await getUserSummaries();
+  const codes = await getAvailablePremiumCodes();
   const now = Date.now();
 
   const sorted = users
@@ -59,6 +60,34 @@ export default async function PremiumPage({ searchParams }: { searchParams: Prom
           <p className="text-2xl font-bold text-red-500">{expired}</p>
         </Card>
       </div>
+
+      <Card className="p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-700">Codes premium disponibles</p>
+          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+            {codes.length} non utilisé(s)
+          </span>
+        </div>
+        {codes.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            Aucun code disponible. Génère-en via le SQL Editor (INSERT dans premium_codes).
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {codes.map((c) => (
+              <div
+                key={c.code}
+                className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+              >
+                <code className="truncate text-xs text-slate-700">{c.code}</code>
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  {c.plan}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Card className="p-4">
         <form method="GET" action="/premium" className="flex flex-col gap-3 sm:flex-row">
