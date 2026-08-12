@@ -42,8 +42,9 @@ const TIERS = [
     sub: "= 205 F par jour",
     features: [
       ["Tout Lissafi Plus", true],
-      ["Produits, clients et crédits illimités", true],
-      ["Plusieurs utilisateurs sur le même compte", true],
+      ["Produits illimités", true],
+      ["Clients & crédits illimités", true],
+      ["Jusqu'à 5 utilisateurs sur le même compte", true],
       ["Sauvegarde cloud renforcée", true],
       ["Accompagnement au démarrage", true],
       ["Formation de ton équipe sur place", true],

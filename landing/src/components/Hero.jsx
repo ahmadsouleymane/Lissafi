@@ -12,8 +12,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-          >
-            <span className="pulse-dot" /> Caisse enregistreuse Android
+          > Caisse enregistreuse Android
           </motion.span>
 
           <motion.h1
@@ -31,9 +30,8 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.18 }}
           >
-            La caisse, les crédits clients, le stock et les rapports du soir —
-            dans une seule app Android. Ça marche même sans réseau, et ta
-            première vente peut être encaissée dans les deux minutes.
+            La caisse, les crédits clients, le stock et les rapports du soir
+            dans une seule app Android. Ça marche même sans réseau.
           </motion.p>
 
           <motion.div
@@ -43,7 +41,7 @@ export default function Hero() {
             transition={{ duration: 0.7, delay: 0.28 }}
           >
             <a className="btn btn-primary btn-lg" href={APK} download>
-              <Download size={18} /> Télécharger l'APK
+              <Download size={18} /> Télécharger l'application
             </a>
             <a className="btn btn-ghost btn-lg" href="#demo">
               Voir la démo
