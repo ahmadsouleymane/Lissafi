@@ -1,3 +1,4 @@
+import { Printer } from "lucide-react";
 import { APK } from "../config";
 import { Kicker, Reveal } from "./ui";
 
@@ -64,6 +65,39 @@ export default function Pricing() {
           <Kicker>Les tarifs</Kicker>
           <h2>Un tarif pour chaque étape de ta boutique.</h2>
         </Reveal>
+
+        <div className="pack-launch">
+          <div className="pack-left">
+            <span className="pack-badge">
+              <Printer size={13} /> Offre de lancement
+            </span>
+            <h3>Pack Lancement</h3>
+            <p className="pack-desc">
+              Tout pour imprimer tes reçus dès le premier jour, avec un an
+              d'Essentiel offert.
+            </p>
+            <ul className="pack-features">
+              <li>Imprimante thermique 58 mm (POS)</li>
+              <li>2 rouleaux de papier thermique</li>
+              <li>1 an Lissafi Essentiel offert</li>
+              <li>Produits, stock, crédits et rapports illimités</li>
+            </ul>
+          </div>
+          <div className="pack-right">
+            <div className="pack-price">
+              60 000 F<small> une fois</small>
+            </div>
+            <p className="pack-sub">
+              Imprimante + 2 rouleaux + 1 an Essentiel
+            </p>
+            <a className="btn btn-primary" href={APK} download>
+              Télécharger l'APK
+            </a>
+            <p className="price-note">
+              Paiement en espèces ou mobile money
+            </p>
+          </div>
+        </div>
 
         <div className="pricing-grid">
           {TIERS.map((t, i) => (
