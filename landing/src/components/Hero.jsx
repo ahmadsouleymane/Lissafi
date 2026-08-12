@@ -48,16 +48,7 @@ export default function Hero() {
             </a>
           </motion.div>
 
-          <motion.div
-            className="hero-meta"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.45 }}
-          >
-            <span>Gratuit pour tester</span>
-            <span>Fonctionne hors ligne</span>
-            <span>Android</span>
-          </motion.div>
+          
         </div>
 
         <motion.div
@@ -68,14 +59,14 @@ export default function Hero() {
         >
           <div className="hero-glow" aria-hidden="true" />
           <div className="hero-pill top">
-            <span className="dot" /> Monnaie rendue : 250 F
+            <span className="dot" /> Monnaie rendue : 1.750 F
           </div>
           <img
             className="hero-shot"
             src="/assets/screens/caisse.png"
             alt="Écran de caisse de l'application Lissafi"
           />
-          <div className="hero-pill bottom">✓ Vente enregistrée · 12:05</div>
+          <div className="hero-pill bottom">✓ Vente enregistrée · 10:37</div>
         </motion.div>
       </div>
     </section>
