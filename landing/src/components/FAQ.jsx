@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { Plus } from "lucide-react";
 import { Kicker, Reveal } from "./ui";
 
 const ITEMS = [
@@ -9,11 +10,11 @@ const ITEMS = [
   },
   {
     q: "C'est quoi la limite de la version gratuite ?",
-    a: "10 produits, 10 clients suivis et 10 ventes par jour. C'est fait pour que tu testes en conditions réelles. Le Premium débloque tout, sans limite.",
+    a: "10 produits et 10 clients. Les ventes et l'historique restent illimités. C'est fait pour que tu testes en conditions réelles. Essentiel ou Premium débloquent tout, sans limite.",
   },
   {
-    q: "Comment je paie le Premium ?",
-    a: "En espèces ou par mobile money. Dès réception, on t'active Lissafi Premium pour 365 jours. Simple, sans abonnement qui se renouvelle tout seul.",
+    q: "Comment je paie Essentiel ou Premium ?",
+    a: "En espèces ou par mobile money. Dès réception, on t'active ton offre pour 365 jours. Simple, sans abonnement qui se renouvelle tout seul.",
   },
   {
     q: "Sur quel téléphone ça marche ?",
@@ -26,7 +27,7 @@ function FaqItem({ q, a, open, onToggle }) {
     <div className={`faq-item ${open ? "open" : ""}`}>
       <button className="faq-q" onClick={onToggle} aria-expanded={open}>
         {q}
-        <span className="ico">+</span>
+        <Plus className="ico" size={18} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -51,7 +52,7 @@ export default function FAQ() {
     <section className="section" id="faq">
       <div className="container" style={{ maxWidth: 760 }}>
         <Reveal>
-          <Kicker>N° 006 — Les questions</Kicker>
+          <Kicker>Les questions</Kicker>
           <h2>Ce que tout le monde demande.</h2>
         </Reveal>
         <div className="faq-list">
