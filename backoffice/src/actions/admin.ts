@@ -3,23 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/session";
+import { logAdminAction as logAction } from "@/lib/audit";
 
 const DAY_MS = 86400000;
-
-/** Journalise une action admin (traçabilité). Ne bloque jamais. */
-async function logAction(action: string, targetUserId: string | null, details: Record<string, unknown>) {
-  const session = await requireAdmin();
-  try {
-    await supabaseAdmin().from("admin_actions").insert({
-      admin_user_id: session.userId,
-      action,
-      target_user_id: targetUserId,
-      details: JSON.stringify(details),
-    });
-  } catch {
-    // Le journal ne doit jamais faire échouer l'action principale.
-  }
-}
 
 // ============================================================
 // PREMIUM
