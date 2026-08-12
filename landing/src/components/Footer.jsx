@@ -8,7 +8,7 @@ export default function Footer() {
           className="footer-logo"
         />
         <div className="footer-meta">
-          La caisse de ta boutique, dans ta poche · Android
+          La caisse de ta boutique, dans ta poche
         </div>
         <div className="footer-meta">© 2026 Lissafi</div>
       </div>
