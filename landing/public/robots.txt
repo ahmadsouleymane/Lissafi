@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Remplacé par VITE_SITE_URL au build (voir vite.config.js).
+Sitemap: {SITE_URL}/sitemap.xml

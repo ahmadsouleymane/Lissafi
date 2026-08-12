@@ -4,14 +4,24 @@ import { Badge, Button, Card, CardHeader, EmptyState, PageHeader, Table, Td, Th,
 import { IconBell } from "@/components/icons";
 import { getManualNotificationHistory, getRecapEnabled, getRecapHistory, getUserSummaries } from "@/lib/data";
 import { formatDateTimeIso } from "@/lib/format";
+import type { NotificationAccount } from "@/types";
 
 export default async function NotificationsPage() {
-  const [accounts, recapEnabled, recapHistory, manualHistory] = await Promise.all([
+  const [summaries, recapEnabled, recapHistory, manualHistory] = await Promise.all([
     getUserSummaries(),
     getRecapEnabled(),
     getRecapHistory(),
     getManualNotificationHistory(),
   ]);
+
+  // Projection minimale : le sélecteur de destinataires n'a besoin que de
+  // l'id, l'email et la boutique — pas des codes premium, ventes, dates…
+  const accounts: NotificationAccount[] = summaries.map((a) => ({
+    user_id: a.user_id,
+    email: a.email,
+    shop_name: a.shop_name,
+    shop_phone: a.shop_phone,
+  }));
 
   return (
     <div className="space-y-5">

@@ -179,10 +179,28 @@ export async function resetUserPassword(userId: string, password: string): Promi
 // RÉGLAGES
 // ============================================================
 
+// Allowlist stricte des réglages globaux : on n'écrit jamais une clé arbitraire
+// (un admin compromis ne peut pas altérer d'autres mécanismes via upsert).
+const ADMIN_SETTING_KEYS = new Set([
+  "premium_price_fcfa",
+  "premium_days",
+  "demo_days",
+  "recap_notifications_enabled",
+]);
+
 export async function updateAdminSetting(key: string, value: string): Promise<ActionResult> {
   await requireAdmin();
+  if (!ADMIN_SETTING_KEYS.has(key)) {
+    return { error: "Clé de réglage inconnue" };
+  }
+  if (value.length > 200) {
+    return { error: "Valeur trop longue" };
+  }
   const { error } = await supabaseAdmin().from("admin_settings").upsert({ key, value });
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[admin] updateAdminSetting:", error);
+    return { error: "Erreur lors de la mise à jour du réglage" };
+  }
 
   await logAction("admin_setting_update", null, { key, value });
   revalidatePath("/reglages", "layout");

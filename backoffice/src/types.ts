@@ -20,6 +20,16 @@ export type UserSummary = {
   receipt_count: number;
 };
 
+// Sous-ensemble minimal passé aux composants client (ex: sélecteur de
+// destinataires) — évite d'envoyer activation_code, premium, ventes… au
+// navigateur.
+export type NotificationAccount = {
+  user_id: string;
+  email: string | null;
+  shop_name: string;
+  shop_phone: string;
+};
+
 export type Stats = {
   users: number;
   users_today: number;

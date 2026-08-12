@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { sendManualNotificationForm } from "@/actions/notifications";
 import type { ActionResult } from "@/actions/admin";
-import type { UserSummary } from "@/types";
+import type { NotificationAccount } from "@/types";
 import { Button, Card, CardHeader, Field, Input, Select, Spinner, Textarea } from "./ui";
 
 function Feedback({ state }: { state: ActionResult | undefined }) {
@@ -13,7 +13,7 @@ function Feedback({ state }: { state: ActionResult | undefined }) {
   return null;
 }
 
-export function NotificationForm({ accounts }: { accounts: UserSummary[] }) {
+export function NotificationForm({ accounts }: { accounts: NotificationAccount[] }) {
   const [state, action, pending] = useActionState<ActionResult | undefined, FormData>(sendManualNotificationForm, undefined);
   const [mode, setMode] = useState<"status" | "accounts">("status");
   const [query, setQuery] = useState("");
