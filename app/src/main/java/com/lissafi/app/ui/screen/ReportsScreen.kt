@@ -26,7 +26,6 @@ import com.lissafi.app.ui.components.InfoRow
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
 import com.lissafi.app.ui.components.LissafiIcons
-import com.lissafi.app.ui.components.LowStockBanner
 import com.lissafi.app.ui.components.SectionHeader
 import com.lissafi.app.ui.components.SegmentedControl
 import com.lissafi.app.ui.components.TrendBadge
@@ -107,14 +106,7 @@ fun ReportsScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        // ── STOCK BAS — la plus actionnable : visible même quand aucune vente ──
-        if (state.lowStockProducts.isNotEmpty()) {
-            LowStockBanner(
-                products = state.lowStockProducts,
-                onViewAll = onNavigateToProducts,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
+        // Le stock bas est géré dans l'écran Produits (badge par produit).
 
         if (state.isLoading) {
             Box(
