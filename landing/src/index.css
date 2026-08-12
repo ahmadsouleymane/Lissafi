@@ -4,29 +4,71 @@
    ============================================================ */
 
 :root {
-  --paper: #f7f4ea;
-  --paper-2: #ede9da;
-  --paper-3: #e0dac7;
-  --ink: #211f1a;
-  --ink-soft: #6b675c;
-  --green: #2e8b57;
-  --green-deep: #1e6b42;
-  --green-soft: #e3efe6;
-  --orange: #f4a460;
-  --orange-soft: #faeadb;
-  --red: #c0392b;
-  --line: rgba(33, 31, 26, 0.16);
-  --line-strong: rgba(33, 31, 26, 0.38);
+  --primary: #0f6e46;
+  --primary-container: #e8f5e9;
+  --secondary: #e67e22;
+  --secondary-container: #fff3e8;
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface-alt: #f4f5f6;
+  --border: #e5e7eb;
+  --text: #121212;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --error: #ef4444;
+  --error-bg: #fee2e2;
 
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Instrument Sans", system-ui, sans-serif;
-  --font-mono: "Space Mono", ui-monospace, monospace;
+  --font-body: "Inter", system-ui, sans-serif;
 
-  --radius: 14px;
-  --shadow: 0 1px 0 rgba(33, 31, 26, 0.05), 0 16px 40px -16px rgba(33, 31, 26, 0.22);
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
 
-  --container: 1120px;
+  --container: 1160px;
+}
+
+html[data-theme="dark"] {
+  --primary: #0f6e46;
+  --primary-container: #123825;
+  --secondary: #e67e22;
+  --secondary-container: #3d2610;
+  --bg: #121212;
+  --surface: #1e1e1e;
+  --surface-alt: #2a2a2a;
+  --border: #33383f;
+  --text: #f5f5f5;
+  --text-secondary: #aeb4bc;
+  --text-tertiary: #7d8590;
+  --success: #10b981;
+  --success-bg: #0f3d2a;
+  --error: #ef4444;
+  --error-bg: #4a1515;
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.theme-toggle:hover {
+  color: var(--primary);
+  transform: translateY(-1px);
 }
 
 *,
@@ -54,24 +96,14 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-/* Grain de papier global */
-.grain {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 60;
-  opacity: 0.055;
-  mix-blend-mode: multiply;
-  background-image: var(--grain);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 img {
@@ -84,17 +116,17 @@ a {
 }
 
 ::selection {
-  background: var(--green);
-  color: var(--paper);
+  background: var(--primary);
+  color: #fff;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
-  font-weight: 640;
-  line-height: 1.04;
-  letter-spacing: -0.015em;
+  font-family: var(--font-body);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -210,14 +242,8 @@ p {
   text-decoration: none;
 }
 .brand img {
-  height: 30px;
+  height: 32px;
   width: auto;
-}
-.brand-name {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 21px;
-  letter-spacing: -0.01em;
 }
 .header-nav {
   display: flex;
@@ -292,6 +318,15 @@ p {
   font-size: clamp(17px, 2vw, 19px);
   color: var(--ink-soft);
   max-width: 34em;
+}
+.hero-invite {
+  margin-top: 18px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 620;
+  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+  color: var(--green-deep);
+  max-width: 30em;
 }
 .hero-cta {
   margin-top: 30px;
@@ -409,6 +444,15 @@ p {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+
+/* GIF de l'app réelle — remplace le reçu animé */
+.hero-demo-media {
+  width: min(360px, 90vw);
+  margin-left: auto;
+  border-radius: 28px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
 }
 
 /* Faisceau de scan */
@@ -585,6 +629,13 @@ p {
   overflow: hidden;
   background: linear-gradient(160deg, #f3f0e6 0%, #e9e5d5 100%);
   position: relative;
+}
+.phone-demo-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 /* --- Mini écrans d'app --- */
 .app-screen {
@@ -953,8 +1004,8 @@ p {
    ============================================================ */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: clamp(20px, 3vw, 32px);
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(18px, 2.4vw, 28px);
   margin-top: 40px;
   align-items: stretch;
 }
@@ -973,6 +1024,21 @@ p {
   background: linear-gradient(165deg, #fdfcf6 0%, var(--green-soft) 130%);
   border: 2px solid var(--green);
 }
+.price-card.top {
+  background: linear-gradient(165deg, #24291f 0%, var(--green-deep) 130%);
+  border: 2px solid var(--ink);
+  color: #fbfaf5;
+}
+.price-card.top .price-plan,
+.price-card.top .price-sub {
+  color: var(--orange);
+}
+.price-card.top .price-features li {
+  color: rgba(251, 250, 245, 0.9);
+}
+.price-card.top .price-features li::before {
+  color: var(--orange);
+}
 .price-badge {
   position: absolute;
   top: -13px;
@@ -986,6 +1052,10 @@ p {
   padding: 6px 12px;
   border-radius: 999px;
 }
+.price-badge.top {
+  background: var(--orange);
+  color: #211f1a;
+}
 .price-plan {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -995,9 +1065,10 @@ p {
 }
 .price-amount {
   font-family: var(--font-display);
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-size: clamp(2rem, 3.4vw, 2.7rem);
   font-weight: 700;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .price-amount small {
   font-size: 0.42em;
@@ -1038,20 +1109,54 @@ p {
   content: "—";
   color: var(--line-strong);
 }
-@media (max-width: 760px) {
+@media (max-width: 980px) {
+  .pricing-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .price-card.top {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
   .pricing-grid {
     grid-template-columns: 1fr;
+  }
+  .price-card.top {
+    grid-column: auto;
   }
 }
 
 /* ============================================================
    INSTALLATION
    ============================================================ */
+.install-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(28px, 4vw, 48px);
+  align-items: start;
+}
 .install-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: clamp(16px, 3vw, 28px);
+  gap: clamp(16px, 3vw, 20px);
   margin-top: 40px;
+}
+.install-layout.has-shot {
+  grid-template-columns: 1.3fr 0.7fr;
+}
+.install-layout.has-shot .install-grid {
+  grid-template-columns: 1fr;
+}
+.install-shot {
+  margin-top: 40px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.install-shot img {
+  width: 100%;
+  display: block;
 }
 .install-step {
   position: relative;
@@ -1080,6 +1185,9 @@ p {
 }
 @media (max-width: 800px) {
   .install-grid {
+    grid-template-columns: 1fr;
+  }
+  .install-layout.has-shot {
     grid-template-columns: 1fr;
   }
 }
