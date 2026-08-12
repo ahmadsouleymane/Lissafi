@@ -141,80 +141,69 @@ p {
   padding: 0 clamp(20px, 4vw, 40px);
 }
 
-/* --- Étiquettes mono type dossier --- */
 .kicker {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--green-deep);
+  color: var(--primary);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-}
-.kicker::before {
-  content: "";
-  width: 26px;
-  height: 1px;
-  background: var(--green);
+  gap: 8px;
 }
 
-/* --- Boutons --- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  font-family: var(--font-body);
+  gap: 8px;
   font-weight: 600;
-  font-size: 16px;
-  padding: 15px 26px;
-  border-radius: 999px;
+  font-size: 15px;
+  padding: 13px 22px;
+  border-radius: var(--radius-md);
   border: 1.5px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 .btn:active {
   transform: translateY(1px) scale(0.99);
 }
 .btn-primary {
-  background: var(--green);
-  color: #fbfaf5;
-  box-shadow: 0 10px 24px -10px rgba(46, 139, 87, 0.7);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 20px -10px rgba(15, 110, 70, 0.6);
 }
 .btn-primary:hover {
-  background: var(--green-deep);
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px -12px rgba(46, 139, 87, 0.8);
+  box-shadow: 0 12px 26px -10px rgba(15, 110, 70, 0.7);
 }
 .btn-ghost {
   background: transparent;
-  border-color: var(--line-strong);
-  color: var(--ink);
+  border-color: var(--border);
+  color: var(--text);
 }
 .btn-ghost:hover {
-  border-color: var(--ink);
+  border-color: var(--primary);
+  color: var(--primary);
   transform: translateY(-2px);
 }
 .btn-whatsapp {
-  background: var(--orange);
-  color: #211f1a;
-  box-shadow: 0 10px 24px -12px rgba(244, 164, 96, 0.8);
+  background: var(--secondary);
+  color: #fff;
+  box-shadow: 0 8px 20px -10px rgba(230, 126, 34, 0.6);
 }
 .btn-whatsapp:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px -12px rgba(244, 164, 96, 0.9);
+  box-shadow: 0 12px 26px -10px rgba(230, 126, 34, 0.7);
 }
 
-/* --- Réutilisation section --- */
 .section {
-  padding: clamp(72px, 11vw, 140px) 0;
+  padding: clamp(64px, 10vw, 120px) 0;
   position: relative;
 }
 .section-rule {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 
 /* ============================================================
@@ -224,9 +213,9 @@ p {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border);
 }
 .header-inner {
   display: flex;
@@ -242,25 +231,28 @@ p {
   text-decoration: none;
 }
 .brand img {
-  height: 32px;
+  height: 28px;
   width: auto;
 }
 .header-nav {
   display: flex;
   align-items: center;
-  gap: clamp(10px, 2.4vw, 28px);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  gap: clamp(16px, 2.4vw, 32px);
+  font-size: 14px;
+  font-weight: 500;
 }
 .header-nav a {
   text-decoration: none;
-  color: var(--ink-soft);
+  color: var(--text-secondary);
   transition: color 0.15s;
 }
 .header-nav a:hover {
-  color: var(--green-deep);
+  color: var(--primary);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .header-cta {
   font-size: 13px;
@@ -276,221 +268,64 @@ p {
    HERO
    ============================================================ */
 .hero {
-  padding: clamp(56px, 9vw, 120px) 0 40px;
-  position: relative;
-  overflow: hidden;
-}
-.hero-bg-barcode {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.05;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--ink) 0 2px,
-    transparent 2px 5px,
-    var(--ink) 5px 6px,
-    transparent 6px 11px,
-    var(--ink) 11px 14px,
-    transparent 14px 16px
-  );
-  mask-image: linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent);
+  padding: clamp(48px, 8vw, 100px) 0 40px;
 }
 .hero-grid {
-  position: relative;
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: clamp(32px, 6vw, 80px);
+  grid-template-columns: 1fr;
+  gap: 40px;
   align-items: center;
 }
 .hero h1 {
-  font-size: clamp(2.7rem, 7vw, 5.3rem);
+  font-size: clamp(2.2rem, 8vw, 3.6rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
 }
 .hero h1 .accent {
-  font-style: italic;
-  font-weight: 520;
-  color: var(--green-deep);
+  color: var(--primary);
 }
 .hero-sub {
-  margin-top: 22px;
-  font-size: clamp(17px, 2vw, 19px);
-  color: var(--ink-soft);
+  margin-top: 18px;
+  font-size: clamp(16px, 2vw, 18px);
+  color: var(--text-secondary);
   max-width: 34em;
 }
-.hero-invite {
-  margin-top: 18px;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 620;
-  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
-  color: var(--green-deep);
-  max-width: 30em;
-}
 .hero-cta {
-  margin-top: 30px;
+  margin-top: 26px;
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
 }
 .hero-meta {
-  margin-top: 30px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-secondary);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 6px 20px;
 }
 .hero-meta b {
-  color: var(--green-deep);
+  color: var(--primary);
   font-weight: 700;
 }
-
-/* --- Reçu qui s'imprime --- */
-.receipt-wrap {
-  position: relative;
-  perspective: 1200px;
-}
-.receipt {
-  position: relative;
-  background: #fffefa;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  font-family: var(--font-mono);
-  color: var(--ink);
-  width: min(330px, 88vw);
-  margin-left: auto;
-  padding: 26px 24px 20px;
-  transform-origin: top center;
-}
-/* bord crénelé du ticket */
-.receipt::before,
-.receipt::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 10px;
-  background-image: radial-gradient(circle, var(--paper) 5px, transparent 5.5px);
-  background-size: 14px 14px;
-  background-repeat: repeat-x;
-}
-.receipt::before {
-  top: -6px;
-}
-.receipt::after {
-  bottom: -6px;
-}
-.receipt-head {
-  text-align: center;
-  border-bottom: 1px dashed var(--line-strong);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
-}
-.receipt-head .shop {
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.receipt-line {
+.hero-shot-wrap {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 12.5px;
-  line-height: 1.75;
-  border-bottom: 1px dotted var(--line);
+  justify-content: center;
 }
-.receipt-line .mono-price {
-  white-space: nowrap;
+.hero-shot {
+  width: min(320px, 80vw);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card-hover);
 }
-.receipt-total {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 700;
-  font-size: 15px;
-  padding: 12px 0 4px;
-}
-.receipt-change {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12.5px;
-  color: var(--green-deep);
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-.receipt-barcode {
-  height: 40px;
-  margin: 14px 0 8px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--ink) 0 2px,
-    transparent 2px 5px,
-    var(--ink) 5px 7px,
-    transparent 7px 10px,
-    var(--ink) 10px 11px,
-    transparent 11px 14px,
-    var(--ink) 14px 17px,
-    transparent 17px 19px
-  );
-}
-.receipt-ref {
-  text-align: center;
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-/* GIF de l'app réelle — remplace le reçu animé */
-.hero-demo-media {
-  width: min(360px, 90vw);
-  margin-left: auto;
-  border-radius: 28px;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-}
-
-/* Faisceau de scan */
-.scan-beam {
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--red), transparent);
-  box-shadow: 0 0 12px 2px rgba(192, 57, 43, 0.5);
-  animation: scan 3.2s ease-in-out infinite;
-}
-@keyframes scan {
-  0% {
-    top: 6%;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  50% {
-    top: 90%;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    top: 6%;
-    opacity: 0;
-  }
-}
-
-@media (max-width: 880px) {
+@media (min-width: 900px) {
   .hero-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: clamp(32px, 6vw, 80px);
   }
-  .receipt {
-    margin: 40px auto 0;
+  .hero-shot-wrap {
+    justify-content: flex-end;
   }
 }
 
