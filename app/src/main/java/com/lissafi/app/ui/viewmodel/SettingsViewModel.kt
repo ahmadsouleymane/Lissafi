@@ -15,6 +15,7 @@ data class SettingsState(
     val receiptFooterMessage: String = "",
     val adminPin: String = "0000",
     val isPremium: Boolean = false,
+    val plan: String = "free", // "free" | "plus" | "business"
     val premiumExpiry: Long? = null,
     val premiumExpiryText: String = "",
     val productCount: Int = 0,
@@ -38,6 +39,7 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
             val receiptFooterMessage = repository.getSetting("receipt_footer_message") ?: ""
             val adminPin = repository.getAdminPin()
             val premium = repository.isPremium()
+            val plan = repository.getSetting("plan") ?: if (premium) "plus" else "free"
             val expiry = repository.getPremiumExpiry()
             val productCount = repository.getProductCount()
             val clientCount = repository.getClientCount()
@@ -48,6 +50,7 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
                 receiptFooterMessage = receiptFooterMessage,
                 adminPin = adminPin,
                 isPremium = premium,
+                plan = plan,
                 premiumExpiry = expiry,
                 premiumExpiryText = if (expiry != null) FormatUtils.formatDate(expiry) else "",
                 productCount = productCount,

@@ -138,9 +138,11 @@ class CartViewModel(
      * - Comptant : amountPaid = montant donné par le client.
      * - Crédit : amountPaid = 0, une DebtTransaction est créée.
      *
-     * Retourne true si la vente est réussie.
+     * Retourne true si la vente est réussie, false si la limite gratuite
+     * de ventes du jour est atteinte.
      */
     suspend fun encaisser(amountPaid: Int): Boolean {
+        if (!premiumManager.canMakeSale()) return false
         val s = _state.value
         val sale = Sale(
             date = System.currentTimeMillis(),

@@ -9,14 +9,22 @@ class PremiumManager(private val repository: LissafiRepository) {
         const val DEMO_DAYS = 7
         const val PREMIUM_DAYS = 365
 
+        // Limites gratuites (V1 : 10 produits / 10 clients) + plafond de ventes
+        const val MAX_FREE_PRODUCTS = 10
+        const val MAX_FREE_CREDITS = 10
+        const val MAX_FREE_SALES_PER_DAY = 10
+
+        // Limites du plan Lissafi Plus (plan de volume)
+        const val MAX_PLUS_PRODUCTS = 100
+        const val MAX_PLUS_CREDITS = 100
+
         // ⚠️ AVANT DE DISTRIBUER L'APK : remplace `227XXXXXXXX` par le numéro
-        // WhatsApp de contact pour l'activation Premium (format international,
-        // sans espaces ni +) — ex : 22790123456.
+        // de contact pour l'activation (format international, sans espaces ni +).
         const val SUPPORT_WHATSAPP_NUMBER = "227XXXXXXXX"
 
-        /** Message pré-rempli envoyé sur WhatsApp pour demander l'activation Premium. */
+        /** Message pré-rempli envoyé sur WhatsApp pour demander l'activation. */
         fun buildActivationMessage(shopName: String, email: String?, userId: String?): String {
-            val lines = mutableListOf("Bonjour, je voudrais activer Lissafi Premium.")
+            val lines = mutableListOf("Bonjour, je voudrais activer Lissafi Plus.")
             lines += "Boutique : ${shopName.ifBlank { "—" }}"
             lines += "Compte : ${email ?: "compte local"}"
             if (!userId.isNullOrBlank()) lines += "ID : $userId"
@@ -29,7 +37,7 @@ class PremiumManager(private val repository: LissafiRepository) {
             return "https://wa.me/$SUPPORT_WHATSAPP_NUMBER?text=${Uri.encode(message)}"
         }
 
-        // Codes pré-générés pour la V1 (liste statique)
+        // Codes Plus (V1) — activation du plan de volume
         private val VALID_CODES = setOf(
             "LISSAFI-PREMIUM-0001", "LISSAFI-PREMIUM-0002", "LISSAFI-PREMIUM-0003",
             "LISSAFI-PREMIUM-0004", "LISSAFI-PREMIUM-0005", "LISSAFI-PREMIUM-0006",
@@ -40,8 +48,20 @@ class PremiumManager(private val repository: LissafiRepository) {
             "LISSAFI-PREMIUM-0019", "LISSAFI-PREMIUM-0020"
         )
 
-        const val MAX_FREE_PRODUCTS = 10
-        const val MAX_FREE_CREDITS = 10
+        // Codes Business — activation du plan haut de gamme (tout illimité)
+        private val BUSINESS_CODES = setOf(
+            "LISSAFI-BUSINESS-0001", "LISSAFI-BUSINESS-0002", "LISSAFI-BUSINESS-0003",
+            "LISSAFI-BUSINESS-0004", "LISSAFI-BUSINESS-0005"
+        )
+    }
+
+    /** Les trois niveaux : gratuits, plan de volume, plan haut de gamme. */
+    enum class Plan { FREE, PLUS, BUSINESS }
+
+    /** Plan effectif : FREE, PLUS ou BUSINESS selon l'abonnement et l'expiration. */
+    suspend fun getPlan(): Plan {
+        if (!isPremium()) return Plan.FREE
+        return if (repository.getSetting("plan") == "business") Plan.BUSINESS else Plan.PLUS
     }
 
     suspend fun isPremium(): Boolean {
@@ -69,35 +89,54 @@ class PremiumManager(private val repository: LissafiRepository) {
 
         val newExpiry = System.currentTimeMillis() + DEMO_DAYS * 24 * 60 * 60 * 1000L
         repository.setSetting("is_premium", "true")
+        repository.setSetting("plan", "plus")
         repository.setSetting("premium_expiry", newExpiry.toString())
         repository.setSetting("demo_taken", "true")
         return true
     }
 
+    /**
+     * Active Plus (code LISSAFI-PREMIUM-*) ou Business (code LISSAFI-BUSINESS-*).
+     * Un code ne peut être utilisé qu'UNE fois sur cet appareil : sinon, un
+     * code partagé re-grantait 365 jours à l'infini.
+     */
     suspend fun activateWithCode(code: String): Boolean {
-        if (!VALID_CODES.contains(code)) return false
-        // Un code ne peut être utilisé qu'UNE fois sur cet appareil : sinon, un
-        // code partagé re-grantait 365 jours à l'infini.
+        val plan = when {
+            BUSINESS_CODES.contains(code) -> "business"
+            VALID_CODES.contains(code) -> "plus"
+            else -> return false
+        }
         val previous = repository.getSetting("activation_code")
         if (previous == code) return false
 
         val expiry = System.currentTimeMillis() + PREMIUM_DAYS * 24 * 60 * 60 * 1000L
         repository.setSetting("is_premium", "true")
+        repository.setSetting("plan", plan)
         repository.setSetting("premium_expiry", expiry.toString())
         repository.setSetting("activation_code", code)
         // La démo est consommée dès qu'un code est utilisé : pas de 7 jours bonus
-        // après l'expiration du premium-code.
+        // après l'expiration du code.
         repository.setSetting("demo_taken", "true")
         return true
     }
 
-    suspend fun canAddProduct(): Boolean {
-        if (isPremium()) return true
-        return repository.getProductCount() < MAX_FREE_PRODUCTS
+    /** Libre selon le plan : FREE ≤10, PLUS ≤100, BUSINESS illimité. */
+    suspend fun canAddProduct(): Boolean = when (getPlan()) {
+        Plan.BUSINESS -> true
+        Plan.PLUS -> repository.getProductCount() < MAX_PLUS_PRODUCTS
+        Plan.FREE -> repository.getProductCount() < MAX_FREE_PRODUCTS
     }
 
-    suspend fun canAddClient(): Boolean {
-        if (isPremium()) return true
-        return repository.getClientCount() < MAX_FREE_CREDITS
+    suspend fun canAddClient(): Boolean = when (getPlan()) {
+        Plan.BUSINESS -> true
+        Plan.PLUS -> repository.getClientCount() < MAX_PLUS_CREDITS
+        Plan.FREE -> repository.getClientCount() < MAX_FREE_CREDITS
+    }
+
+    /** Limite gratuite : 10 ventes par jour. Plus et Business : ventes illimitées. */
+    suspend fun canMakeSale(): Boolean {
+        if (getPlan() != Plan.FREE) return true
+        val (start, end) = FormatUtils.todayRange()
+        return repository.countSalesBetween(start, end) < MAX_FREE_SALES_PER_DAY
     }
 }

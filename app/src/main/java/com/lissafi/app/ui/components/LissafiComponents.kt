@@ -878,7 +878,7 @@ fun PremiumLimitDialog(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Secondary)
             ) {
-                Text("Voir Premium", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                Text("Voir Lissafi Plus", fontWeight = FontWeight.Medium, fontSize = 14.sp)
             }
         },
         dismissButton = {

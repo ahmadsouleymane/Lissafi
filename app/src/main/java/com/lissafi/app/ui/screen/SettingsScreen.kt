@@ -65,6 +65,17 @@ fun SettingsScreen(
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
     val isDarkMode = ThemeManager.isDark
+    val planLabel = when (state.plan) {
+        "business" -> "Lissafi Business"
+        "plus" -> "Lissafi Plus"
+        else -> null
+    }
+    val planSubtitle = when {
+        state.plan == "business" -> "Tout est illimité · Expire le ${state.premiumExpiryText}"
+        state.plan == "plus" -> "100 produits · 100 clients · Expire le ${state.premiumExpiryText}"
+        state.isPremium -> "Expire le ${state.premiumExpiryText}"
+        else -> "Limitée à 10 produits, 10 clients et 10 ventes par jour"
+    }
     val syncLabel = when (syncStatus) {
         SyncStatus.SYNCING -> "Synchronisation…"
         SyncStatus.SUCCESS -> "À jour"
@@ -114,15 +125,13 @@ fun SettingsScreen(
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (state.isPremium) "Premium actif" else "Version gratuite",
+                            text = planLabel?.let { "$it actif" } ?: "Version gratuite",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = OnBackground
                         )
                         Text(
-                            text = if (state.isPremium && state.premiumExpiry != null)
-                                "Expire le ${FormatUtils.formatDate(state.premiumExpiry!!)}"
-                            else "Limitée à 10 produits et 10 clients",
+                            text = planSubtitle,
                             fontSize = 12.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -149,7 +158,7 @@ fun SettingsScreen(
                 if (!state.isPremium) {
                     Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
                         PrimaryActionButton(
-                            text = "ACTIVER PREMIUM SUR WHATSAPP",
+                            text = "ACTIVER LISSAFI PLUS",
                             icon = LissafiIcons.Partager,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -345,7 +354,7 @@ fun SettingsScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
-                        StatusBadge(text = "Premium", color = Secondary)
+                        StatusBadge(text = "Plus", color = Secondary)
                     }
                 }
             }
