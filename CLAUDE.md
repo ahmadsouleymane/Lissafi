@@ -24,7 +24,8 @@ Couches dans `app/src/main/java/com/lissafi/app/` :
 - **Auth** — `data/auth/AuthManager.kt` : appelle directement l'API GoTrue (`/auth/v1/signup`, `/auth/v1/token`, `/auth/v1/logout`, `/auth/v1/recover`) — **pas de SDK Supabase**.
 - **Synchro** — `data/sync/SyncManager.kt` : push/pull bidirectionnel (products, clients, sales, dettes, settings), protégé par `Mutex`, déclenché au démarrage, à la connexion, au retour réseau, toutes les 15 min. `SyncWorker.kt` : WorkManager périodique.
 - **Services** — `service/ReceiptService.kt` (ticket texte + partage WhatsApp + impression Bluetooth ESC/POS), `service/PremiumManager.kt`, `service/FormatUtils.kt`.
-- `MainActivity.kt` (Compose, edge-to-edge) et `LissafiApp.kt` (Application : instancie DB/API/auth/sync, démarre l'observer réseau et le SyncWorker).
+- `MainActivity.kt` (Compose, edge-to-edge, vérifie la signature APK via `service/SignatureVerifier.kt`) et `LissafiApp.kt` (Application : instancie DB/API/auth/sync, démarre l'observer réseau et le SyncWorker).
+- **TLS** — certificate pinning du domaine Supabase dans `res/xml/network_security_config.xml` (pin SPKI SHA-256, expiration 2027-08-12). ⚠️ Si Supabase fait tourner son certificat, mettre à jour le `<pin>` (voir le commentaire du fichier) avant que la synchro ne casse.
 
 ## Patterns clés à respecter
 

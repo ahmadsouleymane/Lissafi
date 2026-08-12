@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Certificate pinning du domaine Supabase (empreinte SPKI SHA-256).
+  Empreinte obtenue avec :
+    echo | openssl s_client -servername <host> -connect <host>:443 2>/dev/null \
+      | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der \
+      | openssl dgst -sha256 -binary | openssl enc -base64
+
+  ⚠️ SI SUPABASE FAIT TOURNER SON CERTIFICAT : les connexions échoueront
+  jusqu'à l'expiration du pin (2027-08-12). Avant toute rotation, re-calcule
+  l'empreinte et mets à jour <pin> (et repousse l'expiration si besoin).
+  En dehors de cette fenêtre, le pin n'est plus exigé (repli trust-anchors).
+-->
+<network-security-config>
+    <domain-config>
+        <domain includeSubdomains="false">fnyuhpfzkvunscuylvqv.supabase.co</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+        <pin-set expiration="2027-08-12">
+            <pin digest="SHA-256">ZcJbApTb7wyllleAjHw2vYAskqdT+DhMY9aPDFwAtf4=</pin>
+        </pin-set>
+    </domain-config>
+</network-security-config>
