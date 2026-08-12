@@ -1,18 +1,24 @@
 import { motion } from "motion/react";
+import { Download } from "lucide-react";
 import { APK } from "../config";
-import { Kicker } from "./ui";
 
 export default function Hero() {
   return (
-    <section className="hero on-ink" id="top">
+    <section className="hero on-ink" id="hero">
       <div className="container hero-grid">
-        <div>
-          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <Kicker>Caisse enregistreuse mobile</Kicker>
-          </motion.div>
+        <div className="hero-copy">
+          <motion.span
+            className="hero-badge"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="pulse-dot" /> Caisse enregistreuse Android
+          </motion.span>
 
           <motion.h1
-            initial={{ opacity: 0, y: 26 }}
+            className="hero-title"
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.08 }}
           >
@@ -21,24 +27,25 @@ export default function Hero() {
 
           <motion.p
             className="hero-sub"
-            initial={{ opacity: 0, y: 22 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.18 }}
           >
-            Toute ta boutique dans ton téléphone : la caisse, la monnaie, les crédits clients,
-            le stock. Ça marche même sans réseau.
+            La caisse, les crédits clients, le stock et les rapports du soir —
+            dans une seule app Android. Ça marche même sans réseau, et ta
+            première vente peut être encaissée dans les deux minutes.
           </motion.p>
 
           <motion.div
             className="hero-cta"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.28 }}
           >
-            <a className="btn btn-primary" href={APK} download>
-              ⬇ Télécharger l'APK
+            <a className="btn btn-primary btn-lg" href={APK} download>
+              <Download size={18} /> Télécharger l'APK
             </a>
-            <a className="btn btn-ghost" href="#demo">
+            <a className="btn btn-ghost btn-lg" href="#demo">
               Voir la démo
             </a>
           </motion.div>
@@ -49,8 +56,9 @@ export default function Hero() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.45 }}
           >
-            <span><b>Android uniquement</b></span>
-            <span><b>Gratuit</b></span>
+            <span>Gratuit pour tester</span>
+            <span>Fonctionne hors ligne</span>
+            <span>Android</span>
           </motion.div>
         </div>
 
@@ -58,9 +66,18 @@ export default function Hero() {
           className="hero-shot-wrap"
           initial={{ opacity: 0, y: 34 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
-          <img className="hero-shot" src="/assets/screens/caisse.png" alt="Écran de caisse de l'application Lissafi" />
+          <div className="hero-glow" aria-hidden="true" />
+          <div className="hero-pill top">
+            <span className="dot" /> Monnaie rendue : 250 F
+          </div>
+          <img
+            className="hero-shot"
+            src="/assets/screens/caisse.png"
+            alt="Écran de caisse de l'application Lissafi"
+          />
+          <div className="hero-pill bottom">✓ Vente enregistrée · 12:05</div>
         </motion.div>
       </div>
     </section>

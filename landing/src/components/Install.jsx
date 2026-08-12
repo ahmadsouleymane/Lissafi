@@ -1,4 +1,4 @@
-import { WHATSAPP, APK, INSTALL_SCREENSHOT } from "../config";
+import { APK } from "../config";
 import { Kicker, Reveal } from "./ui";
 
 const STEPS = [
@@ -21,42 +21,28 @@ const STEPS = [
 
 export default function Install() {
   return (
-    <section className="section" id="installation">
+    <section className="section rail" id="installation">
       <div className="container">
-        <Reveal>
+        <Reveal className="section-head center">
           <Kicker>L'installation</Kicker>
-          <h2>Trois étapes, deux minutes, et ta boutique est dans ton téléphone.</h2>
+          <h2>Trois étapes, deux minutes.</h2>
+          <p>Et ta boutique est dans ton téléphone, prête à encaisser.</p>
         </Reveal>
 
-        <div className={`install-layout ${INSTALL_SCREENSHOT ? "has-shot" : ""}`}>
-          <div className="install-grid">
-            {STEPS.map((s, i) => (
-              <Reveal key={s.n} delay={i * 0.08}>
-                <div className="install-step">
-                  <div className="step-num">{s.n}</div>
-                  <h3>{s.t}</h3>
-                  <p>{s.d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-
-          {INSTALL_SCREENSHOT && (
-            <Reveal delay={0.15}>
-              <div className="install-shot">
-                <img src={INSTALL_SCREENSHOT} alt="Capture d'écran du processus d'installation Lissafi" />
-              </div>
+        <div className="install-grid">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={i * 0.08} className="install-step">
+              <div className="step-num">{s.n}</div>
+              <h3>{s.t}</h3>
+              <p>{s.d}</p>
             </Reveal>
-          )}
+          ))}
         </div>
 
-        <Reveal delay={0.18}>
+        <Reveal delay={0.15}>
           <p className="install-help">
-            Un téléphone qui bloque ? Écris-moi sur{" "}
-            <a href={WHATSAPP} target="_blank" rel="noreferrer" className="link-primary">
-              WhatsApp
-            </a>{" "}
-            et je t'accompagne jusqu'au bout. Le fichier APK :{" "}
+            Un téléphone qui bloque ? Relis l'étape 1 — chaque marque nomme ce
+            réglage un peu différemment. Le fichier à installer :{" "}
             <a href={APK} download className="link-primary">
               lissafi.apk
             </a>

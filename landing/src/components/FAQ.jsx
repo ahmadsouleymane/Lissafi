@@ -14,7 +14,7 @@ const ITEMS = [
   },
   {
     q: "Comment je paie Essentiel ou Premium ?",
-    a: "En espèces ou par mobile money. Dès réception, on t'active ton offre pour 365 jours. Simple, sans abonnement qui se renouvelle tout seul.",
+    a: "En espèces ou par mobile money. Une fois le paiement réglé, tu reçois un code d'activation à entrer dans l'app (Réglages → Mon offre). Ton offre est active 365 jours, sans abonnement qui se renouvelle tout seul.",
   },
   {
     q: "Sur quel téléphone ça marche ?",
@@ -49,9 +49,9 @@ function FaqItem({ q, a, open, onToggle }) {
 export default function FAQ() {
   const [open, setOpen] = useState(0);
   return (
-    <section className="section" id="faq">
+    <section className="section rail" id="faq">
       <div className="container" style={{ maxWidth: 760 }}>
-        <Reveal>
+        <Reveal className="section-head center">
           <Kicker>Les questions</Kicker>
           <h2>Ce que tout le monde demande.</h2>
         </Reveal>

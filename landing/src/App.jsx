@@ -1,10 +1,7 @@
 import Header from "./components/Header";
 import Hero from "./components/Hero";
-import TrustBand from "./components/TrustBand";
-import AvantApres from "./components/AvantApres";
-import Problem from "./components/Problem";
+import FeatureBento from "./components/FeatureBento";
 import PhoneDemo from "./components/PhoneDemo";
-import LocalFirst from "./components/LocalFirst";
 import Calculator from "./components/Calculator";
 import Pricing from "./components/Pricing";
 import Install from "./components/Install";
@@ -18,11 +15,8 @@ export default function App() {
       <Header />
       <main>
         <Hero />
-        <TrustBand />
-        <AvantApres />
-        <Problem />
+        <FeatureBento />
         <PhoneDemo />
-        <LocalFirst />
         <Calculator />
         <Pricing />
         <Install />
