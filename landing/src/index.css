@@ -330,6 +330,142 @@ p {
 }
 
 /* ============================================================
+   BANDEAU DE CONFIANCE
+   ============================================================ */
+.trust-band {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+.trust-band-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 28px;
+  padding: 18px 0;
+}
+.trust-point {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+}
+.trust-point::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-right: 8px;
+}
+
+/* ============================================================
+   AVANT / APRÈS
+   ============================================================ */
+.avant-apres-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+.aa-col {
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+}
+.aa-avant {
+  background: var(--surface-alt);
+}
+.aa-apres {
+  background: var(--primary-container);
+  border-color: var(--primary);
+}
+.aa-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 16px;
+}
+.aa-avant .aa-label {
+  color: var(--text-secondary);
+}
+.aa-apres .aa-label {
+  color: var(--primary);
+}
+.aa-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.aa-col li {
+  font-size: 15px;
+  padding-left: 22px;
+  position: relative;
+  color: var(--text);
+}
+.aa-avant li::before {
+  content: "✕";
+  position: absolute;
+  left: 0;
+  color: var(--error);
+  font-weight: 700;
+}
+.aa-apres li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+.aa-shot {
+  margin-top: 20px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+@media (min-width: 820px) {
+  .avant-apres-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ============================================================
+   LOCAL-FIRST
+   ============================================================ */
+.local-first-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.local-first-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  box-shadow: var(--shadow-card);
+}
+.local-first-card h3 {
+  margin: 14px 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.local-first-card p {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+}
+@media (min-width: 820px) {
+  .local-first-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ============================================================
    PROBLÈME — éditorial
    ============================================================ */
 .problem-grid {
