@@ -6,7 +6,7 @@ const CARDS = [
     size: "lg",
     icon: WifiOff,
     title: "Tout est stocké sur ton téléphone",
-    desc: "Tes ventes s'enregistrent directement en local — pas besoin d'un serveur ni d'une connexion. Quand le réseau revient, tout se synchronise tout seul, en silence.",
+    desc: "Tes ventes s'enregistrent directement en local pas besoin d'un serveur ni d'une connexion. Quand le réseau revient, tout se synchronise tout seul, en silence.",
     shot: "/assets/screens/rapports.png",
     alt: "Écran des rapports de vente dans Lissafi",
   },
@@ -53,7 +53,7 @@ export default function FeatureBento() {
           <h2>Tout ce qu'il faut pour tenir ta boutique, sans papier.</h2>
           <p>
             Pas un outil de gestion compliqué : une caisse rapide, des crédits
-            suivis et un stock à jour — pensés pour un téléphone simple et une
+            suivis et un stock à jour, pensés pour un téléphone simple et une
             boutique qui bouge.
           </p>
         </Reveal>

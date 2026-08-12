@@ -18,7 +18,7 @@ const ITEMS = [
   },
   {
     q: "Sur quel téléphone ça marche ?",
-    a: "Android, même les plus simples (Tecno, Infinix, Itel, Samsung — dès 2 Go de RAM). iPhone : pas encore.",
+    a: "Android, même les plus simples (Tecno, Infinix, Itel, Samsung, dès 2 Go de RAM). iPhone : pas encore.",
   },
 ];
 

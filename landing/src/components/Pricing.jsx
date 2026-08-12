@@ -64,7 +64,7 @@ export default function Pricing() {
           <Kicker>Les tarifs</Kicker>
           <h2>Un tarif pour chaque étape de ta boutique.</h2>
           <p>
-            <b>Prix de lancement</b> — ils augmenteront après le lancement.
+            <b>Prix de lancement</b> : ils augmenteront après le lancement.
             Profites-en maintenant.
           </p>
         </Reveal>

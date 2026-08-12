@@ -1,5 +1,5 @@
 /* ============================================================
-   LISSAFI — Landing v2 · Design system SaaS Vercel
+   LISSAFI · Landing v2 · Design system SaaS Vercel
    Charte de marque : vert forêt #0F6E46 · orange brûlé #E67E22 · Inter
    Mode clair UNIQUE (plus de bascule sombre).
    Mobile-first strict (base 375px) · desktop 1180px.
@@ -27,7 +27,7 @@
   --border: #e4e4e7;
   --border-strong: #d4d4d8;
 
-  /* Chapitre sombre (hero + CTA final) — choix esthétique, pas un mode sombre */
+  /* Chapitre sombre (hero + CTA final) · choix esthétique, pas un mode sombre */
   --ink: #05100b;
   --ink-2: #0a1a12;
   --ink-border: rgba(255, 255, 255, 0.1);
@@ -244,7 +244,7 @@ button {
   color: #fff;
 }
 
-/* ============ HEADER — transparent sur hero, opaque au scroll ============ */
+/* ============ HEADER · transparent sur hero, opaque au scroll ============ */
 
 .header {
   position: fixed;
@@ -260,7 +260,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 13px 0;
+  padding: 13px clamp(20px, 4vw, 40px);
 }
 .brand {
   display: flex;
@@ -295,8 +295,25 @@ button {
 .hide-sm {
   display: none;
 }
+.header-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.header.over-hero .header-menu-btn {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--ink-text);
+}
 
-/* État 1 — au-dessus de la hero : transparent, tout en blanc */
+/* État 1 · au-dessus de la hero : transparent, tout en blanc */
 .header.over-hero {
   background: transparent;
   border-bottom: 1px solid transparent;
@@ -316,7 +333,7 @@ button {
   color: #fff;
 }
 
-/* État 2 — hero quittée : bandeau blanc opaque */
+/* État 2 · hero quittée : bandeau blanc opaque */
 .header.solid {
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(14px);
@@ -337,14 +354,66 @@ button {
   .hide-sm {
     display: none;
   }
+  .header-menu-btn {
+    display: inline-flex;
+  }
+  .header-inner {
+    gap: 12px;
+    padding: 12px clamp(16px, 4vw, 20px);
+  }
+  .brand-logo {
+    height: 24px;
+  }
+  .header-cta {
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
 }
 @media (min-width: 761px) {
   .hide-sm {
     display: inline-flex;
   }
+  .mobile-menu {
+    display: none;
+  }
 }
 
-/* ============ HERO — chapitre sombre ============ */
+/* Menu mobile · s'ouvre sous le header fixe */
+.mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 24px 48px -24px rgba(9, 9, 11, 0.22);
+  padding: 8px 20px 20px;
+}
+.mobile-menu-nav {
+  display: flex;
+  flex-direction: column;
+}
+.mobile-menu-nav a {
+  padding: 14px 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+.mobile-menu-nav a:active {
+  color: var(--primary);
+}
+.mobile-menu-nav a:last-child {
+  border-bottom: none;
+}
+.mobile-menu-cta {
+  margin-top: 14px;
+  width: 100%;
+}
+
+/* ============ HERO · chapitre sombre ============ */
 
 .hero {
   position: relative;
@@ -605,14 +674,16 @@ button {
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
 }
 .window-bar {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 9px 12px;
-  background: var(--surface-2);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 .window-bar i {
@@ -630,11 +701,16 @@ button {
 .window-bar i:nth-child(3) {
   background: #28c840;
 }
+/* La capture est affichée EN ENTIER (contenue), centrée, en format appareil */
 .bento-window img {
-  width: 100%;
-  max-height: 300px;
-  object-fit: cover;
-  object-position: top;
+  margin: 18px auto;
+  width: auto;
+  max-width: calc(100% - 32px);
+  max-height: 460px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 40px -20px rgba(9, 9, 11, 0.35);
 }
 
 @media (min-width: 720px) {
@@ -645,14 +721,14 @@ button {
     grid-column: span 2;
   }
   .bento-card.lg .bento-window img {
-    max-height: 360px;
+    max-height: 560px;
   }
   .bento-card.md .bento-window img {
-    max-height: 220px;
+    max-height: 420px;
   }
 }
 
-/* ============ DÉMO TÉLÉPHONE — scroll-driven, habillage clair ============ */
+/* ============ DÉMO TÉLÉPHONE · scroll-driven, habillage clair ============ */
 
 .demo-grid {
   display: grid;
@@ -1064,7 +1140,7 @@ button {
   color: var(--text-tertiary);
 }
 .price-features li.off::before {
-  content: "—";
+  content: "";
   color: var(--border-strong);
 }
 .price-note {

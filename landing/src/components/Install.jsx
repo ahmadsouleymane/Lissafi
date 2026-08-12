@@ -41,7 +41,7 @@ export default function Install() {
 
         <Reveal delay={0.15}>
           <p className="install-help">
-            Un téléphone qui bloque ? Relis l'étape 1 — chaque marque nomme ce
+            Un téléphone qui bloque ? Relis l'étape 1, chaque marque nomme ce
             réglage un peu différemment. Le fichier à installer :{" "}
             <a href={APK} download className="link-primary">
               lissafi.apk

@@ -12,7 +12,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-          > Caisse enregistreuse Android
+          > Caisse enregistreuse pour ton téléphone
           </motion.span>
 
           <motion.h1
