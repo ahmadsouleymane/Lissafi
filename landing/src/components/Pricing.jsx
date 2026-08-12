@@ -7,7 +7,7 @@ export default function Pricing() {
       <div className="container">
         <Reveal>
           <Kicker>N° 004 — Les tarifs</Kicker>
-          <h2>Gratuit pour tester. 68 F par jour pour tout débloquer.</h2>
+          <h2>Un tarif pour chaque étape de ta boutique.</h2>
         </Reveal>
 
         <div className="pricing-grid">
@@ -17,13 +17,14 @@ export default function Pricing() {
               <div className="price-amount">0 F</div>
               <div className="price-sub">pour découvrir la caisse</div>
               <ul className="price-features">
-                <li>10 produits au catalogue</li>
-                <li>10 clients suivis</li>
-                <li>10 ventes par jour</li>
-                <li>Ticket WhatsApp</li>
+                <li>50 produits au catalogue</li>
+                <li>50 clients suivis</li>
+                <li>50 crédits actifs</li>
+                <li>Ventes illimitées</li>
+                <li>Historique complet et illimité</li>
                 <li>Marche sans réseau</li>
-                <li className="off">Rapports & export illimités</li>
                 <li className="off">Gestion de stock complète</li>
+                <li className="off">Rapports & export illimités</li>
               </ul>
               <a className="btn btn-ghost" href={APK} download>
                 Télécharger l'APK
@@ -51,6 +52,28 @@ export default function Pricing() {
               </ul>
               <a className="btn btn-primary" href={WHATSAPP} target="_blank" rel="noreferrer">
                 Je passe à Essentiel →
+              </a>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.18}>
+            <div className="price-card top">
+              <span className="price-badge top">Tout inclus</span>
+              <div className="price-plan">Lissafi Premium</div>
+              <div className="price-amount">
+                100 000 F<small>/an</small>
+              </div>
+              <div className="price-sub">= 274 F par jour · le service complet</div>
+              <ul className="price-features">
+                <li>Tout Lissafi Essentiel</li>
+                <li>Sauvegarde cloud renforcée</li>
+                <li>Accompagnement au démarrage</li>
+                <li>Formation de ton équipe sur place</li>
+                <li>Support prioritaire WhatsApp + appel</li>
+                <li>Accès en avant-première aux nouveautés</li>
+              </ul>
+              <a className="btn btn-primary" href={WHATSAPP} target="_blank" rel="noreferrer">
+                Je passe à Premium →
               </a>
             </div>
           </Reveal>
