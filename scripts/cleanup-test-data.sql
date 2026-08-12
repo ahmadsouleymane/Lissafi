@@ -31,19 +31,50 @@ FROM auth.users u
 ORDER BY u.created_at;
 
 -- ------------------------------------------------------------
--- ÉTAPE 2 — SUPPRESSION des comptes de test (à adapter)
--- Remplis la liste d'emails ci-dessous avec les comptes à supprimer.
+-- ÉTAPE 2 — SUPPRESSION des comptes de test (ACTIF)
+-- Liste d'emails à supprimer (voir ÉTAPE 1 pour la liste réelle).
 -- Les tables app ont `REFERENCES auth.users(id) ON DELETE CASCADE` :
 -- la suppression du compte emporte produits, ventes, articles, clients,
 -- dettes, réglages, tokens, logs et tickets. Ne touche PAS aux autres
 -- comptes, ni à l'audit (admin_actions / notification_log) — volontaire.
+--
+-- ⚠️ SÉCURITÉ : tout compte présent dans public.admins (admin du
+-- back-office) est SKIPPÉ — on ne supprime jamais l'accès admin.
+-- Si l'un des emails ci-dessous est ton compte admin, il restera.
 -- ------------------------------------------------------------
--- DO $$
--- DECLARE test_emails text[] := ARRAY['test@example.com'];  -- ← À ADAPTER
--- BEGIN
---     DELETE FROM auth.users WHERE email = ANY(test_emails);
---     RAISE NOTICE 'Comptes supprimés : %', array_to_string(test_emails, ', ');
--- END $$;
+DO $$
+DECLARE
+    test_emails text[] := ARRAY[
+        'ahmadsouleymane1302@gmail.com',
+        'demo@lissafi.app',
+        'test@lissafi.app',
+        'hasanazzir@gmail.com',
+        'alhousseinimoussa48@gmail.com'
+    ];
+    deleted int;
+    u record;
+BEGIN
+    -- Contrôle préalable : signale les comptes admin (non supprimés).
+    FOR u IN SELECT au.email
+             FROM auth.users au
+             JOIN public.admins a ON a.user_id = au.id
+             WHERE au.email = ANY(test_emails)
+    LOOP
+        RAISE NOTICE '⚠️ % est un ADMIN back-office — conservé', u.email;
+    END LOOP;
+
+    -- Suppression cascade, sauf les admins back-office.
+    DELETE FROM auth.users
+    WHERE email = ANY(test_emails)
+      AND id NOT IN (SELECT user_id FROM public.admins);
+
+    GET DIAGNOSTICS deleted = ROW_COUNT;
+    RAISE NOTICE '% compte(s) supprimé(s) (cascade).', deleted;
+END $$;
+
+-- Puis (si tu veux un compte démo propre et frais) relance :
+--   scripts/seed-demo.sql  → recrée demo@lissafi.app / demo123456 (boutique fictive)
+--   (il est idempotent et ne touche que le compte démo)
 
 -- ------------------------------------------------------------
 -- ÉTAPE 3 — Compte démo dédié
