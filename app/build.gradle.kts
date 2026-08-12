@@ -117,7 +117,7 @@ dependencies {
 
     // Firebase Cloud Messaging (notifications push)
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.messaging)
 
     // Core library desugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)
