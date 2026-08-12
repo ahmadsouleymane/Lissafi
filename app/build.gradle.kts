@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -113,6 +114,10 @@ dependencies {
 
     // KotlinX Serialization
     implementation(libs.kotlinx.serialization.json)
+
+    // Firebase Cloud Messaging (notifications push)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
 
     // Core library desugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)

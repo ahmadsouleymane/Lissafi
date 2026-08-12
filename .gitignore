@@ -15,4 +15,5 @@ build/
 output.json
 *.keystore
 keystore.properties
+app/google-services.json
 .worktrees/
