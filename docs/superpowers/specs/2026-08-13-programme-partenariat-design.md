@@ -10,7 +10,7 @@
 | Objectif prioritaire | **Revenus d'abord** — le programme récompense des ventes conclues, pas des vues |
 | Segments de partenaires | **4** : revendeurs/agents, ambassadeurs/influenceurs, partenariats stratégiques, parrainage utilisateurs |
 | Récompense | **Commission fixe en espèces** par client payant amené |
-| Palier de commission | **Par partenaire** (pas de logique de date) : `launch` ou `standard` |
+| Barème | **Unique et permanent** (pas de fenêtre, pas de palier) : Plus 10 000 F, Business 15 000 F, Pack 5 000 F |
 | Attribution | **Manuelle** — enregistrée dans le back-office au moment de l'activation premium |
 | Succès à 6 mois | **~15–20 clients payants amenés** par des partenaires (sur les 50 visés), commissions ≤ ~20 % du CA du programme |
 | Paiement des commissions | Orange Money / Moov Money, tracé dans le back-office (statut `due` → `payée`) |
@@ -18,20 +18,22 @@
 ## Règles du programme
 
 1. Chaque partenaire reçoit un **code unique** (ex. `PTN-AMADOU` ou son n° de téléphone), à communiquer aux clients.
-2. Quand un client amené par un partenaire paie, l'admin **attribue la vente** au partenaire dans le back-office → une ligne `partner_sales` avec commission calculée selon le palier du partenaire.
+2. Quand un client amené par un partenaire paie, l'admin **attribue la vente** au partenaire dans le back-office → une ligne `partner_sales` avec commission calculée selon le barème.
 3. Le **parrainage utilisateur** (un commerçant déjà équipé qui amène un client payant) utilise le même mécanisme : il reçoit un code `type=referral` et touche sa commission en espèces. Aucun système séparé.
 4. Les **ambassadeurs/influenceurs** diffusent leur code (bio TikTok, légende, affichettes). Même attribution manuelle.
 5. Une vente = une ligne `partner_sales`. Un renouvellement = une nouvelle ligne.
 
 ### Barème de commissions
 
-| Plan | Palier Lancement | Palier Standard |
-|---|---|---|
-| Lissafi Plus (30 000 F/an) | 10 000 F | 5 000 F |
-| Lissafi Business (75 000 F/an) | 15 000 F | 10 000 F |
-| Pack Boutique (60 000 F) | 5 000 F | 3 000 F |
+**Barème unique et permanent** — l'offre généreuse reste le barème de référence. Pas de fenêtre limitée, pas de palier : le programme est illimité, la commission est fixe.
 
-Les premiers partenaires (fenêtre de recrutement) sont créés en palier **Lancement**, les suivants en **Standard**. Un clic pour changer le palier d'un partenaire.
+| Plan | Commission fixe |
+|---|---|
+| Lissafi Plus (30 000 F/an) | 10 000 F |
+| Lissafi Business (75 000 F/an) | 15 000 F |
+| Pack Boutique (60 000 F) | 5 000 F |
+
+**Pourquoi c'est soutenable** : la commission est payée **une fois** par vente, alors que le client paie **chaque année**. Sur une durée de vie de 3 ans, un client Plus rapporte 90 000 F pour 10 000 F de commission (11 %). Le coût d'acquisition via partenaires reste très en dessous de la valeur vie du client. Le barème est une constante de code — modifiable en un seul endroit si besoin.
 
 ## Modèle de données
 
@@ -46,7 +48,6 @@ CREATE TABLE IF NOT EXISTS public.partners (
     type TEXT NOT NULL CHECK (type IN ('agent', 'ambassador', 'strategic', 'referral')),
     phone TEXT NOT NULL DEFAULT '',
     code TEXT NOT NULL UNIQUE,
-    commission_tier TEXT NOT NULL DEFAULT 'standard' CHECK (commission_tier IN ('launch', 'standard')),
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     notes TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -103,7 +104,6 @@ AS $func$
             p.type,
             p.phone,
             p.code,
-            p.commission_tier,
             p.status,
             p.created_at,
             coalesce(s.sale_count, 0) AS sale_count,
@@ -131,9 +131,9 @@ GRANT EXECUTE ON FUNCTION public.admin_partner_summaries() TO service_role;
 ### `/partenaires`
 
 - Cartes stats : partenaires actifs, clients amenés, commissions dues, commissions payées.
-- Formulaire « + Nouveau partenaire » : nom, type (agent/ambassadeur/stratégique/parrainage), téléphone, code (auto-suggéré si vide), palier (lancement/standard).
-- Table des partenaires (composants existants `Table`/`Td`/`Th`…) : code, type, palier, clients amenés, commission due, commission payée, statut. Actions par ligne :
-  - **+ Vente attribuée** (form inline ou page détail) : nom client, téléphone, plan → commission calculée depuis le palier.
+- Formulaire « + Nouveau partenaire » : nom, type (agent/ambassadeur/stratégique/parrainage), téléphone, code (auto-suggéré si vide).
+- Table des partenaires (composants existants `Table`/`Td`/`Th`…) : code, type, clients amenés, commission due, commission payée, statut. Actions par ligne :
+  - **+ Vente attribuée** (form inline ou page détail) : nom client, téléphone, plan → commission calculée selon le barème.
   - **Tout payer** : passe toutes les ventes `owed` de ce partenaire à `paid` en un clic (confort).
   - **Voir** → `/partenaires/[id]`.
   - **Désactiver/Activer** (`ConfirmForm` pour désactiver).
@@ -141,28 +141,28 @@ GRANT EXECUTE ON FUNCTION public.admin_partner_summaries() TO service_role;
 
 ### `/partenaires/[id]`
 
-- Fiche partenaire : nom, type, téléphone, code, palier, statut, historique complet des `partner_sales` (client, plan, montant, commission, statut, date).
-- Actions : ajouter une vente, **marquer payée (par vente)**, changer le palier, activer/désactiver.
+- Fiche partenaire : nom, type, téléphone, code, statut, historique complet des `partner_sales` (client, plan, montant, commission, statut, date).
+- Actions : ajouter une vente, **marquer payée (par vente)**, activer/désactiver.
 
 ## Code (patterns existants)
 
 - **`src/actions/partners.ts`** (server actions) :
   - `addPartner(formData)` → insère, `requireAdmin()`, `logAdminAction("add_partner", ...)`, `revalidatePath`.
-  - `addPartnerSale(partnerId, { clientName, clientPhone, plan })` → calcule `commission_fcfa` depuis `commission_tier` du partenaire + table des barèmes, insère `partner_sales` (statut `owed`), audit, revalidate.
+  - `addPartnerSale(partnerId, { clientName, clientPhone, plan })` → calcule `commission_fcfa` depuis le barème (constante), insère `partner_sales` (statut `owed`), audit, revalidate.
   - `markCommissionPaid(saleId)` (et variante `markPartnerCommissionPaid(partnerId)` pour tout payer d'un coup) → passe à `paid`, `paid_at = now()`, audit, revalidate.
   - `togglePartnerStatus(partnerId)` → audit, revalidate.
-  - `setPartnerTier(partnerId, tier)` → audit, revalidate.
   - Variantes `Quick` pour les boutons de `<form>` (pattern existant).
 - **`src/lib/data.ts`** :
   - `getPartners(): Promise<PartnerSummary[]>` → `supabaseAdmin().rpc("admin_partner_summaries")`.
   - `getPartner(id): Promise<PartnerSummary | null>`.
   - `getPartnerSales(partnerId): Promise<PartnerSale[]>` → requête directe sur `partner_sales` (service_role).
-- **`src/types.ts`** : `PartnerType`, `CommissionTier`, `PartnerSummary`, `PartnerSale`.
-- **Barèmes** : constantes partagées dans `src/lib/partners.ts` :
+- **`src/types.ts`** : `PartnerType`, `PartnerSummary`, `PartnerSale`.
+- **Barème** : constantes partagées dans `src/lib/partners.ts` :
   ```ts
-  export const COMMISSIONS: Record<CommissionTier, Record<Plan, number>> = {
-    launch:   { plus: 10_000, business: 15_000, pack: 5_000 },
-    standard: { plus: 5_000,  business: 10_000, pack: 3_000 },
+  export const COMMISSIONS: Record<Plan, number> = {
+    plus: 10_000,
+    business: 15_000,
+    pack: 5_000,
   };
   ```
 - **`src/components/icons.tsx`** : nouvelle icône (ex. `IconHandshake`).
@@ -179,7 +179,7 @@ GRANT EXECUTE ON FUNCTION public.admin_partner_summaries() TO service_role;
 ## Vérification
 
 1. `cd backoffice && npm run build` (typecheck + build Next.js).
-2. Test manuel navigateur (via `/partenaires`) : créer un partenaire (palier lancement) → attribuer une vente Plus → vérifier commission 10 000 F → marquer payée → vérifier les stats (dues/payées) et `admin_actions`.
+2. Test manuel navigateur (via `/partenaires`) : créer un partenaire → attribuer une vente Plus → vérifier commission 10 000 F → marquer payée → vérifier les stats (dues/payées) et `admin_actions`.
 3. Rejouer `supabase-admin.sql` dans le SQL Editor Supabase (idempotent) — c'est l'action utilisateur à faire après le commit.
 
 ## Hors périmètre (V1)
