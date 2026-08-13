@@ -6,6 +6,7 @@ const NAV = [
   ["#fonctionnalites", "Fonctionnalités"],
   ["#demo", "La démo"],
   ["#tarifs", "Tarifs"],
+  ["#partenaires", "Partenaires"],
   ["#faq", "FAQ"],
   ["#installation", "Installer"],
 ];
