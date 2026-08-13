@@ -200,3 +200,38 @@ export type NotificationLog = {
   failed: number;
   created_at: string;
 };
+
+// ============================================================
+// Programme de partenariat
+// ============================================================
+
+export type PartnerType = "agent" | "ambassador" | "strategic" | "referral";
+export type Plan = "plus" | "business" | "pack";
+
+export type PartnerSummary = {
+  id: string;
+  name: string;
+  type: PartnerType;
+  phone: string;
+  code: string;
+  status: "active" | "inactive";
+  created_at: string;
+  sale_count: number;
+  commission_due: number;
+  commission_paid: number;
+  commission_remaining: number;
+};
+
+export type PartnerSale = {
+  id: number;
+  partner_id: string;
+  client_name: string;
+  client_phone: string;
+  plan: Plan;
+  amount_paid_fcfa: number;
+  commission_fcfa: number;
+  status: "owed" | "paid";
+  paid_at: string | null;
+  note: string;
+  created_at: number;
+};
