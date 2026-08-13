@@ -22,7 +22,7 @@ export function PartnerSignUpForm() {
       <Field label="Ton nom complet">
         <Input type="text" name="name" required placeholder="Ex: Amadou Boubacar" autoComplete="name" />
       </Field>
-      <Field label="Téléphone (Orange Money / Moov)" hint="Pour te payer tes commissions.">
+      <Field label="Téléphone (mobile money)" hint="Pour te payer tes commissions.">
         <Input type="tel" name="phone" placeholder="Ex: 90 11 22 33" autoComplete="tel" />
       </Field>
       <Field label="Email">

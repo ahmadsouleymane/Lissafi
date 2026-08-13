@@ -3,22 +3,57 @@ import Link from "next/link";
 
 // En-tête + conteneur partagés des pages du portail partenaire (public).
 // Volontairement séparé de l'AppShell admin (aucune session admin ici).
-export function PortalShell({ children, maxWidth = "max-w-md" }: { children: ReactNode; maxWidth?: string }) {
+// `bleed` = la page gère elle-même ses sections pleine largeur (page d'accueil).
+export function PortalShell({
+  children,
+  maxWidth = "max-w-md",
+  bleed = false,
+}: {
+  children: ReactNode;
+  maxWidth?: string;
+  bleed?: boolean;
+}) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
+    <div className="portal flex min-h-screen flex-col bg-slate-50">
+      {/* Police Inter (identité de marque Lissafi) */}
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      />
+
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/partenaire" className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/assets/logo-header.svg" alt="Lissafi" className="h-6 w-auto" />
             <span className="hidden text-sm font-semibold text-brand-700 sm:inline">Partenaires</span>
           </Link>
-          <span className="text-xs font-medium text-slate-400">Ta caisse, simplement</span>
+          <Link
+            href="/partenaire/connexion"
+            className="text-sm font-medium text-slate-600 transition-colors hover:text-brand-700"
+          >
+            Se connecter
+          </Link>
         </div>
       </header>
-      <main className="mx-auto w-full px-4 py-8">
-        <div className={`mx-auto ${maxWidth}`}>{children}</div>
-      </main>
+
+      {bleed ? (
+        <main className="flex-1">{children}</main>
+      ) : (
+        <main className="mx-auto w-full flex-1 px-4 py-8">
+          <div className={`mx-auto ${maxWidth}`}>{children}</div>
+        </main>
+      )}
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-1 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/logo-header.svg" alt="Lissafi" className="h-5 w-auto opacity-70" />
+          <p className="text-xs text-slate-400">Ta caisse, simplement · © 2026 Lissafi</p>
+        </div>
+      </footer>
     </div>
   );
 }

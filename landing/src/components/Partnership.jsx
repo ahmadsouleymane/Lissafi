@@ -12,7 +12,7 @@ const TIERS = [
 const STEPS = [
   { icon: Handshake, title: "Inscris-toi", body: "Compte gratuit en 30 secondes. Actif tout de suite." },
   { icon: Link2, title: "Partage ton lien", body: "Ton lien perso + QR code sur WhatsApp, TikTok ou en affichette." },
-  { icon: Wallet, title: "Sois payé", body: "Commission en espèces à chaque client, sur Orange Money ou Moov." },
+  { icon: Wallet, title: "Sois payé", body: "Commission en espèces à chaque client, payée sur mobile money." },
 ];
 
 export default function Partnership() {

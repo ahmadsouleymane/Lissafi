@@ -15,7 +15,7 @@ export function RequestPayoutForm({ available }: { available: number }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Demander un retrait</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Payé en espèces (Orange Money / Moov) après validation.</p>
+          <p className="mt-0.5 text-xs text-slate-500">Payé en mobile money après validation.</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-slate-500">Disponible</p>

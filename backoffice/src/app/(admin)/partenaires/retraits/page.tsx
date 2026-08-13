@@ -18,7 +18,7 @@ export default async function PayoutsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Demandes de retrait"
-        subtitle="Paie le partenaire (Orange Money / Moov) puis valide — les commissions dues sont soldées automatiquement."
+        subtitle="Paie le partenaire (mobile money) puis valide — les commissions dues sont soldées automatiquement."
         action={
           <Link href="/partenaires">
             <Button size="sm" variant="secondary">← Partenaires</Button>
