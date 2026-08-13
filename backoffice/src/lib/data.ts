@@ -12,6 +12,8 @@ import type {
   DebtTransaction,
   ExplorerData,
   NotificationLog,
+  PartnerSale,
+  PartnerSummary,
   Product,
   SalesPoint,
   SaleItem,
@@ -362,4 +364,36 @@ export async function getRecapHistory(limit = 5): Promise<NotificationLog[]> {
 export async function getRecapEnabled(): Promise<boolean> {
   const settings = await getAdminSettings();
   return settings["recap_notifications_enabled"] !== "false";
+}
+
+// ============================================================
+// Programme de partenariat
+// ============================================================
+
+/** Liste des partenaires avec indicateurs agrégés (ventes, commissions). */
+export async function getPartners(): Promise<PartnerSummary[]> {
+  const { data, error } = await supabaseAdmin().rpc("admin_partner_summaries");
+  if (error) logRpcError("getPartners", error);
+  return Array.isArray(data) ? (data as PartnerSummary[]) : [];
+}
+
+/** Un partenaire par id (avec agrégats), null si introuvable. */
+export async function getPartner(id: string): Promise<PartnerSummary | null> {
+  const partners = await getPartners();
+  return partners.find((p) => p.id === id) ?? null;
+}
+
+/** Historique des ventes attribuées à un partenaire (plus récentes d'abord). */
+export async function getPartnerSales(partnerId: string): Promise<PartnerSale[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("partner_sales")
+    .select("*")
+    .eq("partner_id", partnerId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    console.error("[admin] getPartnerSales:", error);
+    return [];
+  }
+  return (data ?? []) as PartnerSale[];
 }
