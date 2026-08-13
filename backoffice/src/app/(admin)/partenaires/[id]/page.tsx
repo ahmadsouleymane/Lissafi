@@ -48,7 +48,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-1.5">
-          {active && partner.commission_due > 0 && (
+          {partner.commission_due > 0 && (
             <form action={markAllCommissionsPaidQuick.bind(null, partner.id)}>
               <Button type="submit" size="sm">Tout payer</Button>
             </form>
@@ -65,7 +65,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
         </div>
       </Card>
 
-      <AddPartnerSaleForm partnerId={partner.id} />
+      {active && <AddPartnerSaleForm partnerId={partner.id} />}
 
       <Card>
         <CardHeader title="Ventes attribuées" subtitle="Historique des commissions" />

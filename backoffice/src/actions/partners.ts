@@ -65,11 +65,15 @@ export async function addPartner(
 /** Change l'état actif/inactif d'un partenaire. */
 export async function togglePartnerStatus(partnerId: string): Promise<PartnerActionResult> {
   await requireAdmin();
-  const { data: partner } = await supabaseAdmin()
+  const { data: partner, error: partnerError } = await supabaseAdmin()
     .from("partners")
     .select("status")
     .eq("id", partnerId)
     .maybeSingle();
+  if (partnerError) {
+    console.error("[admin] togglePartnerStatus:", partnerError);
+    return { error: "Une erreur est survenue. Réessaie." };
+  }
   if (!partner) return { error: "Partenaire introuvable." };
   const next = partner.status === "active" ? "inactive" : "active";
 
