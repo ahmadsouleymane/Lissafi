@@ -500,6 +500,13 @@ DROP POLICY IF EXISTS "admins manage partners" ON public.partners;
 CREATE POLICY "admins manage partners" ON public.partners
     FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
+-- Portail partenaire auto-serveur : lien vers le compte Supabase Auth + email.
+-- (idempotent — colonnes ajoutées après coup au schéma d'origine)
+ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS auth_uid UUID;
+ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_partners_auth_uid
+    ON public.partners(auth_uid) WHERE auth_uid IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.partner_sales (
     id BIGSERIAL PRIMARY KEY,
     partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
@@ -535,6 +542,7 @@ AS $func$
             p.name,
             p.type,
             p.phone,
+            p.email,
             p.code,
             p.status,
             p.created_at,
@@ -556,3 +564,40 @@ $func$;
 
 REVOKE EXECUTE ON FUNCTION public.admin_partner_summaries() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_partner_summaries() TO service_role;
+
+-- ------------------------------------------------------------
+-- Portail partenaire : visites (clics sur un lien partenaire)
+-- Écrites UNIQUEMENT via service_role (route API du back-office).
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.partner_visits (
+    id BIGSERIAL PRIMARY KEY,
+    partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
+    created_at BIGINT NOT NULL
+);
+
+ALTER TABLE public.partner_visits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.partner_visits FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage partner visits" ON public.partner_visits;
+CREATE POLICY "admins manage partner visits" ON public.partner_visits
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE INDEX IF NOT EXISTS idx_partner_visits_partner ON public.partner_visits(partner_id);
+
+-- ------------------------------------------------------------
+-- Portail partenaire : demandes de retrait (payées à la main)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.partner_payouts (
+    id BIGSERIAL PRIMARY KEY,
+    partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
+    amount_fcfa INT NOT NULL CHECK (amount_fcfa > 0),
+    status TEXT NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'paid')),
+    requested_at BIGINT NOT NULL,
+    paid_at BIGINT
+);
+
+ALTER TABLE public.partner_payouts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.partner_payouts FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage partner payouts" ON public.partner_payouts;
+CREATE POLICY "admins manage partner payouts" ON public.partner_payouts
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE INDEX IF NOT EXISTS idx_partner_payouts_partner ON public.partner_payouts(partner_id);
+CREATE INDEX IF NOT EXISTS idx_partner_payouts_status ON public.partner_payouts(status);

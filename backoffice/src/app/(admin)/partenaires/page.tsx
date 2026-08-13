@@ -22,9 +22,14 @@ export default async function PartnersPage() {
         title="Partenaires"
         subtitle="Réseau de revendeurs, ambassadeurs et parrainage — commission en espèces par client payant."
         action={
-          <span className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
-            <IconHandshake size={15} /> {activeCount} actif(s)
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+              <IconHandshake size={15} /> {activeCount} actif(s)
+            </span>
+            <Link href="/partenaires/retraits">
+              <Button size="sm" variant="secondary">Demandes de retrait</Button>
+            </Link>
+          </div>
         }
       />
 
@@ -72,6 +77,7 @@ function PartnerRow({ partner }: { partner: PartnerSummary }) {
         <p className="text-xs text-slate-400">
           <code>{partner.code}</code>
           {partner.phone ? ` · ${partner.phone}` : ""}
+          {partner.email ? ` · ${partner.email}` : ""}
         </p>
       </Td>
       <Td>

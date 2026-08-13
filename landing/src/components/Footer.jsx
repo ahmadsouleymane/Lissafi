@@ -1,7 +1,5 @@
-import { MessageCircle } from "lucide-react";
-
-// Numéro WhatsApp d'activation (même numéro que dans l'app — PremiumManager.kt)
-const WHATSAPP_URL = "https://wa.me/2250160726314";
+import { MessageCircle, Handshake } from "lucide-react";
+import { WHATSAPP_URL, BECOME_PARTNER_URL } from "../config";
 
 export default function Footer() {
   return (
@@ -22,6 +20,14 @@ export default function Footer() {
           rel="noopener noreferrer"
         >
           <MessageCircle size={15} /> WhatsApp : +225 0160 72 63 14
+        </a>
+        <a
+          className="footer-partner"
+          href={BECOME_PARTNER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Handshake size={15} /> Devenir partenaire
         </a>
         <div className="footer-meta">© 2026 Lissafi</div>
       </div>

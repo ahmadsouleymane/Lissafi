@@ -1347,3 +1347,86 @@ button {
 .reveal {
   will-change: transform, opacity;
 }
+
+/* ============ Bannière d'attribution partenaire (?p=CODE) ============ */
+.btn-sm {
+  padding: 9px 15px;
+  font-size: 14px;
+}
+.partner-banner {
+  position: relative;
+  z-index: 60;
+  background: var(--primary);
+  color: #fff;
+}
+.partner-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.partner-banner-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.partner-banner-text strong {
+  font-weight: 700;
+}
+.partner-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.partner-banner .btn-primary {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: none;
+}
+.partner-banner .btn-primary:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+.partner-banner-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.partner-banner-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 1;
+}
+@media (max-width: 640px) {
+  .partner-banner-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .partner-banner-actions {
+    justify-content: space-between;
+  }
+}
+
+/* ============ Lien "Devenir partenaire" du footer ============ */
+.footer-partner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-accent);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.footer-partner:hover {
+  text-decoration: underline;
+}

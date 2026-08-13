@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import PartnerBanner from "./components/PartnerBanner";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import FeatureBento from "./components/FeatureBento";
@@ -13,6 +14,7 @@ import Footer from "./components/Footer";
 export default function App() {
   return (
     <>
+      <PartnerBanner />
       <Header />
       <main>
         <Hero />
