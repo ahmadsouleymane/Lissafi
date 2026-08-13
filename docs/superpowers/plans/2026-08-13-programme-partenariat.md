@@ -121,7 +121,7 @@ GRANT EXECUTE ON FUNCTION public.admin_partner_summaries() TO service_role;
 - [ ] **Step 2: Vérifier la cohérence du fichier**
 
 Run: `grep -n "admin_partner_summaries\|CREATE TABLE IF NOT EXISTS public.partners\|CREATE TABLE IF NOT EXISTS public.partner_sales" supabase-admin.sql`
-Expected : 4 occurrences (la table `partners`, la table `partner_sales`, la fonction, et rien d'autre). Le fichier reste idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
+Expected : 5 occurrences — la table `partners`, la table `partner_sales`, et la fonction `admin_partner_summaries` 3 fois (CREATE + REVOKE + GRANT). Le fichier reste idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
 
 - [ ] **Step 3: Commit**
 
