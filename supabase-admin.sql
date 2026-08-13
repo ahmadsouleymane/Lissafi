@@ -476,3 +476,83 @@ CREATE TRIGGER trg_guard_premium
 -- 7. MISE À JOUR du schéma existant : index sur app_settings pour les pivots
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_app_settings_key ON public.app_settings(key);
+
+-- ============================================================
+-- 8. PROGRAMME DE PARTENARIAT (commission cash par client payant)
+--    Tables administrées uniquement depuis le back-office
+--    (service_role). Aucun accès depuis l'app Android.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.partners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('agent', 'ambassador', 'strategic', 'referral')),
+    phone TEXT NOT NULL DEFAULT '',
+    code TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.partners ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.partners FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage partners" ON public.partners;
+CREATE POLICY "admins manage partners" ON public.partners
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+CREATE TABLE IF NOT EXISTS public.partner_sales (
+    id BIGSERIAL PRIMARY KEY,
+    partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
+    client_name TEXT NOT NULL DEFAULT '',
+    client_phone TEXT NOT NULL DEFAULT '',
+    plan TEXT NOT NULL CHECK (plan IN ('plus', 'business', 'pack')),
+    amount_paid_fcfa INT NOT NULL DEFAULT 0,
+    commission_fcfa INT NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'owed' CHECK (status IN ('owed', 'paid')),
+    paid_at TIMESTAMPTZ,
+    note TEXT NOT NULL DEFAULT '',
+    created_at BIGINT NOT NULL
+);
+
+ALTER TABLE public.partner_sales ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.partner_sales FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage partner sales" ON public.partner_sales;
+CREATE POLICY "admins manage partner sales" ON public.partner_sales
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+CREATE INDEX IF NOT EXISTS idx_partner_sales_partner ON public.partner_sales(partner_id);
+CREATE INDEX IF NOT EXISTS idx_partner_sales_status ON public.partner_sales(status);
+
+-- Agrégat par partenaire pour la liste /partenaires
+CREATE OR REPLACE FUNCTION public.admin_partner_summaries()
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $func$
+    SELECT coalesce(jsonb_agg(row_to_json(x) ORDER BY x.name), '[]'::jsonb)
+    FROM (
+        SELECT
+            p.id,
+            p.name,
+            p.type,
+            p.phone,
+            p.code,
+            p.status,
+            p.created_at,
+            coalesce(s.sale_count, 0) AS sale_count,
+            coalesce(s.commission_due, 0) AS commission_due,
+            coalesce(s.commission_paid, 0) AS commission_paid,
+            coalesce(s.commission_due, 0) - coalesce(s.commission_paid, 0) AS commission_remaining
+        FROM partners p
+        LEFT JOIN (
+            SELECT partner_id,
+                   count(*) AS sale_count,
+                   sum(commission_fcfa) FILTER (WHERE status = 'owed') AS commission_due,
+                   sum(commission_fcfa) FILTER (WHERE status = 'paid') AS commission_paid
+            FROM partner_sales
+            GROUP BY partner_id
+        ) s ON s.partner_id = p.id
+    ) x;
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.admin_partner_summaries() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_partner_summaries() TO service_role;
