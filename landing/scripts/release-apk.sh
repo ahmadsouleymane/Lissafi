@@ -34,8 +34,29 @@ case "$BUILD_TYPE" in
   *) echo "❌ Type de build inconnu : $BUILD_TYPE (attendu : release | debug)" >&2; exit 2 ;;
 esac
 
-# ---- 1. Build Android -------------------------------------------------
-echo "==> [1/4] Build Android ($BUILD_TYPE)…"
+# ---- 1. Bump version + manifest de version (auto-update) --------------
+echo "==> [1/5] Bump versionCode + latest.json…"
+VC_FILE="$ROOT/app/build.gradle.kts"
+OLD_VC="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*/\1/p' "$VC_FILE" | head -1)"
+if [ -z "$OLD_VC" ]; then
+  echo "❌ versionCode introuvable dans $VC_FILE" >&2
+  exit 1
+fi
+NEW_VC=$((OLD_VC + 1))
+VERSION_NAME="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' "$VC_FILE" | head -1)"
+sed -i.bak "s/versionCode = $OLD_VC/versionCode = $NEW_VC/" "$VC_FILE"
+rm -f "$VC_FILE.bak"
+cat > "$ROOT/landing/public/latest.json" <<EOF
+{
+  "versionCode": $NEW_VC,
+  "versionName": "${VERSION_NAME:-1.0}",
+  "apkUrl": "/lissafi.apk"
+}
+EOF
+echo "   versionCode $OLD_VC → $NEW_VC (versionName ${VERSION_NAME:-1.0})"
+
+# ---- 2. Build Android -------------------------------------------------
+echo "==> [2/5] Build Android ($BUILD_TYPE)…"
 ./gradlew "$TASK"
 APK_SRC="$ROOT/app/build/outputs/apk/$APK_SUBDIR/app-${APK_SUBDIR}.apk"
 if [ ! -f "$APK_SRC" ]; then
@@ -43,26 +64,26 @@ if [ ! -f "$APK_SRC" ]; then
   exit 1
 fi
 
-# ---- 2. Copie dans la landing ----------------------------------------
+# ---- 3. Copie dans la landing ----------------------------------------
 DEST="$ROOT/landing/public/lissafi.apk"
-echo "==> [2/4] Copie de l'APK vers la landing…"
+echo "==> [3/5] Copie de l'APK vers la landing…"
 cp "$APK_SRC" "$DEST"
 MB=$(du -h "$DEST" | cut -f1)
 echo "   APK prêt : $DEST ($MB)"
 
-# ---- 3. Commit ---------------------------------------------------------
-echo "==> [3/4] Commit…"
-if git diff --quiet -- landing/public/lissafi.apk; then
-  echo "   Aucun changement d'APK (déjà à jour) — commit ignoré."
+# ---- 4. Commit ---------------------------------------------------------
+echo "==> [4/5] Commit…"
+if git diff --quiet -- landing/public/lissafi.apk app/build.gradle.kts landing/public/latest.json; then
+  echo "   Aucun changement (déjà à jour) — commit ignoré."
 else
-  git add landing/public/lissafi.apk
-  git commit -m "feat(landing): mets a jour l'APK telechargeable"
+  git add landing/public/lissafi.apk app/build.gradle.kts landing/public/latest.json
+  git commit -m "feat(landing): mets a jour l'APK telechargeable (auto-update)"
   echo "   Commit créé."
 fi
 
-# ---- 4. Push (déploie Vercel) -----------------------------------------
+# ---- 5. Push (déploie Vercel) -----------------------------------------
 BRANCH="$(git branch --show-current)"
-echo "==> [4/4] Push vers origin/$BRANCH (déploie la landing)…"
+echo "==> [5/5] Push vers origin/$BRANCH (déploie la landing)…"
 git push origin "$BRANCH"
 
 echo
