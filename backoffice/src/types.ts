@@ -237,12 +237,6 @@ export type PartnerSale = {
   created_at: number;
 };
 
-export type PartnerVisit = {
-  id: number;
-  partner_id: string;
-  created_at: number;
-};
-
 export type PartnerPayout = {
   id: number;
   partner_id: string;
@@ -257,24 +251,4 @@ export type PayoutRequest = PartnerPayout & {
   partner_name: string;
   partner_phone: string;
   partner_code: string;
-};
-
-// Tableau de bord de l'espace partenaire (portail auto-serveur).
-export type PartnerDashboard = {
-  id: string;
-  name: string;
-  code: string;
-  phone: string;
-  email: string;
-  status: "active" | "inactive";
-  visits: number;
-  clients: number; // ventes confirmées attribuées
-  earnings_month: number; // commissions du mois courant
-  earnings_total: number; // commissions cumulées (toutes)
-  commission_due: number;
-  commission_paid: number;
-  available: number; // due − retraits demandés non payés
-  sales: PartnerSale[];
-  payouts: PartnerPayout[];
-  recent_visits: PartnerVisit[];
 };

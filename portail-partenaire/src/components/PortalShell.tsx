@@ -1,9 +1,8 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 
-// En-tête + conteneur partagés des pages du portail partenaire (public).
-// Volontairement séparé de l'AppShell admin (aucune session admin ici).
-// `bleed` = la page gère elle-même ses sections pleine largeur (page d'accueil).
+// En-tête + conteneur partagés des pages du portail partenaire.
+// `bleed` = la page gère elle-même ses sections pleine largeur (accueil).
 export function PortalShell({
   children,
   maxWidth = "max-w-md",
@@ -14,15 +13,7 @@ export function PortalShell({
   bleed?: boolean;
 }) {
   return (
-    <div className="portal flex min-h-screen flex-col bg-slate-50">
-      {/* Police Inter (identité de marque Lissafi) */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-      />
-
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/partenaire" className="flex items-center gap-2.5">

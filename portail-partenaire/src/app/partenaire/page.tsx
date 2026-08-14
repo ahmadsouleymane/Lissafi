@@ -53,7 +53,7 @@ export default async function PartnerHomePage() {
         <div className="absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" aria-hidden />
 
         <div className="relative mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 sm:py-28">
-          <Reveal className="reveal-up flex justify-center" delay={0}>
+          <Reveal delay={0}>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-200 ring-1 ring-white/15">
               Programme partenaire Lissafi
             </span>
