@@ -344,7 +344,9 @@ fun CaisseScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    // weight(1f) : cède la place au montant en premier plutôt que
+                    // de le pousser hors de l'écran sur les gros totaux/petits écrans.
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Total à encaisser",
                             color = TextSecondary,
@@ -359,13 +361,15 @@ fun CaisseScreen(
                             fontSize = 12.sp
                         )
                     }
+                    Spacer(Modifier.width(12.dp))
                     AnimatedContent(targetState = state.total, label = "total") { total ->
                         Text(
                             text = FormatUtils.formatFCFA(total),
                             color = if (total > 0) Primary else TextTertiary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 36.sp,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -848,7 +852,9 @@ private fun CartItemRow(
             text = FormatUtils.formatFCFA((item.price * item.quantity).toInt()),
             fontWeight = FontWeight.Medium,
             fontSize = 15.sp,
-            color = OnBackground
+            color = OnBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.width(12.dp))
         QuantityStepper(

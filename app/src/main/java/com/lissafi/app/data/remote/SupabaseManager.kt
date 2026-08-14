@@ -31,18 +31,36 @@ object SupabaseManager {
      * Les tokens de session GoTrue (dont le refresh token à longue durée)
      * ne doivent plus vivre en clair sur disque : volés sur un appareil
      * compromis, ils donnent un accès permanent au compte.
+     *
+     * Instance mise en cache : EncryptedSharedPreferences est recréée à
+     * partir du Keystore par Tink en interne (fichier de keyset séparé).
+     * En recréer une à chaque lecture — ce qui arrivait sur chaque
+     * recomposition Compose (isLoggedIn, currentUserId…) en même temps que
+     * la synchro en tâche de fond lit/écrit le token sur un autre thread —
+     * exposait à une réinitialisation concurrente du keyset, qui pouvait
+     * faire échouer silencieusement une lecture (getString → null) et
+     * déconnecter l'utilisateur à tort. Une seule instance thread-safe
+     * élimine la course.
      */
+    @Volatile
+    private var cachedPrefs: SharedPreferences? = null
+
     private fun prefs(context: Context): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        return EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        return cachedPrefs ?: synchronized(this) {
+            cachedPrefs ?: run {
+                val appContext = context.applicationContext
+                val masterKey = MasterKey.Builder(appContext)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+                EncryptedSharedPreferences.create(
+                    appContext,
+                    PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                ).also { cachedPrefs = it }
+            }
+        }
     }
 
     const val DEFAULT_URL = "https://fnyuhpfzkvunscuylvqv.supabase.co"

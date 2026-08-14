@@ -64,14 +64,16 @@ object ReceiptService {
         sb.appendLine(center(sdf.format(Date(data.date))))
         sb.appendLine(sep('-'))
 
-        // ── Tableau des articles ──
-        sb.appendLine("${"Qté".padStart(4)}  ${"ARTICLE".padEnd(14)}  ${"TOTAL".padStart(12)}")
+        // ── Tableau des articles ── largeurs 4+1+14+1+12 = 32 = RECEIPT_WIDTH
+        // pile poil : un caractère de plus fait déborder la ligne physique et
+        // l'imprimante coupe le mot au milieu ("TOTAL" -> "TOTA"/"L").
+        sb.appendLine("${"Qté".padStart(4)} ${"ARTICLE".padEnd(14)} ${"TOTAL".padStart(12)}")
         sb.appendLine(sep('-'))
         for (item in data.items) {
             val name = truncate(item.name, 14)
             val qty = qtyText(item.quantity).padStart(4)
             val total = grouped((item.price * item.quantity).roundToInt())
-            sb.appendLine("$qty  ${name.padEnd(14)}  ${total.padStart(12)}")
+            sb.appendLine("$qty ${name.padEnd(14)} ${total.padStart(12)}")
         }
         sb.appendLine(sep('-'))
 
@@ -126,6 +128,33 @@ object ReceiptService {
         val sign = if (amount < 0) "-" else ""
         return sign + kotlin.math.abs(amount).toString().reversed().chunked(3).joinToString(" ").reversed()
     }
+
+    private val ACCENT_TO_ASCII = mapOf(
+        'é' to 'e', 'è' to 'e', 'ê' to 'e', 'ë' to 'e',
+        'à' to 'a', 'â' to 'a', 'ä' to 'a',
+        'î' to 'i', 'ï' to 'i',
+        'ô' to 'o', 'ö' to 'o',
+        'ù' to 'u', 'û' to 'u', 'ü' to 'u',
+        'ç' to 'c',
+        'É' to 'E', 'È' to 'E', 'Ê' to 'E', 'Ë' to 'E',
+        'À' to 'A', 'Â' to 'A', 'Ä' to 'A',
+        'Î' to 'I', 'Ï' to 'I',
+        'Ô' to 'O', 'Ö' to 'O',
+        'Ù' to 'U', 'Û' to 'U', 'Ü' to 'U',
+        'Ç' to 'C'
+    )
+
+    /**
+     * Translitère les accents en ASCII pur. De nombreuses imprimantes ESC/POS
+     * bon marché (clones chinois génériques du POS-58, très répandues) n'ont
+     * pas la table Latin-1 attendue en table par défaut : un octet Latin-1
+     * pour "é" ou "î" s'affiche comme un caractère illisible et peut même
+     * décaler les colonnes si l'imprimante l'interprète comme le premier
+     * octet d'une séquence multi-octets. L'ASCII pur (0x00-0x7F) s'imprime
+     * correctement quelle que soit la table de caractères de l'imprimante.
+     */
+    private fun toPrinterSafeAscii(text: String): String =
+        text.map { ACCENT_TO_ASCII[it] ?: it }.joinToString("")
 
     // ==================== PARTAGE WHATSAPP ====================
 
@@ -205,13 +234,14 @@ object ReceiptService {
 
                 outputStream.write(init)
 
-                // Latin-1 (et non UTF-8) : les imprimantes thermiques 58 mm affichent
-                // les accents correctement ; un caractère hors Latin-1 devient '?'
-                // plutôt qu'un mojibake multi-octets qui décale les colonnes du reçu.
+                // ASCII pur (accents translitérés) : voir toPrinterSafeAscii — le
+                // Latin-1 seul ne suffit pas, beaucoup de clones ESC/POS bon
+                // marché n'ont pas cette table par défaut et affichent un
+                // caractère illisible à la place des accents.
                 val lines = receiptText.split("\n")
                 for (line in lines) {
                     outputStream.write(alignLeft)
-                    outputStream.write("$line\n".toByteArray(Charsets.ISO_8859_1))
+                    outputStream.write("${toPrinterSafeAscii(line)}\n".toByteArray(Charsets.US_ASCII))
                 }
 
                 outputStream.write(cutPaper)
