@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Download } from "lucide-react";
-import { APK } from "../config";
+import { copyPartnerCodeForDownload, downloadUrl } from "../lib/tracking";
 
 export default function FinalCTA() {
   return (
@@ -33,7 +33,7 @@ export default function FinalCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <a className="btn btn-primary btn-lg" href={APK} download>
+          <a className="btn btn-primary btn-lg" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
             <Download size={18} /> Télécharger l'APK
           </a>
           <a className="btn btn-ghost btn-lg" href="#installation">

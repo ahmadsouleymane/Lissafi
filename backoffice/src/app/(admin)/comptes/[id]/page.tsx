@@ -4,7 +4,7 @@ import { AccountActions } from "@/components/AccountActions";
 import { Badge, Card, CardHeader, EmptyState, Table, Td, Th, THead, Tr } from "@/components/ui";
 import { LevelBadge, PremiumBadge } from "@/components/badges";
 import { IconMail, IconPhone } from "@/components/icons";
-import { getAccountClients, getAccountDebts, getAccountProducts, getAccountSales, getUserDetail, getUserSummaries } from "@/lib/data";
+import { getAccountClients, getAccountDebts, getAccountProducts, getAccountSales, getPartnerByCode, getUserDetail, getUserSummaries } from "@/lib/data";
 import { formatDate, formatDateShort, formatFCFA, formatDateTimeIso } from "@/lib/format";
 import type { AppLog, SaleRow } from "@/types";
 
@@ -40,6 +40,7 @@ export default async function CompteDetailPage({
   if (!summary) notFound();
   const u = summary;
   const detail = tab === "overview" ? await getUserDetail(id, u) : null;
+  const referringPartner = detail?.settings.partner_code ? await getPartnerByCode(detail.settings.partner_code) : null;
 
   const [products, clients, debts, salesPage] =
     tab === "overview"
@@ -103,7 +104,7 @@ export default async function CompteDetailPage({
         ))}
       </div>
 
-      {tab === "overview" && detail && <OverviewTab detail={detail} />}
+      {tab === "overview" && detail && <OverviewTab detail={detail} referringPartner={referringPartner} />}
       {tab === "produits" && <ProductsTab products={products ?? []} />}
       {tab === "clients" && <ClientsTab clients={clients ?? []} />}
       {tab === "dettes" && <DebtsTab debts={debts ?? []} />}
@@ -123,7 +124,13 @@ export default async function CompteDetailPage({
 // Vue d'ensemble (contenu existant)
 // ============================================================
 
-function OverviewTab({ detail }: { detail: Awaited<ReturnType<typeof getUserDetail>> }) {
+function OverviewTab({
+  detail,
+  referringPartner,
+}: {
+  detail: Awaited<ReturnType<typeof getUserDetail>>;
+  referringPartner: Awaited<ReturnType<typeof getPartnerByCode>>;
+}) {
   const u = detail.summary!;
   return (
     <div className="space-y-5">
@@ -146,6 +153,16 @@ function OverviewTab({ detail }: { detail: Awaited<ReturnType<typeof getUserDeta
               <InfoRow label="Téléphone boutique" value={detail.settings.shop_phone || "—"} />
               <InfoRow label="Premium jusqu'au" value={u.premium_expiry ? formatDate(u.premium_expiry) : "—"} />
               <InfoRow label="Code d'activation" value={detail.settings.activation_code || "—"} />
+              <InfoRow
+                label="Partenaire référent"
+                value={
+                  detail.settings.partner_code
+                    ? referringPartner
+                      ? `${referringPartner.name} (${referringPartner.code})`
+                      : `${detail.settings.partner_code} (introuvable/inactif)`
+                    : "—"
+                }
+              />
               <InfoRow label="Démo utilisée" value={detail.settings.demo_taken === "true" ? "Oui" : "Non"} />
               <InfoRow label="Dernière synchro" value={detail.settings.last_sync_timestamp ? formatDate(Number(detail.settings.last_sync_timestamp)) : "—"} />
               <InfoRow label="PIN admin (local)" value={detail.settings.admin_pin ? "••••" : "—"} />

@@ -61,6 +61,12 @@ data class RedeemPremiumResult(
     val premium_expiry: Long? = null
 )
 
+@Serializable
+private data class PartnerNameRpcPayload(val p_code: String)
+
+@Serializable
+private data class PartnerInstallPayload(val p_code: String)
+
 /**
  * Client REST Supabase (PostgREST).
  *
@@ -428,6 +434,56 @@ class SupabaseApi(private val context: Context) {
             throw SupabaseException("redeem: HTTP ${response.status.value}: $body")
         }
         response.body<RedeemPremiumResult>()
+    }
+
+    // ==================== PARTENAIRES ====================
+
+    /**
+     * Résout un code partenaire (ex. PTN-K2M7Q) en nom affichable, pour
+     * l'onboarding ("Tu viens de la part de <Nom>"). Accessible avant toute
+     * connexion (clé anon suffit). Enrichissement UI best-effort : ne lève
+     * jamais — null si le code est invalide, le partenaire inactif, ou hors
+     * ligne (l'onboarding retombe alors sur l'affichage du code brut).
+     */
+    suspend fun getPartnerName(code: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val response = http.post(restUrl("rpc/partner_name_by_code")) {
+                header("apikey", anonKey)
+                contentType(ContentType.Application.Json)
+                setBody(PartnerNameRpcPayload(p_code = code))
+            }
+            if (response.status.value !in 200..299) return@withContext null
+            // PostgREST renvoie une chaîne JSON scalaire ("Nom" ou null).
+            val text = response.bodyAsText().trim()
+            if (text.isEmpty() || text == "null") null else text.removeSurrounding("\"")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Signale qu'une installation est attribuée à un partenaire (code PTN-XXXXX).
+     * Appelé ANON (sans session) au premier lancement, via la RPC SECURITY
+     * DEFINER `record_partner_install`. Fire-and-forget : n'interrompt jamais
+     * le parcours utilisateur.
+     */
+    fun recordPartnerInstall(code: String) {
+        val trimmed = code.trim()
+        if (trimmed.isBlank()) return
+        logScope.launch {
+            try {
+                val response = http.post(restUrl("rpc/record_partner_install")) {
+                    header("apikey", anonKey)
+                    contentType(ContentType.Application.Json)
+                    setBody(PartnerInstallPayload(p_code = trimmed))
+                }
+                if (response.status.value !in 200..299) {
+                    Log.w("LissafiLog", "recordPartnerInstall HTTP ${response.status.value}")
+                }
+            } catch (e: Exception) {
+                Log.w("LissafiLog", "recordPartnerInstall ignoré : ${e.message}")
+            }
+        }
     }
 
     // ==================== LOGS & SUPPORT (back-office) ====================

@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { toNumber } from "./format";
-import type { PartnerDashboard, PartnerPayout, PartnerSale, PartnerVisit } from "@/types";
+import type { PartnerDashboard, PartnerMember, PartnerPayout, PartnerSale, PartnerVisit } from "@/types";
 
 // ============================================================
 // Lectures — toutes via le client service_role (serveur), filtrées par
@@ -38,6 +38,46 @@ export async function getPartnerVisits(partnerId: string, limit = 30): Promise<P
   return (data ?? []) as PartnerVisit[];
 }
 
+/** Compte des installations attribuées à un partenaire (beacon au 1er lancement). */
+async function getPartnerInstallsCount(partnerId: string): Promise<number> {
+  const { count } = await supabaseAdmin()
+    .from("partner_installs")
+    .select("*", { count: "exact", head: true })
+    .eq("partner_id", partnerId);
+  return toNumber(count);
+}
+
+/** Membres parrainés (utilisateurs dont partner_code = code) + leur plan. */
+async function getPartnerMembers(code: string): Promise<PartnerMember[]> {
+  const { data: refRows } = await supabaseAdmin()
+    .from("app_settings")
+    .select("user_id")
+    .eq("key", "partner_code")
+    .eq("value", code);
+  const userIds = Array.from(new Set(((refRows ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+  if (userIds.length === 0) return [];
+
+  const { data: detailRows } = await supabaseAdmin()
+    .from("app_settings")
+    .select("user_id, key, value")
+    .in("user_id", userIds)
+    .in("key", ["shop_name", "is_premium", "plan"]);
+
+  const byUser: Record<string, { name: string; premium: boolean; plan: string }> = {};
+  for (const row of (detailRows ?? []) as { user_id: string; key: string; value: string }[]) {
+    byUser[row.user_id] ??= { name: "", premium: false, plan: "" };
+    if (row.key === "shop_name") byUser[row.user_id].name = row.value;
+    else if (row.key === "is_premium") byUser[row.user_id].premium = row.value === "true";
+    else if (row.key === "plan") byUser[row.user_id].plan = row.value;
+  }
+
+  return userIds.map((uid) => {
+    const d = byUser[uid] ?? { name: "", premium: false, plan: "" };
+    const plan: PartnerMember["plan"] = !d.premium ? "free" : d.plan === "business" ? "business" : "plus";
+    return { user_id: uid, name: d.name || "Commerçant", plan };
+  });
+}
+
 /**
  * Tableau de bord complet de l'espace partenaire.
  * Toutes les lectures via service_role, filtrées par l'id du partenaire.
@@ -53,7 +93,7 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
     return null;
   }
 
-  const [sales, payouts, recentVisits, visitCount] = await Promise.all([
+  const [sales, payouts, recentVisits, visitCount, installsCount, members] = await Promise.all([
     getPartnerSales(partnerId),
     (async () => {
       const { data } = await supabaseAdmin()
@@ -72,7 +112,13 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
         .eq("partner_id", partnerId);
       return toNumber(count);
     })(),
+    getPartnerInstallsCount(partnerId),
+    getPartnerMembers((partner.code as string) || ""),
   ]);
+
+  const accounts = members.length;
+  const paid = members.filter((m) => m.plan !== "free").length;
+  const conversion_rate = accounts > 0 ? paid / accounts : null;
 
   const commissionDue = sales
     .filter((s) => s.status === "owed")
@@ -101,6 +147,11 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
     email: (partner.email as string) || "",
     status: (partner.status as "active" | "inactive") || "active",
     visits: visitCount,
+    installs: installsCount,
+    accounts,
+    paid,
+    conversion_rate,
+    members,
     clients: sales.length,
     earnings_month: earningsMonth,
     earnings_total: earningsTotal,

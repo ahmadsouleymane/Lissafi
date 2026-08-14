@@ -251,8 +251,24 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             ) {
                 composable(Routes.ONBOARDING) {
                     OnboardingScreen(
-                        onFinish = {
+                        api = api,
+                        onFinish = { partnerCode ->
                             OnboardingManager.markCompleted(context)
+                            if (partnerCode.isNotEmpty()) {
+                                composeScope.launch {
+                                    // First-touch : ne jamais écraser un code déjà mémorisé sur
+                                    // cet appareil (ex. deuxième passage par l'onboarding).
+                                    if (repository.getSetting("partner_code").isNullOrBlank()) {
+                                        repository.setSetting("partner_code", partnerCode)
+                                    }
+                                }
+                                // Beacon d'installation : une seule fois par appareil, pour
+                                // compter les installs attribués au partenaire (KPI "installés").
+                                if (!OnboardingManager.isInstallBeaconSent(context)) {
+                                    OnboardingManager.markInstallBeaconSent(context)
+                                    api.recordPartnerInstall(partnerCode)
+                                }
+                            }
                             navController.navigate(Routes.AUTH) {
                                 popUpTo(Routes.ONBOARDING) { inclusive = true }
                             }

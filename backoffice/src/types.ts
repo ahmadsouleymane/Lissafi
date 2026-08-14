@@ -13,6 +13,7 @@ export type UserSummary = {
   premium_expiry: number;
   demo_taken: boolean;
   activation_code: string;
+  partner_code: string;
   product_count: number;
   sale_count: number;
   sales_total: number;

@@ -11,18 +11,52 @@ const DAY_MS = 86400000;
 // PREMIUM
 // ============================================================
 
-export type ActionResult = { ok?: boolean; error?: string; newExpiry?: number };
+export type ActionResult = {
+  ok?: boolean;
+  error?: string;
+  newExpiry?: number;
+  partnerAttributed?: boolean;
+  partnerCommissionFcfa?: number;
+};
+
+/**
+ * Résout automatiquement la commission partenaire d'un compte à l'activation
+ * (via app_settings.partner_code, posé par l'app à l'onboarding). Jamais
+ * bloquant : un échec ici n'empêche jamais l'activation premium elle-même.
+ */
+async function tryAttributePartnerSale(userId: string, plan: string): Promise<{ attributed: boolean; commission_fcfa?: number }> {
+  try {
+    const { data, error } = await supabaseAdmin().rpc("attribute_partner_sale", {
+      p_user_id: userId,
+      p_plan: plan === "business" ? "business" : "plus",
+    });
+    if (error) {
+      console.error("[admin] attribute_partner_sale:", error);
+      return { attributed: false };
+    }
+    const result = data as { attributed?: boolean; commission_fcfa?: number; reason?: string } | null;
+    if (result?.attributed) {
+      await logAction("partner_sale_auto_attribute", userId, { plan, commission_fcfa: result.commission_fcfa });
+      return { attributed: true, commission_fcfa: result.commission_fcfa };
+    }
+    return { attributed: false };
+  } catch (e) {
+    console.error("[admin] attribute_partner_sale (exception):", e);
+    return { attributed: false };
+  }
+}
 
 /** Active le premium pour N jours (défaut 365) — plan "plus" (défaut) ou "business". */
 export async function activatePremium(userId: string, days = 365, plan = "plus"): Promise<ActionResult> {
   await requireAdmin();
   const n = Math.max(1, Math.floor(days));
   const expiry = Date.now() + n * DAY_MS;
+  const cleanPlan = plan === "business" ? "business" : "plus";
 
   const { error } = await supabaseAdmin().from("app_settings").upsert(
     [
       { key: "is_premium", value: "true", user_id: userId },
-      { key: "plan", value: plan === "business" ? "business" : "plus", user_id: userId },
+      { key: "plan", value: cleanPlan, user_id: userId },
       { key: "premium_expiry", value: String(expiry), user_id: userId },
       { key: "activation_method", value: "admin", user_id: userId },
     ],
@@ -33,9 +67,13 @@ export async function activatePremium(userId: string, days = 365, plan = "plus")
     return { error: "Une erreur est survenue. Réessaie." };
   }
 
-  await logAction("premium_activate", userId, { days: n, expiry, plan });
+  await logAction("premium_activate", userId, { days: n, expiry, plan: cleanPlan });
+  // Attribution automatique au partenaire éventuel — idempotente côté SQL
+  // (un compte ne peut générer qu'une seule commission, même en cas de
+  // réactivation ou de changement de plan).
+  const attribution = await tryAttributePartnerSale(userId, cleanPlan);
   revalidatePath("/", "layout");
-  return { ok: true, newExpiry: expiry };
+  return { ok: true, newExpiry: expiry, partnerAttributed: attribution.attributed, partnerCommissionFcfa: attribution.commission_fcfa };
 }
 
 /** Ajoute N jours au premium (prolonge depuis l'expiration actuelle si future). */

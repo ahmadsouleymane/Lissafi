@@ -20,6 +20,13 @@ export const PLAN_LABELS: Record<Plan, string> = {
   pack: "Pack Boutique",
 };
 
+// Plan effectif d'un membre parrainé (Gratuit / Plus / Business).
+export const MEMBER_PLAN_LABELS: Record<"free" | "plus" | "business", string> = {
+  free: "Gratuit",
+  plus: "Plus",
+  business: "Business",
+};
+
 // Longueur minimale du mot de passe partenaire.
 export const MIN_PASSWORD_LENGTH = 8;
 
@@ -37,7 +44,7 @@ export function computeAvailable(commissionDue: number, requestedUnpaid: number)
  * NEXT_PUBLIC_LANDING_URL est exposé au navigateur — valeur non secrète.
  */
 export function landingBaseUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_LANDING_URL?.trim() || "https://lissafi.app";
+  const raw = process.env.NEXT_PUBLIC_LANDING_URL?.trim() || "https://lissafi-one.vercel.app";
   return raw.replace(/\/+$/, "");
 }
 

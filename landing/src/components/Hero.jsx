@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Download } from "lucide-react";
-import { APK } from "../config";
+import { copyPartnerCodeForDownload, downloadUrl } from "../lib/tracking";
 
 export default function Hero() {
   return (
@@ -40,7 +40,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.28 }}
           >
-            <a className="btn btn-primary btn-lg" href={APK} download>
+            <a className="btn btn-primary btn-lg" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
               <Download size={18} /> Télécharger l'application
             </a>
             <a className="btn btn-ghost btn-lg" href="#demo">

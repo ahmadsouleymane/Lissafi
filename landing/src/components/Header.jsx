@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import { APK } from "../config";
+import { copyPartnerCodeForDownload, downloadUrl } from "../lib/tracking";
 
 const NAV = [
   ["#fonctionnalites", "Fonctionnalités"],
@@ -46,7 +46,7 @@ export default function Header() {
           <a className="btn btn-ghost header-cta hide-sm" href="#installation">
             Comment installer ?
           </a>
-          <a className="btn btn-primary header-cta" href={APK} download>
+          <a className="btn btn-primary header-cta" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
             Télécharger l'APK
           </a>
           <button
@@ -69,7 +69,15 @@ export default function Header() {
               </a>
             ))}
           </nav>
-          <a className="btn btn-primary mobile-menu-cta" href={APK} download onClick={() => setOpen(false)}>
+          <a
+            className="btn btn-primary mobile-menu-cta"
+            href={downloadUrl()}
+            download
+            onClick={() => {
+              copyPartnerCodeForDownload();
+              setOpen(false);
+            }}
+          >
             Télécharger l'APK
           </a>
         </div>

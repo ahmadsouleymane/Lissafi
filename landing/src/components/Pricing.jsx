@@ -1,5 +1,5 @@
 import { Printer } from "lucide-react";
-import { APK } from "../config";
+import { copyPartnerCodeForDownload, downloadUrl } from "../lib/tracking";
 import { Kicker, Reveal } from "./ui";
 
 const TIERS = [
@@ -93,7 +93,7 @@ export default function Pricing() {
             <p className="pack-sub">
               Imprimante + 2 rouleaux + 1 an Lissafi Plus
             </p>
-            <a className="btn btn-primary" href={APK} download>
+            <a className="btn btn-primary" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
               Télécharger l'APK
             </a>
             <p className="price-note">
@@ -133,8 +133,9 @@ export default function Pricing() {
                 className={`btn ${
                   t.top || t.badge === "Populaire" ? "btn-primary" : "btn-ghost"
                 }`}
-                href={APK}
+                href={downloadUrl()}
                 download
+                onClick={() => copyPartnerCodeForDownload()}
               >
                 {t.cta}
               </a>

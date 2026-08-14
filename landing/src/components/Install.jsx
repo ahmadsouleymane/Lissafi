@@ -1,4 +1,4 @@
-import { APK } from "../config";
+import { copyPartnerCodeForDownload, downloadUrl } from "../lib/tracking";
 import { Kicker, Reveal } from "./ui";
 
 const STEPS = [
@@ -43,7 +43,7 @@ export default function Install() {
           <p className="install-help">
             Un téléphone qui bloque ? Relis l'étape 1, chaque marque nomme ce
             réglage un peu différemment. Le fichier à installer :{" "}
-            <a href={APK} download className="link-primary">
+            <a href={downloadUrl()} download className="link-primary" onClick={() => copyPartnerCodeForDownload()}>
               lissafi.apk
             </a>
             .

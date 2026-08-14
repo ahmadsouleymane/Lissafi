@@ -160,6 +160,9 @@ function PremiumRow({ u, now }: { u: UserSummary & { _priority: number }; now: n
           {u.shop_name || u.email || "Compte"}
         </Link>
         <p className="text-xs text-slate-400">{u.email || "—"}</p>
+        {u.partner_code && (
+          <p className="mt-0.5 text-[11px] font-medium text-brand-500">via {u.partner_code}</p>
+        )}
       </Td>
       <Td>
         {active ? (

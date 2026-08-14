@@ -16,17 +16,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.lissafi.app.R
+import com.lissafi.app.data.ApkAttribution
+import com.lissafi.app.data.remote.SupabaseApi
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.PrimaryContainer
 import com.lissafi.app.ui.theme.TextSecondary
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/** Format des codes partenaire générés par le back-office (ex. PTN-K2M7Q). */
+private val PARTNER_CODE_REGEX = Regex("^PTN-[A-Z0-9]{3,}$")
 
 private data class OnboardingSlide(
     val title: String,
@@ -59,10 +68,39 @@ private val OnboardingSlides = listOf(
 )
 
 @Composable
-fun OnboardingScreen(onFinish: () -> Unit) {
+fun OnboardingScreen(api: SupabaseApi, onFinish: (partnerCode: String) -> Unit) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val pagerState = rememberPagerState(pageCount = { OnboardingSlides.size })
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+
+    // Pré-remplissage depuis le presse-papiers (filet secondaire) : la landing
+    // y copie le code au clic sur "Télécharger". Lu une seule fois, à l'ouverture
+    // de l'app (au premier plan, donc autorisé).
+    var partnerCode by remember {
+        val clip = clipboardManager.getText()?.text?.trim()?.uppercase().orEmpty()
+        mutableStateOf(if (PARTNER_CODE_REGEX.matches(clip)) clip else "")
+    }
+    val partnerCodeDetected = remember { partnerCode.isNotEmpty() }
+
+    // Source principale : le code EMBARQUÉ dans le commentaire ZIP de l'APK.
+    // Plus fiable que le presse-papiers (survit au partage du fichier), il
+    // l'emporte si présent. Lecture fichier hors du thread UI.
+    LaunchedEffect(Unit) {
+        val fromApk = withContext(Dispatchers.IO) { ApkAttribution.readPartnerCode(context) }
+        if (fromApk != null) partnerCode = fromApk
+    }
+
+    // Résolution du nom du partenaire pour l'affichage ("Tu viens de la part
+    // de <Nom>" plutôt que le code brut). Best-effort : si hors ligne ou en
+    // échec, on retombe simplement sur le code.
+    var partnerName by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(partnerCode) {
+        if (partnerCode.isNotEmpty()) {
+            partnerName = api.getPartnerName(partnerCode)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -74,7 +112,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
         TextButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onFinish()
+                onFinish(partnerCode.trim().uppercase())
             },
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -113,7 +151,31 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            // ── CODE PARTENAIRE (visible seulement si détecté depuis le
+            // presse-papiers — aucun ajout visuel pour une installation
+            // organique, mais confirmation claire quand un partenaire a
+            // référé ce client) ──
+            if (partnerCodeDetected) {
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Tu viens de la part de ${partnerName ?: partnerCode}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    TextButton(onClick = { partnerCode = "" }) {
+                        Text("Ce n'est pas mon code", color = TextSecondary)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             // ── BOUTON PRINCIPAL ──
             Button(
@@ -122,7 +184,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                     if (pagerState.currentPage < OnboardingSlides.lastIndex) {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                     } else {
-                        onFinish()
+                        onFinish(partnerCode.trim().uppercase())
                     }
                 },
                 modifier = Modifier

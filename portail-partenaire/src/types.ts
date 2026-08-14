@@ -34,6 +34,16 @@ export type PartnerPayout = {
   paid_at: number | null;
 };
 
+export type MemberPlan = "free" | "plus" | "business";
+
+// Un membre parrainé (utilisateur dont le code partenaire est celui du
+// partenaire), avec son plan effectif déduit des réglages premium.
+export type PartnerMember = {
+  user_id: string;
+  name: string;
+  plan: MemberPlan;
+};
+
 // Tableau de bord de l'espace partenaire.
 export type PartnerDashboard = {
   id: string;
@@ -42,8 +52,13 @@ export type PartnerDashboard = {
   phone: string;
   email: string;
   status: "active" | "inactive";
-  visits: number;
-  clients: number; // ventes confirmées attribuées
+  visits: number; // clics sur le lien
+  installs: number; // (a) installs attribués (beacon au 1er lancement)
+  accounts: number; // (b) comptes créés (utilisateurs avec ce partner_code)
+  paid: number; // (c) abonnements payants (Plus/Business) parmi les comptes
+  conversion_rate: number | null; // paid / accounts (0..1), null si aucun compte
+  members: PartnerMember[]; // liste des parrainés + leur plan
+  clients: number; // ventes confirmées attribuées (commissions)
   earnings_month: number; // commissions du mois courant
   earnings_total: number; // commissions cumulées (toutes)
   commission_due: number;

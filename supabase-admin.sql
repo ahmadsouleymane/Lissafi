@@ -310,6 +310,7 @@ AS $func$
             ) AS premium_expiry,
             coalesce(s.demo_taken, 'false') = 'true' AS demo_taken,
             coalesce(s.activation_code, '') AS activation_code,
+            coalesce(s.partner_code, '') AS partner_code,
             coalesce(p.product_count, 0) AS product_count,
             coalesce(sa.sale_count, 0) AS sale_count,
             coalesce(sa.sales_total, 0) AS sales_total,
@@ -323,7 +324,8 @@ AS $func$
                    max(value) FILTER (WHERE key = 'is_premium') AS is_premium,
                    max(value) FILTER (WHERE key = 'premium_expiry') AS premium_expiry,
                    max(value) FILTER (WHERE key = 'demo_taken') AS demo_taken,
-                   max(value) FILTER (WHERE key = 'activation_code') AS activation_code
+                   max(value) FILTER (WHERE key = 'activation_code') AS activation_code,
+                   max(value) FILTER (WHERE key = 'partner_code') AS partner_code
             FROM app_settings
             GROUP BY user_id
         ) s ON s.user_id = u.id
@@ -530,6 +532,15 @@ CREATE POLICY "admins manage partner sales" ON public.partner_sales
 CREATE INDEX IF NOT EXISTS idx_partner_sales_partner ON public.partner_sales(partner_id);
 CREATE INDEX IF NOT EXISTS idx_partner_sales_status ON public.partner_sales(status);
 
+-- Suivi de bout en bout : quel compte app a converti (lien vers auth.users).
+-- NULL pour les ventes saisies à la main sans compte identifié (comportement
+-- historique conservé). Index unique partiel : un compte app ne peut générer
+-- qu'UNE SEULE commission (cohérent avec la philosophie "payée une fois, même
+-- si l'abonnement est récurrent" — voir attribute_partner_sale ci-dessous).
+ALTER TABLE public.partner_sales ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_partner_sales_user_unique
+    ON public.partner_sales(user_id) WHERE user_id IS NOT NULL;
+
 -- Agrégat par partenaire pour la liste /partenaires
 CREATE OR REPLACE FUNCTION public.admin_partner_summaries()
 RETURNS jsonb
@@ -583,6 +594,24 @@ CREATE POLICY "admins manage partner visits" ON public.partner_visits
 CREATE INDEX IF NOT EXISTS idx_partner_visits_partner ON public.partner_visits(partner_id);
 
 -- ------------------------------------------------------------
+-- Portail partenaire : installations (l'app signale un install quand un
+-- client ouvre l'app via un lien partenaire). Écrites UNIQUEMENT via la
+-- fonction RPC record_partner_install (SECURITY DEFINER, appelée en anon).
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.partner_installs (
+    id BIGSERIAL PRIMARY KEY,
+    partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
+    created_at BIGINT NOT NULL
+);
+
+ALTER TABLE public.partner_installs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.partner_installs FROM anon, authenticated;
+DROP POLICY IF EXISTS "admins manage partner installs" ON public.partner_installs;
+CREATE POLICY "admins manage partner installs" ON public.partner_installs
+    FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE INDEX IF NOT EXISTS idx_partner_installs_partner ON public.partner_installs(partner_id);
+
+-- ------------------------------------------------------------
 -- Portail partenaire : demandes de retrait (payées à la main)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.partner_payouts (
@@ -601,3 +630,175 @@ CREATE POLICY "admins manage partner payouts" ON public.partner_payouts
     FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 CREATE INDEX IF NOT EXISTS idx_partner_payouts_partner ON public.partner_payouts(partner_id);
 CREATE INDEX IF NOT EXISTS idx_partner_payouts_status ON public.partner_payouts(status);
+
+-- ------------------------------------------------------------
+-- Attribution automatique : suivi de bout en bout landing → app → paiement.
+--
+-- L'app écrit `app_settings.partner_code` (clé standard, synchronisée comme
+-- shop_name) quand un client installe via un lien `?p=CODE`. À l'activation
+-- premium — que ce soit via l'admin (back-office, WhatsApp) ou via un code
+-- saisi dans l'app (redeem_premium_code) — cette fonction résout ce code en
+-- partenaire et crée la commission due, SANS intervention manuelle.
+--
+-- Idempotente : l'index unique idx_partner_sales_user_unique garantit qu'un
+-- même compte app ne génère JAMAIS deux commissions (réactivation, changement
+-- de plan, double appel accidentel — tout ça ON CONFLICT DO NOTHING).
+-- Ne lève jamais d'exception : un code manquant/invalide/partenaire inactif
+-- ne doit JAMAIS bloquer l'activation premium du client.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.attribute_partner_sale(p_user_id uuid, p_plan text)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE
+    v_code text;
+    v_shop_name text;
+    v_partner_id uuid;
+    v_commission int;
+    v_inserted boolean;
+BEGIN
+    -- Barème identique à COMMISSIONS dans portail-partenaire/src/lib/partners.ts
+    -- et backoffice/src/lib/partners.ts — à garder synchronisé si le barème change.
+    v_commission := CASE p_plan WHEN 'business' THEN 15000 WHEN 'plus' THEN 10000 ELSE NULL END;
+    IF v_commission IS NULL THEN
+        RETURN jsonb_build_object('attributed', false, 'reason', 'plan_non_eligible');
+    END IF;
+
+    SELECT value INTO v_code
+    FROM public.app_settings
+    WHERE user_id = p_user_id AND key = 'partner_code';
+
+    IF v_code IS NULL OR btrim(v_code) = '' THEN
+        RETURN jsonb_build_object('attributed', false, 'reason', 'aucun_code');
+    END IF;
+
+    SELECT id INTO v_partner_id
+    FROM public.partners
+    WHERE code = v_code AND status = 'active';
+
+    IF v_partner_id IS NULL THEN
+        RETURN jsonb_build_object('attributed', false, 'reason', 'partenaire_introuvable_ou_inactif', 'code', v_code);
+    END IF;
+
+    SELECT value INTO v_shop_name
+    FROM public.app_settings
+    WHERE user_id = p_user_id AND key = 'shop_name';
+
+    INSERT INTO public.partner_sales
+        (partner_id, user_id, client_name, plan, amount_paid_fcfa, commission_fcfa, status, note, created_at)
+    VALUES
+        (v_partner_id, p_user_id, coalesce(v_shop_name, ''), p_plan, 0, v_commission, 'owed',
+         'Attribution automatique via code partenaire ' || v_code,
+         (extract(epoch FROM now()) * 1000)::bigint)
+    ON CONFLICT (user_id) WHERE user_id IS NOT NULL DO NOTHING;
+
+    v_inserted := FOUND;
+    IF NOT v_inserted THEN
+        RETURN jsonb_build_object('attributed', false, 'reason', 'deja_attribue');
+    END IF;
+
+    RETURN jsonb_build_object('attributed', true, 'partner_id', v_partner_id, 'code', v_code, 'commission_fcfa', v_commission);
+END;
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.attribute_partner_sale(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.attribute_partner_sale(uuid, text) TO service_role;
+
+-- ------------------------------------------------------------
+-- Lookup public minimal : résout un code partenaire en nom affichable, pour
+-- que l'app puisse dire "Tu viens de la part de <Nom>" plutôt que le code
+-- brut à l'onboarding (avant toute connexion — d'où l'accès anon). N'expose
+-- QUE le nom d'un partenaire ACTIF, rien d'autre (pas de téléphone, d'email,
+-- de statistiques) : la table `partners` reste protégée par RLS partout ailleurs.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.partner_name_by_code(p_code text)
+RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $func$
+    SELECT name FROM public.partners WHERE code = p_code AND status = 'active';
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.partner_name_by_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.partner_name_by_code(text) TO anon, authenticated;
+
+-- ------------------------------------------------------------
+-- Enregistre une installation attribuée à un partenaire (appelé en anon par
+-- l'app au premier lancement, avant toute connexion). N'insère que si le code
+-- correspond à un partenaire ACTIF. Compteur pur, volontairement insensible
+-- aux erreurs (ne lève jamais, ne bloque jamais l'app).
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.record_partner_install(p_code text)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE
+    v_partner_id uuid;
+BEGIN
+    SELECT id INTO v_partner_id
+    FROM public.partners
+    WHERE code = p_code AND status = 'active';
+    IF v_partner_id IS NULL THEN
+        RETURN;
+    END IF;
+    INSERT INTO public.partner_installs (partner_id, created_at)
+    VALUES (v_partner_id, (extract(epoch FROM now()) * 1000)::bigint);
+END;
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.record_partner_install(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.record_partner_install(text) TO anon, authenticated;
+
+-- ------------------------------------------------------------
+-- redeem_premium_code — redéfinie ici (CREATE OR REPLACE, exécuté après
+-- supabase-schema.sql) pour ajouter l'appel à attribute_partner_sale() au
+-- moment où un client active lui-même un code premium dans l'app. Le reste
+-- du corps est IDENTIQUE à la définition d'origine dans supabase-schema.sql —
+-- si tu modifies l'une, répercute sur l'autre.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.redeem_premium_code(p_code text)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE
+    v_plan text;
+    v_expiry bigint;
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'not_authenticated';
+    END IF;
+
+    SELECT plan INTO v_plan
+    FROM public.premium_codes
+    WHERE code = p_code AND used_by IS NULL
+    FOR UPDATE;
+
+    IF v_plan IS NULL THEN
+        RAISE EXCEPTION 'code_invalide_ou_utilise';
+    END IF;
+
+    v_expiry := (extract(epoch FROM now() + interval '365 days') * 1000)::bigint;
+
+    UPDATE public.premium_codes
+    SET used_by = auth.uid(),
+        used_at = (extract(epoch FROM now()) * 1000)::bigint
+    WHERE code = p_code;
+
+    PERFORM set_config('lissafi.redeem', 'true', true);
+
+    INSERT INTO public.app_settings (key, value, user_id) VALUES
+        ('is_premium', 'true', auth.uid()),
+        ('plan', v_plan, auth.uid()),
+        ('premium_expiry', v_expiry::text, auth.uid()),
+        ('activation_code', p_code, auth.uid()),
+        ('demo_taken', 'true', auth.uid())
+    ON CONFLICT (key, user_id) DO UPDATE SET value = EXCLUDED.value;
+
+    -- Attribution automatique au partenaire éventuel — jamais bloquant.
+    PERFORM public.attribute_partner_sale(auth.uid(), v_plan);
+
+    RETURN jsonb_build_object('ok', true, 'plan', v_plan, 'premium_expiry', v_expiry);
+END;
+$func$;
+
+REVOKE EXECUTE ON FUNCTION public.redeem_premium_code(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.redeem_premium_code(text) TO authenticated;

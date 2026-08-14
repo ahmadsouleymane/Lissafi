@@ -385,6 +385,13 @@ export async function getPartner(id: string): Promise<PartnerSummary | null> {
   return partners.find((p) => p.id === id) ?? null;
 }
 
+/** Un partenaire par code (ex. depuis app_settings.partner_code), null si introuvable. */
+export async function getPartnerByCode(code: string): Promise<PartnerSummary | null> {
+  if (!code) return null;
+  const partners = await getPartners();
+  return partners.find((p) => p.code === code) ?? null;
+}
+
 /** Historique des ventes attribuées à un partenaire (plus récentes d'abord). */
 export async function getPartnerSales(partnerId: string): Promise<PartnerSale[]> {
   const { data, error } = await supabaseAdmin()
