@@ -1,5 +1,6 @@
 package com.lissafi.app.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lissafi.app.data.entity.Client
@@ -11,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+private const val TAG = "ClientViewModel"
 
 data class ClientListState(
     val clients: List<Client> = emptyList(),
@@ -35,9 +38,13 @@ class ClientViewModel(
 
     init {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
-            repository.clientsFlow.collect { clients ->
-                _state.value = _state.value.copy(clients = clients)
+            try {
+                _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
+                repository.clientsFlow.collect { clients ->
+                    _state.value = _state.value.copy(clients = clients)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec chargement clients", e)
             }
         }
     }
@@ -45,73 +52,97 @@ class ClientViewModel(
     fun search(query: String) {
         _state.value = _state.value.copy(searchQuery = query)
         viewModelScope.launch {
-            val results = if (query.isBlank()) {
-                repository.getAllClients()
-            } else {
-                repository.searchClients(query)
+            try {
+                val results = if (query.isBlank()) {
+                    repository.getAllClients()
+                } else {
+                    repository.searchClients(query)
+                }
+                _state.value = _state.value.copy(clients = results)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec recherche clients", e)
             }
-            _state.value = _state.value.copy(clients = results)
         }
     }
 
     suspend fun canAddClient(): Boolean {
-        val can = premiumManager.canAddClient()
+        val can = try {
+            premiumManager.canAddClient()
+        } catch (e: Exception) {
+            Log.w(TAG, "Échec vérification limite clients", e)
+            true
+        }
         _state.value = _state.value.copy(isLimitReached = !can)
         return can
     }
 
     fun addClient(name: String, phone: String = "") {
         viewModelScope.launch {
-            // Re-vérifie la limite au moment de l'écriture (course TOCTOU).
-            if (!premiumManager.canAddClient()) {
-                _state.value = _state.value.copy(isLimitReached = true)
-                return@launch
+            try {
+                // Re-vérifie la limite au moment de l'écriture (course TOCTOU).
+                if (!premiumManager.canAddClient()) {
+                    _state.value = _state.value.copy(isLimitReached = true)
+                    return@launch
+                }
+                val client = Client(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    phone = phone,
+                    totalDebt = 0,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
+                )
+                repository.upsertClient(client)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec ajout client", e)
             }
-            val client = Client(
-                id = UUID.randomUUID().toString(),
-                name = name,
-                phone = phone,
-                totalDebt = 0,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            repository.upsertClient(client)
         }
     }
 
     fun loadClient(clientId: String) {
         viewModelScope.launch {
-            val client = repository.getClient(clientId)
-            _selectedClient.value = client
-            val txns = repository.getDebtTransactions(clientId)
-            _transactions.value = txns
+            try {
+                val client = repository.getClient(clientId)
+                _selectedClient.value = client
+                val txns = repository.getDebtTransactions(clientId)
+                _transactions.value = txns
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec chargement client", e)
+            }
         }
     }
 
     fun addDebt(clientId: String, amount: Int, note: String) {
         viewModelScope.launch {
-            val txn = DebtTransaction(
-                clientId = clientId,
-                amount = amount,
-                date = System.currentTimeMillis(),
-                note = note
-            )
-            repository.addDebtTransaction(txn)
-            // Reload
-            loadClient(clientId)
+            try {
+                val txn = DebtTransaction(
+                    clientId = clientId,
+                    amount = amount,
+                    date = System.currentTimeMillis(),
+                    note = note
+                )
+                repository.addDebtTransaction(txn)
+                loadClient(clientId)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec ajout dette", e)
+            }
         }
     }
 
     fun addRepayment(clientId: String, amount: Int, note: String = "Remboursement") {
         viewModelScope.launch {
-            val txn = DebtTransaction(
-                clientId = clientId,
-                amount = -amount,
-                date = System.currentTimeMillis(),
-                note = note
-            )
-            repository.addDebtTransaction(txn)
-            loadClient(clientId)
+            try {
+                val txn = DebtTransaction(
+                    clientId = clientId,
+                    amount = -amount,
+                    date = System.currentTimeMillis(),
+                    note = note
+                )
+                repository.addDebtTransaction(txn)
+                loadClient(clientId)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec ajout remboursement", e)
+            }
         }
     }
 }

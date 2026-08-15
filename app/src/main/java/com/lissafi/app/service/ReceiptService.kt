@@ -130,31 +130,54 @@ object ReceiptService {
     }
 
     private val ACCENT_TO_ASCII = mapOf(
-        'é' to 'e', 'è' to 'e', 'ê' to 'e', 'ë' to 'e',
-        'à' to 'a', 'â' to 'a', 'ä' to 'a',
-        'î' to 'i', 'ï' to 'i',
-        'ô' to 'o', 'ö' to 'o',
-        'ù' to 'u', 'û' to 'u', 'ü' to 'u',
-        'ç' to 'c',
-        'É' to 'E', 'È' to 'E', 'Ê' to 'E', 'Ë' to 'E',
-        'À' to 'A', 'Â' to 'A', 'Ä' to 'A',
-        'Î' to 'I', 'Ï' to 'I',
-        'Ô' to 'O', 'Ö' to 'O',
-        'Ù' to 'U', 'Û' to 'U', 'Ü' to 'U',
-        'Ç' to 'C'
+        'é' to "e", 'è' to "e", 'ê' to "e", 'ë' to "e",
+        'à' to "a", 'â' to "a", 'ä' to "a",
+        'î' to "i", 'ï' to "i",
+        'ô' to "o", 'ö' to "o",
+        'ù' to "u", 'û' to "u", 'ü' to "u",
+        'ç' to "c",
+        'œ' to "oe", 'æ' to "ae",
+        'É' to "E", 'È' to "E", 'Ê' to "E", 'Ë' to "E",
+        'À' to "A", 'Â' to "A", 'Ä' to "A",
+        'Î' to "I", 'Ï' to "I",
+        'Ô' to "O", 'Ö' to "O",
+        'Ù' to "U", 'Û' to "U", 'Ü' to "U",
+        'Ç' to "C", 'Œ' to "OE", 'Æ' to "AE",
+        // Ponctuation typographique (souvent tapée depuis un clavier de téléphone) :
+        // guillemets et apostrophes courbes, absents de la table ASCII pure.
+        '’' to "'", '‘' to "'",
+        '“' to "\"", '”' to "\"",
+        '«' to "\"", '»' to "\""
     )
 
     /**
-     * Translitère les accents en ASCII pur. De nombreuses imprimantes ESC/POS
-     * bon marché (clones chinois génériques du POS-58, très répandues) n'ont
-     * pas la table Latin-1 attendue en table par défaut : un octet Latin-1
-     * pour "é" ou "î" s'affiche comme un caractère illisible et peut même
-     * décaler les colonnes si l'imprimante l'interprète comme le premier
-     * octet d'une séquence multi-octets. L'ASCII pur (0x00-0x7F) s'imprime
-     * correctement quelle que soit la table de caractères de l'imprimante.
+     * Translitère en ASCII pur. De nombreuses imprimantes ESC/POS bon marché
+     * (clones chinois génériques du POS-58, très répandues) n'ont pas la table
+     * Latin-1 attendue en table par défaut : un octet Latin-1 pour "é" ou "î"
+     * s'affiche comme un caractère illisible et peut même décaler les colonnes
+     * si l'imprimante l'interprète comme le premier octet d'une séquence
+     * multi-octets. L'ASCII pur (0x00-0x7F) s'imprime correctement quelle que
+     * soit la table de caractères de l'imprimante.
+     *
+     * La table `ACCENT_TO_ASCII` couvre les cas français courants ; pour tout
+     * caractère non listé (nom de boutique en texte libre, autre langue…), on
+     * décompose en NFD (Normalizer) pour ne garder que la lettre de base sans
+     * diacritique, plutôt que de laisser le caractère être remplacé par un "?"
+     * muet à l'encodage ASCII.
      */
-    private fun toPrinterSafeAscii(text: String): String =
-        text.map { ACCENT_TO_ASCII[it] ?: it }.joinToString("")
+    private fun toPrinterSafeAscii(text: String): String = buildString {
+        for (c in text) {
+            when {
+                c.code in 0x20..0x7E -> append(c)
+                ACCENT_TO_ASCII.containsKey(c) -> append(ACCENT_TO_ASCII.getValue(c))
+                else -> {
+                    val base = java.text.Normalizer.normalize(c.toString(), java.text.Normalizer.Form.NFD)
+                        .filter { it.code in 0x20..0x7E }
+                    append(base.ifEmpty { "?" })
+                }
+            }
+        }
+    }
 
     // ==================== PARTAGE WHATSAPP ====================
 

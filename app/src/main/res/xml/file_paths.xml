@@ -2,5 +2,7 @@
 <!-- Chemins exposés via FileProvider pour l'installation des mises à jour
      (APK téléchargé dans le cache de l'app). -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <cache-path name="updates" path="." />
+    <!-- Sous-dossier dédié (pas la racine du cache) : n'expose que les APK
+         de mise à jour via FileProvider, pas le reste du cache de l'app. -->
+    <cache-path name="updates" path="updates/" />
 </paths>

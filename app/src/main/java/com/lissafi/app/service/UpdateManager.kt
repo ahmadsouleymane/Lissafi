@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 
 /**
  * Auto-update : vérifie la dernière version publiée sur la landing, télécharge
@@ -37,7 +38,8 @@ object UpdateManager {
     private data class LatestRelease(
         val versionCode: Int = 0,
         val versionName: String = "",
-        val apkUrl: String = ""
+        val apkUrl: String = "",
+        val sha256: String = ""
     )
 
     /** Vérifie la version, télécharge et lance l'installation si plus récente. */
@@ -49,13 +51,26 @@ object UpdateManager {
             if (latest.versionCode <= currentVersionCode(context)) return@withContext
 
             val apkBytes = httpGet("$LANDING_URL${latest.apkUrl}") ?: return@withContext
-            val file = File(context.cacheDir, "lissafi-update-${latest.versionCode}.apk")
+            // Vérifie l'intégrité avant d'installer : si latest.json publie un checksum
+            // (release-apk.sh en écrit un depuis 2026-08) et qu'il ne correspond pas au
+            // fichier reçu (page d'erreur du serveur, fichier tronqué, altération), on
+            // n'installe rien plutôt que de risquer un APK invalide ou compromis.
+            if (latest.sha256.isNotBlank() && sha256Of(apkBytes) != latest.sha256.lowercase()) {
+                return@withContext
+            }
+            // Sous-dossier dédié "updates/" : c'est le seul chemin exposé par le
+            // FileProvider (voir res/xml/file_paths.xml), pas la racine du cache.
+            val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
+            val file = File(updatesDir, "lissafi-update-${latest.versionCode}.apk")
             file.writeBytes(apkBytes)
             install(context, file)
         } catch (e: Exception) {
             // Auto-update silencieux : un échec n'interrompt jamais l'usage normal.
         }
     }
+
+    private fun sha256Of(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     private fun currentVersionCode(context: Context): Long = try {
         val info = context.packageManager.getPackageInfo(context.packageName, 0)

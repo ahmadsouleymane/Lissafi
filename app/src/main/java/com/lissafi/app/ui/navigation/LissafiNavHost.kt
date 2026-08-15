@@ -3,6 +3,7 @@ package com.lissafi.app.ui.navigation
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -83,7 +84,13 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
             authManager,
             onShopNameSaved = { shopName ->
                 if (shopName.isNotBlank()) {
-                    composeScope.launch { app.database.setSetting("shop_name", shopName) }
+                    composeScope.launch {
+                        try {
+                            app.database.setSetting("shop_name", shopName)
+                        } catch (e: Exception) {
+                            Log.w("LissafiNavHost", "Échec sauvegarde nom boutique", e)
+                        }
+                    }
                 }
             }
         )

@@ -4,9 +4,12 @@
 # landing + commit + push (Vercel déploie automatiquement).
 #
 # Usage : npm run release-apk [debug]
-#   - sans argument : build APK release signé (repli sur debug si
-#     le keystore de signature est absent).
-#   - "debug"       : force un APK debug (installable, plus lourd).
+#   - sans argument : build APK release signé. Échoue si le keystore
+#     de signature est absent — JAMAIS de repli silencieux, car publier
+#     un APK signé différemment casse l'installation pour TOUTE la base
+#     déjà installée (conflit de signature Android).
+#   - "debug"       : force explicitement un APK debug (installable,
+#     plus lourd, signature debug — à ne publier que sciemment).
 # ============================================================
 set -euo pipefail
 
@@ -23,8 +26,11 @@ if [ -z "$BUILD_TYPE" ]; then
   if [ -f keystore.properties ]; then
     BUILD_TYPE="release"
   else
-    echo "ℹ️  Pas de keystore de signature → build debug (repli)."
-    BUILD_TYPE="debug"
+    echo "❌ keystore.properties introuvable — impossible de builder en release." >&2
+    echo "   Publier un APK non signé avec la clé de release casserait l'installation" >&2
+    echo "   pour tous les utilisateurs déjà installés (conflit de signature)." >&2
+    echo "   Lance 'npm run release-apk debug' si tu veux explicitement un build debug." >&2
+    exit 1
   fi
 fi
 
@@ -34,8 +40,8 @@ case "$BUILD_TYPE" in
   *) echo "❌ Type de build inconnu : $BUILD_TYPE (attendu : release | debug)" >&2; exit 2 ;;
 esac
 
-# ---- 1. Bump version + manifest de version (auto-update) --------------
-echo "==> [1/5] Bump versionCode + latest.json…"
+# ---- 1. Bump version ---------------------------------------------------
+echo "==> [1/5] Bump versionCode…"
 VC_FILE="$ROOT/app/build.gradle.kts"
 OLD_VC="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*/\1/p' "$VC_FILE" | head -1)"
 if [ -z "$OLD_VC" ]; then
@@ -46,13 +52,6 @@ NEW_VC=$((OLD_VC + 1))
 VERSION_NAME="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' "$VC_FILE" | head -1)"
 sed -i.bak "s/versionCode = $OLD_VC/versionCode = $NEW_VC/" "$VC_FILE"
 rm -f "$VC_FILE.bak"
-cat > "$ROOT/landing/public/latest.json" <<EOF
-{
-  "versionCode": $NEW_VC,
-  "versionName": "${VERSION_NAME:-1.0}",
-  "apkUrl": "/lissafi.apk"
-}
-EOF
 echo "   versionCode $OLD_VC → $NEW_VC (versionName ${VERSION_NAME:-1.0})"
 
 # ---- 2. Build Android -------------------------------------------------
@@ -64,12 +63,23 @@ if [ ! -f "$APK_SRC" ]; then
   exit 1
 fi
 
-# ---- 3. Copie dans la landing ----------------------------------------
+# ---- 3. Copie dans la landing + manifest de version --------------------
 DEST="$ROOT/landing/public/lissafi.apk"
 echo "==> [3/5] Copie de l'APK vers la landing…"
 cp "$APK_SRC" "$DEST"
 MB=$(du -h "$DEST" | cut -f1)
-echo "   APK prêt : $DEST ($MB)"
+# Empreinte SHA-256 de l'APK publié : vérifiée par UpdateManager avant
+# d'installer, pour détecter un fichier corrompu ou altéré côté serveur.
+SHA256="$(shasum -a 256 "$DEST" | cut -d' ' -f1)"
+cat > "$ROOT/landing/public/latest.json" <<EOF
+{
+  "versionCode": $NEW_VC,
+  "versionName": "${VERSION_NAME:-1.0}",
+  "apkUrl": "/lissafi.apk",
+  "sha256": "$SHA256"
+}
+EOF
+echo "   APK prêt : $DEST ($MB, sha256 $SHA256)"
 
 # ---- 4. Commit ---------------------------------------------------------
 echo "==> [4/5] Commit…"

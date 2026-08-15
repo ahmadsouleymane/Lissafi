@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.work.*
 import com.lissafi.app.data.LissafiDatabase
 import com.lissafi.app.data.remote.SupabaseApi
+import com.lissafi.app.service.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -76,13 +77,13 @@ class SyncWorker(
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Démarrage synchro périodique...")
+        AppLog.d(TAG, "Démarrage synchro périodique...")
         try {
             val db = LissafiDatabase.getInstance(applicationContext)
             val api = SupabaseApi(applicationContext)
             val syncManager = SyncManager(applicationContext, db, api)
             syncManager.syncAll()
-            Log.d(TAG, "Synchro périodique terminée avec succès")
+            AppLog.d(TAG, "Synchro périodique terminée avec succès")
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Synchro périodique échouée", e)

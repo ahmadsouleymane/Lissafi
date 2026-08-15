@@ -47,18 +47,42 @@ object SupabaseManager {
 
     private fun prefs(context: Context): SharedPreferences {
         return cachedPrefs ?: synchronized(this) {
-            cachedPrefs ?: run {
-                val appContext = context.applicationContext
-                val masterKey = MasterKey.Builder(appContext)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
-                EncryptedSharedPreferences.create(
-                    appContext,
-                    PREFS_NAME,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                ).also { cachedPrefs = it }
+            cachedPrefs ?: createPrefs(context.applicationContext).also { cachedPrefs = it }
+        }
+    }
+
+    /**
+     * Crée les préférences chiffrées. Le Keystore Android peut être corrompu ou
+     * inaccessible (reset OEM, restauration cloud depuis un autre appareil, ROM
+     * custom) : `EncryptedSharedPreferences.create` lève alors une exception au
+     * tout premier lancement, avant même l'affichage de l'UI — un crash immédiat
+     * et irrécupérable pour l'utilisateur. On retente une fois après avoir purgé
+     * le fichier de préférences (le keyset corrompu est souvent la seule cause),
+     * puis on se rabat sur des SharedPreferences en clair plutôt que de crasher :
+     * l'utilisateur devra simplement se reconnecter, ce qui est très préférable
+     * à une app qui ne démarre jamais.
+     */
+    private fun createPrefs(appContext: Context): SharedPreferences {
+        fun build(): SharedPreferences {
+            val masterKey = MasterKey.Builder(appContext)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            return EncryptedSharedPreferences.create(
+                appContext,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        }
+        return try {
+            build()
+        } catch (_: Exception) {
+            try {
+                appContext.deleteSharedPreferences(PREFS_NAME)
+                build()
+            } catch (_: Exception) {
+                appContext.getSharedPreferences("${PREFS_NAME}_fallback", Context.MODE_PRIVATE)
             }
         }
     }

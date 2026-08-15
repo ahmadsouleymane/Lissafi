@@ -1,5 +1,6 @@
 package com.lissafi.app.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lissafi.app.data.entity.Product
@@ -9,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+private const val TAG = "ProductViewModel"
 
 data class ProductListState(
     val products: List<Product> = emptyList(),
@@ -28,14 +31,22 @@ class ProductViewModel(
 
     init {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
+            try {
+                _state.value = _state.value.copy(isPremium = premiumManager.isPremium())
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec lecture statut premium", e)
+            }
         }
         viewModelScope.launch {
-            repository.productsFlow.collect { products ->
-                // Ne pas écraser si l'utilisateur est en train de chercher
-                if (!_state.value.isSearching) {
-                    _state.value = _state.value.copy(products = products)
+            try {
+                repository.productsFlow.collect { products ->
+                    // Ne pas écraser si l'utilisateur est en train de chercher
+                    if (!_state.value.isSearching) {
+                        _state.value = _state.value.copy(products = products)
+                    }
                 }
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec collecte des produits", e)
             }
         }
     }
@@ -43,34 +54,54 @@ class ProductViewModel(
     fun search(query: String) {
         _state.value = _state.value.copy(searchQuery = query, isSearching = query.isNotBlank())
         viewModelScope.launch {
-            val results = if (query.isBlank()) {
-                repository.getAllProducts()
-            } else {
-                repository.searchProducts(query)
+            try {
+                val results = if (query.isBlank()) {
+                    repository.getAllProducts()
+                } else {
+                    repository.searchProducts(query)
+                }
+                _state.value = _state.value.copy(products = results, isSearching = query.isNotBlank())
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec recherche produits", e)
+                _state.value = _state.value.copy(isSearching = false)
             }
-            _state.value = _state.value.copy(products = results, isSearching = query.isNotBlank())
         }
     }
 
     suspend fun canAddProduct(): Boolean {
-        val can = premiumManager.canAddProduct()
+        val can = try {
+            premiumManager.canAddProduct()
+        } catch (e: Exception) {
+            Log.w(TAG, "Échec vérification limite produits", e)
+            true
+        }
         _state.value = _state.value.copy(isLimitReached = !can)
         return can
     }
 
     fun addProduct(product: Product) {
         viewModelScope.launch {
-            // Re-vérifie la limite au moment de l'écriture (course TOCTOU : deux
-            // clics rapides ne doivent pas dépasser la limite gratuite).
-            if (!premiumManager.canAddProduct()) {
-                _state.value = _state.value.copy(isLimitReached = true)
-                return@launch
+            try {
+                // Re-vérifie la limite au moment de l'écriture (course TOCTOU : deux
+                // clics rapides ne doivent pas dépasser la limite gratuite).
+                if (!premiumManager.canAddProduct()) {
+                    _state.value = _state.value.copy(isLimitReached = true)
+                    return@launch
+                }
+                repository.upsertProduct(product)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec ajout produit", e)
             }
-            repository.upsertProduct(product)
         }
     }
 
     fun deleteProduct(product: Product) {
-        viewModelScope.launch { repository.deleteProduct(product) }
+        viewModelScope.launch {
+            try {
+                repository.deleteProduct(product)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec suppression produit", e)
+            }
+        }
     }
 }

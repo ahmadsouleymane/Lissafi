@@ -62,8 +62,8 @@ class LissafiRepository(
         val s = sale.copy(userId = currentUserId)
         val itms = items.map { it.copy(userId = currentUserId) }
         val saleId = db.insertSale(s, itms)
-        // Le push (api.insertSale + reassignSaleId + markSaleSynced) est fait par
-        // SyncManager.pushSales, sous le mutex → une seule source de push, pas de doublons.
+        // Le push (api.insertSale + finalizeSalePush) est fait par SyncManager.pushSales,
+        // sous le mutex → une seule source de push, pas de doublons.
         syncToRemote()
         return saleId
     }
@@ -114,7 +114,6 @@ class LissafiRepository(
 
     suspend fun isPremium(): Boolean = getSetting("is_premium") == "true"
     suspend fun getPremiumExpiry(): Long? = getSetting("premium_expiry")?.toLongOrNull()
-    suspend fun getAdminPin(): String = getSetting("admin_pin").orEmpty()
     suspend fun getShopName(): String = getSetting("shop_name") ?: ""
     suspend fun getShopPhone(): String = getSetting("shop_phone") ?: ""
 

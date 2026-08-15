@@ -1,5 +1,6 @@
 package com.lissafi.app.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lissafi.app.data.LissafiDatabase.TopProduct
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import java.util.Calendar
+
+private const val TAG = "ReportViewModel"
 
 enum class ReportPeriod { TODAY, WEEK, MONTH }
 
@@ -52,6 +55,16 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
     fun loadReport(period: ReportPeriod) {
         _state.value = _state.value.copy(period = period, isLoading = true)
         viewModelScope.launch {
+            try {
+                loadReportInternal(period)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec chargement rapport", e)
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    private suspend fun loadReportInternal(period: ReportPeriod) {
             val (start, end) = getDateRange(period)
             val total = repository.sumTotalBetween(start, end)
             val credit = repository.sumCreditBetween(start, end)
@@ -109,7 +122,6 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
                 bestDay = bestDay,
                 isLoading = false
             )
-        }
     }
 
     // Bénéfice estimé : somme des ventes - somme des prix d'achat. Toutes les

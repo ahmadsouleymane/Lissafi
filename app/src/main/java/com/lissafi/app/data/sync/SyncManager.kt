@@ -10,6 +10,7 @@ import com.lissafi.app.data.LissafiDatabase
 import com.lissafi.app.data.entity.*
 import com.lissafi.app.data.remote.SupabaseApi
 import com.lissafi.app.data.remote.SupabaseManager
+import com.lissafi.app.service.AppLog
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,17 +74,17 @@ class SyncManager(
 
         // État initial : l'app peut déjà être en ligne au démarrage
         isOnline = isNetworkAvailable(cm)
-        if (isOnline) Log.d(TAG, "Déjà en ligne au démarrage")
+        if (isOnline) AppLog.d(TAG, "Déjà en ligne au démarrage")
 
         cm.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                Log.d(TAG, "Réseau disponible — déclenchement synchro")
+                AppLog.d(TAG, "Réseau disponible — déclenchement synchro")
                 isOnline = true
                 syncInBackground()
             }
 
             override fun onLost(network: Network) {
-                Log.d(TAG, "Réseau perdu")
+                AppLog.d(TAG, "Réseau perdu")
                 isOnline = false
             }
         })
@@ -107,12 +108,12 @@ class SyncManager(
      */
     suspend fun syncAll() {
         if (!api.isConfigured) {
-            Log.d(TAG, "Supabase non configuré, synchro ignorée")
+            AppLog.d(TAG, "Supabase non configuré, synchro ignorée")
             _status.value = SyncStatus.NOT_CONFIGURED
             return
         }
         if (!SupabaseManager.hasValidSession(context)) {
-            Log.w(TAG, "Session invalide (user_id manquant ou non-UUID) — synchro ignorée")
+            AppLog.w(TAG, "Session invalide (user_id manquant ou non-UUID) — synchro ignorée")
             _status.value = SyncStatus.NO_SESSION
             api.logEvent("session_invalid", "warn", "Session invalide — synchro ignorée")
             return
@@ -123,7 +124,7 @@ class SyncManager(
         try {
             api.ensureFreshSession()
         } catch (e: Exception) {
-            Log.w(TAG, "Rafraîchissement de session échoué : ${e.message}")
+            AppLog.w(TAG, "Rafraîchissement de session échoué : ${e.message}")
         }
 
         syncMutex.withLock {
@@ -152,7 +153,7 @@ class SyncManager(
                     db.setSetting("last_sync_timestamp", now.toString())
                     _lastSyncAt.value = now
                     _status.value = SyncStatus.SUCCESS
-                    Log.d(TAG, "Synchro terminée avec succès")
+                    AppLog.d(TAG, "Synchro terminée avec succès")
                     api.logEvent("sync", "info", "Synchronisation réussie")
                 } else {
                     _status.value = SyncStatus.ERROR
@@ -186,7 +187,7 @@ class SyncManager(
         val all = db.getAllProductsIncludingDeleted(userId)
         if (all.isEmpty()) return
         api.upsertProducts(all)
-        Log.d(TAG, "Push produits: ${all.size} envoyés")
+        AppLog.d(TAG, "Push produits: ${all.size} envoyés")
     }
 
     private suspend fun pushClients() {
@@ -194,7 +195,7 @@ class SyncManager(
         val all = db.getAllClients(userId)
         if (all.isEmpty()) return
         api.upsertClients(all)
-        Log.d(TAG, "Push clients: ${all.size} envoyés")
+        AppLog.d(TAG, "Push clients: ${all.size} envoyés")
     }
 
     private suspend fun pushSales() {
@@ -204,42 +205,42 @@ class SyncManager(
             val items = db.getSaleItems(sale.id)
             val remoteId = api.insertSale(sale, items)
             if (remoteId > 0) {
-                // Aligner l'id local sur l'id généré par Supabase → pas de doublons au pull
-                if (remoteId != sale.id) db.reassignSaleId(sale.id, remoteId)
-                db.markSaleSynced(remoteId)
-                Log.d(TAG, "Push vente → remote OK")
+                // Aligner l'id local sur l'id généré par Supabase et marquer la vente
+                // synchronisée, en une seule transaction atomique (voir finalizeSalePush).
+                db.finalizeSalePush(sale.id, remoteId)
+                AppLog.d(TAG, "Push vente → remote OK")
             }
         }
     }
 
     private suspend fun pushDebtTransactions() {
         val userId = SupabaseManager.currentUserId(context) ?: ""
-        val allClients = db.getAllClients(userId)
-        for (client in allClients) {
-            val txns = db.getDebtTransactions(client.id, userId)
-            for (txn in txns) {
-                api.addDebtTransaction(txn)
-            }
+        // Ne pousser que les transactions pas encore synchronisées (flag local `synced`) :
+        // repousser tout l'historique de tous les clients à chaque cycle déclenchait un GET
+        // de dédoublonnage par transaction (O(n²) requêtes réseau).
+        val unsynced = db.getUnsyncedDebtTransactions(userId)
+        for (txn in unsynced) {
+            api.addDebtTransaction(txn)
+            db.markDebtTransactionSynced(txn.id)
         }
-        Log.d(TAG, "Push dettes terminé")
+        AppLog.d(TAG, "Push dettes: ${unsynced.size} envoyées")
     }
 
     private suspend fun pushSettings() {
         val settings = db.getAllSettings()
         // Clés pilotées par le serveur (premium posé par redeem_premium_code ou
-        // le back-office) ou strictement locales (PIN admin) : on ne les pousse
-        // JAMAIS — le trigger guard_premium_keys les refuserait et le PIN doit
-        // rester sur l'appareil.
+        // le back-office) : on ne les pousse JAMAIS — le trigger guard_premium_keys
+        // les refuserait.
         val serverManaged = setOf(
             "is_premium", "plan", "premium_expiry", "activation_code",
-            "demo_taken", "activation_method", "admin_pin"
+            "demo_taken", "activation_method"
         )
         for (setting in settings) {
             if (setting.key == "last_sync_timestamp") continue // Ne pas sync le timestamp
             if (setting.key in serverManaged) continue
             api.setSetting(setting.key, setting.value)
         }
-        Log.d(TAG, "Push paramètres terminé")
+        AppLog.d(TAG, "Push paramètres terminé")
     }
 
     // ==================== PULL (Supabase → local) ====================
@@ -260,7 +261,7 @@ class SyncManager(
             ) { skipped++; continue }
             db.upsertProduct(product)
         }
-        Log.d(TAG, "Pull produits: ${remote.size} reçus, $skipped ignorés")
+        AppLog.d(TAG, "Pull produits: ${remote.size} reçus, $skipped ignorés")
     }
 
     private suspend fun pullClients() {
@@ -274,7 +275,7 @@ class SyncManager(
             ) { skipped++; continue }
             db.upsertClient(client)
         }
-        Log.d(TAG, "Pull clients: ${remote.size} reçus, $skipped ignorés")
+        AppLog.d(TAG, "Pull clients: ${remote.size} reçus, $skipped ignorés")
     }
 
     private suspend fun pullSales() {
@@ -296,7 +297,7 @@ class SyncManager(
                 }
             }
         }
-        Log.d(TAG, "Pull ventes: ${remote.size} reçues, $skipped ignorées")
+        AppLog.d(TAG, "Pull ventes: ${remote.size} reçues, $skipped ignorées")
     }
 
     private suspend fun pullDebtTransactions() {
@@ -310,20 +311,16 @@ class SyncManager(
                 db.insertDebtTransactionIfNotExists(txn)
             }
         }
-        Log.d(TAG, "Pull dettes terminé, $skipped ignorées")
+        AppLog.d(TAG, "Pull dettes terminé, $skipped ignorées")
     }
 
     private suspend fun pullSettings() {
         val remote = api.getAllSettings()
         for (setting in remote) {
             if (setting.key == "last_sync_timestamp") continue
-            // Les clés premium/PIN ne sont pas poussées ; au pull on applique
-            // l'état du serveur pour le premium, mais on ne touche pas au PIN
-            // local (il n'existe pas côté serveur).
-            if (setting.key == "admin_pin") continue
             db.setSetting(setting.key, setting.value)
         }
-        Log.d(TAG, "Pull paramètres: ${remote.size} reçus")
+        AppLog.d(TAG, "Pull paramètres: ${remote.size} reçus")
     }
 
     private val currentUserId: String

@@ -19,7 +19,11 @@ class LissafiDatabase private constructor(context: Context) :
         const val DATABASE_NAME = "lissafi.db"
         // v3 = PK composite (barcode, user_id) sur products + colonne `deleted` (soft delete).
         // Le schéma distant supabase-schema.sql a déjà la PK composite — on aligne la DB locale.
-        const val DATABASE_VERSION = 3
+        // v4 = suppression du PIN admin (fonctionnalité retirée, gérée par le back-office) :
+        // purge le hash résiduel éventuellement stocké dans app_settings.
+        // v5 = colonne `synced` sur debt_transactions (local uniquement, pas mirroré sur
+        // Supabase) : évite de repousser tout l'historique des dettes à chaque synchro.
+        const val DATABASE_VERSION = 5
 
         @Volatile
         private var INSTANCE: LissafiDatabase? = null
@@ -94,7 +98,8 @@ class LissafiDatabase private constructor(context: Context) :
                 amount INTEGER NOT NULL,
                 date INTEGER NOT NULL,
                 note TEXT NOT NULL DEFAULT '',
-                user_id TEXT NOT NULL DEFAULT ''
+                user_id TEXT NOT NULL DEFAULT '',
+                synced INTEGER NOT NULL DEFAULT 0
             )
         """)
         db.execSQL("""
@@ -145,6 +150,20 @@ class LissafiDatabase private constructor(context: Context) :
             """)
             db.execSQL("DROP TABLE products")
             db.execSQL("ALTER TABLE products_v3 RENAME TO products")
+        }
+
+        // V3 → V4 : suppression du PIN admin, purge du hash résiduel.
+        if (oldVersion < 4) {
+            try { db.execSQL("DELETE FROM app_settings WHERE key = 'admin_pin'") } catch (_: Exception) {}
+        }
+
+        // V4 → V5 : colonne `synced` sur debt_transactions. Les transactions déjà
+        // présentes ont forcément déjà été poussées par l'ancien mécanisme exhaustif
+        // (qui repoussait tout l'historique à chaque cycle) : on les marque synced=1
+        // pour éviter un re-push massif au premier cycle post-migration.
+        if (oldVersion < 5) {
+            try { db.execSQL("ALTER TABLE debt_transactions ADD COLUMN synced INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
+            try { db.execSQL("UPDATE debt_transactions SET synced = 1") } catch (_: Exception) {}
         }
     }
 
@@ -473,6 +492,22 @@ class LissafiDatabase private constructor(context: Context) :
         getAllClients(transaction.userId)
     }
 
+    /** Transactions de dette pas encore poussées vers Supabase (voir SYNC HELPERS pour les ventes). */
+    suspend fun getUnsyncedDebtTransactions(userId: String = ""): List<DebtTransaction> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<DebtTransaction>()
+        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId) else null
+        readableDatabase.rawQuery("SELECT * FROM debt_transactions WHERE synced = 0 $where ORDER BY date ASC", args).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toDebtTransaction())
+        }
+        list
+    }
+
+    suspend fun markDebtTransactionSynced(id: Long) = withContext(Dispatchers.IO) {
+        val cv = ContentValues().apply { put("synced", 1) }
+        writableDatabase.update("debt_transactions", cv, "id = ?", arrayOf(id.toString()))
+    }
+
     suspend fun getTotalDebt(clientId: String, userId: String = ""): Int = withContext(Dispatchers.IO) {
         val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(clientId, userId) else arrayOf(clientId)
@@ -519,64 +554,69 @@ class LissafiDatabase private constructor(context: Context) :
         list
     }
 
-    suspend fun markSaleSynced(saleId: Long) = withContext(Dispatchers.IO) {
-        val cv = ContentValues().apply { put("synced", 1) }
-        writableDatabase.update("sales", cv, "id = ?", arrayOf(saleId.toString()))
-    }
-
     /**
      * Remplace l'id local d'une vente par l'id généré par Supabase (BIGSERIAL),
-     * et met à jour les références (articles vendus, transactions de dette).
-     * Évite les doublons lors du pull après une réinstallation ou sur un 2e appareil.
+     * met à jour les références (articles vendus, transactions de dette), et marque
+     * la vente comme synchronisée — le TOUT dans une seule transaction SQLite.
+     *
+     * L'atomicité est essentielle : si ces étapes étaient séparées et que le process
+     * était tué entre la ré-assignation d'id et le marquage `synced=1`, la vente
+     * garderait `synced=0` avec un id déjà distant → le prochain cycle de synchro la
+     * repousserait vers Supabase, qui génère un NOUVEL id (POST forcé à id=0), créant
+     * une vente en double côté serveur (argent compté deux fois dans les rapports).
      *
      * Si `newId` est déjà occupé par une AUTRE vente locale (cas d'un 2e appareil
      * qui a généré localement le même id AUTOINCREMENT), cette vente est d'abord
      * déplacée vers un id libre pour libérer `newId`, sinon l'UPDATE violerait
      * la PRIMARY KEY et planterait la synchro.
      */
-    suspend fun reassignSaleId(oldId: Long, newId: Long) = withContext(Dispatchers.IO) {
-        if (oldId <= 0 || newId <= 0 || oldId == newId) return@withContext
+    suspend fun finalizeSalePush(oldId: Long, newId: Long) = withContext(Dispatchers.IO) {
+        if (newId <= 0) return@withContext
         writableDatabase.beginTransaction()
         try {
             val db = writableDatabase
-            // Une autre vente occupe-t-elle déjà newId ?
-            val occupied = readableDatabase.rawQuery(
-                "SELECT 1 FROM sales WHERE id = ? AND id != ?",
-                arrayOf(newId.toString(), oldId.toString())
-            ).use { it.moveToFirst() }
+            if (oldId > 0 && oldId != newId) {
+                // Une autre vente occupe-t-elle déjà newId ?
+                val occupied = readableDatabase.rawQuery(
+                    "SELECT 1 FROM sales WHERE id = ? AND id != ?",
+                    arrayOf(newId.toString(), oldId.toString())
+                ).use { it.moveToFirst() }
 
-            if (occupied) {
-                // Trouver un id libre pour déplacer la vente qui occupe newId.
-                val maxId = readableDatabase.rawQuery(
-                    "SELECT COALESCE(MAX(id), 0) FROM sales", null
-                ).use { if (it.moveToFirst()) it.getLong(0) else newId }
-                var freeId = maxOf(maxId + 1, newId + 1)
+                if (occupied) {
+                    // Trouver un id libre pour déplacer la vente qui occupe newId.
+                    val maxId = readableDatabase.rawQuery(
+                        "SELECT COALESCE(MAX(id), 0) FROM sales", null
+                    ).use { if (it.moveToFirst()) it.getLong(0) else newId }
+                    val freeId = maxOf(maxId + 1, newId + 1)
+                    db.execSQL(
+                        "UPDATE sale_items SET sale_id = ? WHERE sale_id = ?",
+                        arrayOf(freeId.toString(), newId.toString())
+                    )
+                    db.execSQL(
+                        "UPDATE debt_transactions SET sale_id = ? WHERE sale_id = ?",
+                        arrayOf(freeId.toString(), newId.toString())
+                    )
+                    db.execSQL(
+                        "UPDATE sales SET id = ? WHERE id = ?",
+                        arrayOf(freeId.toString(), newId.toString())
+                    )
+                }
+
                 db.execSQL(
                     "UPDATE sale_items SET sale_id = ? WHERE sale_id = ?",
-                    arrayOf(freeId.toString(), newId.toString())
+                    arrayOf(newId.toString(), oldId.toString())
                 )
                 db.execSQL(
                     "UPDATE debt_transactions SET sale_id = ? WHERE sale_id = ?",
-                    arrayOf(freeId.toString(), newId.toString())
+                    arrayOf(newId.toString(), oldId.toString())
                 )
                 db.execSQL(
                     "UPDATE sales SET id = ? WHERE id = ?",
-                    arrayOf(freeId.toString(), newId.toString())
+                    arrayOf(newId.toString(), oldId.toString())
                 )
             }
 
-            db.execSQL(
-                "UPDATE sale_items SET sale_id = ? WHERE sale_id = ?",
-                arrayOf(newId.toString(), oldId.toString())
-            )
-            db.execSQL(
-                "UPDATE debt_transactions SET sale_id = ? WHERE sale_id = ?",
-                arrayOf(newId.toString(), oldId.toString())
-            )
-            db.execSQL(
-                "UPDATE sales SET id = ? WHERE id = ?",
-                arrayOf(newId.toString(), oldId.toString())
-            )
+            db.execSQL("UPDATE sales SET synced = 1 WHERE id = ?", arrayOf(newId.toString()))
             writableDatabase.setTransactionSuccessful()
         } finally {
             writableDatabase.endTransaction()
@@ -638,6 +678,7 @@ class LissafiDatabase private constructor(context: Context) :
                     put("date", txn.date)
                     put("note", txn.note)
                     put("user_id", txn.userId)
+                    put("synced", 1) // vient du serveur, déjà synchronisée
                 }
                 writableDatabase.insert("debt_transactions", null, cv)
             }

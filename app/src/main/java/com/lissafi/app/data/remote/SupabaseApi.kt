@@ -2,9 +2,9 @@ package com.lissafi.app.data.remote
 
 import android.content.Context
 import com.lissafi.app.data.entity.*
+import com.lissafi.app.service.AppLog
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import android.util.Log
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -218,7 +218,7 @@ class SupabaseApi(private val context: Context) {
     suspend fun insertSale(sale: Sale, items: List<SaleItem>): Long = withContext(Dispatchers.IO) {
         ensureValidUser()
         val t = token
-        Log.d("LissafiSupabase", "Insert sale OK")
+        AppLog.d("LissafiSupabase", "Insert sale OK")
         val response = http.post(restUrl("sales")) {
             header("apikey", anonKey)
             t?.let { header("Authorization", "Bearer $it") }
@@ -248,7 +248,7 @@ class SupabaseApi(private val context: Context) {
                 // Ne PAS lever : la vente existe déjà côté serveur. Si on levait, le
                 // SyncManager la re-pousserait → vente en DOUBLE. La vente est marquée
                 // synced avec son id distant ; les articles manquants restent locaux.
-                Log.w("LissafiSupabase", "Articles non poussés pour la vente $saleId (retry manuel), sale OK: ${e.message}")
+                AppLog.w("LissafiSupabase", "Articles non poussés pour la vente $saleId (retry manuel), sale OK: ${e.message}")
             }
         }
         saleId
@@ -347,7 +347,7 @@ class SupabaseApi(private val context: Context) {
             try {
                 refreshClientDebt(transaction.clientId)
             } catch (e: SupabaseException) {
-                Log.w("LissafiSupabase", "Refresh dette échoué: ${e.message}")
+                AppLog.w("LissafiSupabase", "Refresh dette échoué: ${e.message}")
             }
             return@withContext
         }
@@ -364,7 +364,7 @@ class SupabaseApi(private val context: Context) {
             refreshClientDebt(transaction.clientId)
         } catch (e: SupabaseException) {
             // La transaction est enregistrée ; le calcul de la dette sera refait au prochain sync
-            Log.w("LissafiSupabase", "Refresh dette échoué: ${e.message}")
+            AppLog.w("LissafiSupabase", "Refresh dette échoué: ${e.message}")
         }
     }
 
@@ -478,10 +478,10 @@ class SupabaseApi(private val context: Context) {
                     setBody(PartnerInstallPayload(p_code = trimmed))
                 }
                 if (response.status.value !in 200..299) {
-                    Log.w("LissafiLog", "recordPartnerInstall HTTP ${response.status.value}")
+                    AppLog.w("LissafiLog", "recordPartnerInstall HTTP ${response.status.value}")
                 }
             } catch (e: Exception) {
-                Log.w("LissafiLog", "recordPartnerInstall ignoré : ${e.message}")
+                AppLog.w("LissafiLog", "recordPartnerInstall ignoré : ${e.message}")
             }
         }
     }
@@ -514,10 +514,10 @@ class SupabaseApi(private val context: Context) {
                     ))
                 }
                 if (response.status.value !in 200..299) {
-                    Log.w("LissafiLog", "logEvent HTTP ${response.status.value}")
+                    AppLog.w("LissafiLog", "logEvent HTTP ${response.status.value}")
                 }
             } catch (e: Exception) {
-                Log.w("LissafiLog", "logEvent ignoré : ${e.message}")
+                AppLog.w("LissafiLog", "logEvent ignoré : ${e.message}")
             }
         }
     }
@@ -549,10 +549,10 @@ class SupabaseApi(private val context: Context) {
                     ))
                 }
                 if (response.status.value !in 200..299) {
-                    Log.w("LissafiLog", "reportTicket HTTP ${response.status.value}")
+                    AppLog.w("LissafiLog", "reportTicket HTTP ${response.status.value}")
                 }
             } catch (e: Exception) {
-                Log.w("LissafiLog", "reportTicket ignoré : ${e.message}")
+                AppLog.w("LissafiLog", "reportTicket ignoré : ${e.message}")
             }
         }
     }
@@ -579,10 +579,10 @@ class SupabaseApi(private val context: Context) {
                     setBody(UpsertDeviceTokenRpcPayload(p_token = fcmToken))
                 }
                 if (response.status.value !in 200..299) {
-                    Log.w("LissafiLog", "upsertDeviceToken HTTP ${response.status.value}")
+                    AppLog.w("LissafiLog", "upsertDeviceToken HTTP ${response.status.value}")
                 }
             } catch (e: Exception) {
-                Log.w("LissafiLog", "upsertDeviceToken ignoré : ${e.message}")
+                AppLog.w("LissafiLog", "upsertDeviceToken ignoré : ${e.message}")
             }
         }
     }
