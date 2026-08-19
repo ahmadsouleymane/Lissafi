@@ -1,5 +1,10 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/payer", "destination": "/index.html" },
+    { "source": "/paiement/succes", "destination": "/index.html" },
+    { "source": "/paiement/echec", "destination": "/index.html" }
+  ]
 }

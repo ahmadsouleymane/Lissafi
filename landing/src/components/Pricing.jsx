@@ -30,8 +30,9 @@ const TIERS = [
       ["Rapports jour / semaine / mois", true],
       ["Export de tes données", true],
     ],
-    cta: "Télécharger l'APK",
-    note: "Paiement en espèces ou mobile money",
+    plan: "plus",
+    cta: "Payer en ligne",
+    note: "Mobile money ou carte, activation automatique",
   },
   {
     name: "Lissafi Business",
@@ -51,8 +52,9 @@ const TIERS = [
       ["Support prioritaire", true],
       ["Accès en avant-première aux nouveautés", true],
     ],
-    cta: "Télécharger l'APK",
-    note: "Paiement en espèces ou mobile money",
+    plan: "business",
+    cta: "Payer en ligne",
+    note: "Mobile money ou carte, activation automatique",
   },
 ];
 
@@ -129,16 +131,32 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a
-                className={`btn ${
-                  t.top || t.badge === "Populaire" ? "btn-primary" : "btn-ghost"
-                }`}
-                href={downloadUrl()}
-                download
-                onClick={() => copyPartnerCodeForDownload()}
-              >
-                {t.cta}
-              </a>
+              {t.plan ? (
+                <div className="price-cta-group">
+                  <a className="btn btn-primary" href={`/payer?plan=${t.plan}`}>
+                    {t.cta}
+                  </a>
+                  <a
+                    className="btn btn-ghost"
+                    href={downloadUrl()}
+                    download
+                    onClick={() => copyPartnerCodeForDownload()}
+                  >
+                    Télécharger l'APK
+                  </a>
+                </div>
+              ) : (
+                <a
+                  className={`btn ${
+                    t.top || t.badge === "Populaire" ? "btn-primary" : "btn-ghost"
+                  }`}
+                  href={downloadUrl()}
+                  download
+                  onClick={() => copyPartnerCodeForDownload()}
+                >
+                  {t.cta}
+                </a>
+              )}
               {t.note && <p className="price-note">{t.note}</p>}
             </Reveal>
           ))}
