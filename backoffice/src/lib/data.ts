@@ -37,16 +37,26 @@ function logRpcError(fn: string, error: unknown) {
 
 /** Statistiques globales du dashboard. */
 export async function getStats(): Promise<Stats> {
-  const { data, error } = await supabaseAdmin().rpc("admin_stats");
-  if (error) logRpcError("getStats", error);
-  return (data ?? {}) as Stats;
+  try {
+    const { data, error } = await supabaseAdmin().rpc("admin_stats");
+    if (error) logRpcError("getStats", error);
+    return (data ?? {}) as Stats;
+  } catch (e) {
+    logRpcError("getStats", e);
+    return {} as Stats;
+  }
 }
 
 /** Liste de tous les comptes avec indicateurs agrégés. */
 export async function getUserSummaries(): Promise<UserSummary[]> {
-  const { data, error } = await supabaseAdmin().rpc("admin_user_summaries");
-  if (error) logRpcError("getUserSummaries", error);
-  return Array.isArray(data) ? (data as UserSummary[]) : [];
+  try {
+    const { data, error } = await supabaseAdmin().rpc("admin_user_summaries");
+    if (error) logRpcError("getUserSummaries", error);
+    return Array.isArray(data) ? (data as UserSummary[]) : [];
+  } catch (e) {
+    logRpcError("getUserSummaries", e);
+    return [];
+  }
 }
 
 export type AvailablePremiumCode = { code: string; plan: string; created_at: string };
@@ -67,22 +77,37 @@ export async function getAvailablePremiumCodes(): Promise<AvailablePremiumCode[]
 
 /** Map user_id → email (léger, pour joindre les emails dans les listes). */
 export async function getUserEmails(): Promise<Record<string, string>> {
-  const { data } = await supabaseAdmin().rpc("admin_user_emails");
-  const map: Record<string, string> = {};
-  for (const row of data ?? []) map[row.user_id] = row.email ?? "";
-  return map;
+  try {
+    const { data } = await supabaseAdmin().rpc("admin_user_emails");
+    const map: Record<string, string> = {};
+    for (const row of data ?? []) map[row.user_id] = row.email ?? "";
+    return map;
+  } catch (e) {
+    logRpcError("getUserEmails", e);
+    return {};
+  }
 }
 
 /** Ventes par jour (N derniers jours). */
 export async function getSalesSeries(days = 30): Promise<SalesPoint[]> {
-  const { data } = await supabaseAdmin().rpc("admin_sales_series", { days });
-  return Array.isArray(data) ? (data as SalesPoint[]) : [];
+  try {
+    const { data } = await supabaseAdmin().rpc("admin_sales_series", { days });
+    return Array.isArray(data) ? (data as SalesPoint[]) : [];
+  } catch (e) {
+    logRpcError("getSalesSeries", e);
+    return [];
+  }
 }
 
 /** Inscriptions par jour (N derniers jours). */
 export async function getSignupsSeries(days = 30): Promise<SignupPoint[]> {
-  const { data } = await supabaseAdmin().rpc("admin_signups_series", { days });
-  return Array.isArray(data) ? (data as SignupPoint[]) : [];
+  try {
+    const { data } = await supabaseAdmin().rpc("admin_signups_series", { days });
+    return Array.isArray(data) ? (data as SignupPoint[]) : [];
+  } catch (e) {
+    logRpcError("getSignupsSeries", e);
+    return [];
+  }
 }
 
 /** Journal applicatif (app_logs) avec filtres. */
@@ -94,35 +119,50 @@ export async function getLogs(opts: {
   userId?: string;
   limit?: number;
 } = {}): Promise<AppLog[]> {
-  const { data } = await supabaseAdmin().rpc("admin_logs", {
-    from_ts: opts.fromTs ?? 0,
-    to_ts: opts.toTs ?? 0,
-    lvl: opts.level ?? "",
-    etype: opts.eventType ?? "",
-    uid: opts.userId ?? null,
-    lim: opts.limit ?? 200,
-  });
-  return Array.isArray(data) ? (data as AppLog[]) : [];
+  try {
+    const { data } = await supabaseAdmin().rpc("admin_logs", {
+      from_ts: opts.fromTs ?? 0,
+      to_ts: opts.toTs ?? 0,
+      lvl: opts.level ?? "",
+      etype: opts.eventType ?? "",
+      uid: opts.userId ?? null,
+      lim: opts.limit ?? 200,
+    });
+    return Array.isArray(data) ? (data as AppLog[]) : [];
+  } catch (e) {
+    logRpcError("getLogs", e);
+    return [];
+  }
 }
 
 /** Journal des connexions/auth (auth.audit_log_entries). */
 export async function getAuditLogs(opts: { fromTs?: number; toTs?: number; limit?: number } = {}): Promise<AuditLog[]> {
-  const { data } = await supabaseAdmin().rpc("admin_audit_logs", {
-    from_ts: opts.fromTs ?? 0,
-    to_ts: opts.toTs ?? 0,
-    lim: opts.limit ?? 500,
-  });
-  return Array.isArray(data) ? (data as AuditLog[]) : [];
+  try {
+    const { data } = await supabaseAdmin().rpc("admin_audit_logs", {
+      from_ts: opts.fromTs ?? 0,
+      to_ts: opts.toTs ?? 0,
+      lim: opts.limit ?? 500,
+    });
+    return Array.isArray(data) ? (data as AuditLog[]) : [];
+  } catch (e) {
+    logRpcError("getAuditLogs", e);
+    return [];
+  }
 }
 
 /** Tickets de support (avec email joint). */
 export async function getTickets(status?: string): Promise<Ticket[]> {
-  let query = supabaseAdmin().from("support_tickets").select("*").order("created_at", { ascending: false });
-  if (status && status !== "all") query = query.eq("status", status);
-  const { data } = await query.limit(300);
-  const tickets = (data ?? []) as Ticket[];
-  const emails = await getUserEmails();
-  return tickets.map((t) => ({ ...t, email: emails[t.user_id] ?? null }));
+  try {
+    let query = supabaseAdmin().from("support_tickets").select("*").order("created_at", { ascending: false });
+    if (status && status !== "all") query = query.eq("status", status);
+    const { data } = await query.limit(300);
+    const tickets = (data ?? []) as Ticket[];
+    const emails = await getUserEmails();
+    return tickets.map((t) => ({ ...t, email: emails[t.user_id] ?? null }));
+  } catch (e) {
+    logRpcError("getTickets", e);
+    return [];
+  }
 }
 
 export async function getTicket(id: number): Promise<(Ticket & { email?: string | null }) | null> {
