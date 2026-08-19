@@ -206,6 +206,13 @@ export function geniuspayVerifySignature(rawBody: string, signature: string | nu
 // ------------------------------------------------------------
 // iPayMoney (Niger)
 // ------------------------------------------------------------
+
+// Gel volontaire : pas encore de clés live iPayMoney (seulement sandbox).
+// Empêche toute initiation même si des clés sandbox traînent dans l'env —
+// on ne veut pas qu'un vrai client déclenche un paiement sandbox qui ne
+// débouche sur rien. Repasser à `false` quand les clés live sont en place.
+const IPAYMONEY_FROZEN = true;
+
 function ipaymoneyEnv(): { privateKey: string; environment: string } {
   return {
     privateKey: (process.env.IPAYMONEY_PRIVATE_KEY || "").trim(),
@@ -214,7 +221,7 @@ function ipaymoneyEnv(): { privateKey: string; environment: string } {
 }
 
 export function isIpaymoneyConfigured(): boolean {
-  return Boolean(ipaymoneyEnv().privateKey);
+  return !IPAYMONEY_FROZEN && Boolean(ipaymoneyEnv().privateKey);
 }
 
 /** Crée un paiement iPayMoney (push-to-phone) et renvoie sa référence. */

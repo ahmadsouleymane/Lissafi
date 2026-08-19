@@ -62,7 +62,10 @@ export async function POST(req: NextRequest) {
   try {
     if (useIpaymoney) {
       if (!isIpaymoneyConfigured()) {
-        return Response.json({ ok: false, error: "iPayMoney non configuré (clé manquante)" }, { status: 503, headers });
+        return Response.json(
+          { ok: false, error: "Paiement mobile money Niger indisponible pour le moment. Réessaie dans quelques jours ou contacte-nous sur WhatsApp." },
+          { status: 503, headers },
+        );
       }
       const msisdn = phone.replace(/\D/g, "");
       const { reference } = await ipaymoneyCreatePayment({
