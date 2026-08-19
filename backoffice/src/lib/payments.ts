@@ -32,7 +32,10 @@ export function planAmount(plan: Plan): number {
 // CORS — la landing (domaine distinct) appelle initiate/status en fetch.
 // ------------------------------------------------------------
 export function landingOrigin(): string {
-  return (process.env.NEXT_PUBLIC_LANDING_URL || "https://lissafi-one.vercel.app").replace(/\/+$/, "");
+  // URL publique de la landing — sert au CORS et aux retours success/error.
+  // Var DÉDIÉE : NEXT_PUBLIC_LANDING_URL a une autre sémantique ailleurs et peut
+  // pointer vers un autre domaine — ne pas en dépendre pour les paiements.
+  return (process.env.PAYMENTS_LANDING_URL || "https://lissafi-one.vercel.app").replace(/\/+$/, "");
 }
 
 export function corsHeaders(): Record<string, string> {
