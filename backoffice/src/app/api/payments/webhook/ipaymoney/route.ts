@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import {
   activateAccountByEmail,
   decodePaymentToken,
+  isIpaymoneyConfigured,
   ipaymoneyVerifySecret,
 } from "@/lib/payments";
 
@@ -13,6 +14,13 @@ import {
 // ============================================================
 
 export async function POST(req: NextRequest) {
+  // Gel iPayMoney (pas de clés live) : coupe aussi le webhook, pas
+  // seulement l'initiation — sinon une clé sandbox oubliée dans l'env
+  // suffirait à activer un vrai compte.
+  if (!isIpaymoneyConfigured()) {
+    return Response.json({ ok: false, error: "iPayMoney indisponible" }, { status: 503 });
+  }
+
   const secretHash = req.headers.get("secret-hash");
   if (!ipaymoneyVerifySecret(secretHash)) {
     return Response.json({ ok: false, error: "Secret invalide" }, { status: 401 });
