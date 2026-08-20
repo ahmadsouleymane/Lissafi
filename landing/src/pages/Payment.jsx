@@ -54,7 +54,9 @@ export default function Payment() {
   const [method, setMethod] = useState("mobile_money");
   const [country, setCountry] = useState("NE");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(
+    () => new URLSearchParams(window.location.search).get("email") || "",
+  );
   const [phone, setPhone] = useState("");
 
   const [phase, setPhase] = useState("form"); // form | waiting | done-success | done-error

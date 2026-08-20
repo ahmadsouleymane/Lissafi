@@ -22,25 +22,15 @@ class PremiumManager(
         const val MAX_PLUS_PRODUCTS = 100
         const val MAX_PLUS_CREDITS = 100
 
-        // Numéro de contact pour l'activation Premium (format international,
-        // sans espaces ni +).
-        const val SUPPORT_WHATSAPP_NUMBER = "2250160726314"
+        // Page de paiement en ligne (landing statique, aucune clé côté client).
+        private const val PAYMENT_URL = "https://lissafi-one.vercel.app/payer"
 
-        /** Message pré-rempli envoyé sur WhatsApp pour demander l'activation. */
-        fun buildActivationMessage(shopName: String, email: String?, userId: String?): String {
-            val lines = mutableListOf("Bonjour, je voudrais activer Lissafi Plus.")
-            lines += "Boutique : ${shopName.ifBlank { "—" }}"
-            lines += "Compte : ${email ?: "compte local"}"
-            if (!userId.isNullOrBlank()) lines += "ID : $userId"
-            return lines.joinToString("\n")
+        /** Lien vers la page de paiement en ligne, plan et email pré-remplis. */
+        fun buildActivationPaymentLink(plan: String, email: String?): String {
+            val builder = Uri.parse(PAYMENT_URL).buildUpon().appendQueryParameter("plan", plan)
+            if (!email.isNullOrBlank()) builder.appendQueryParameter("email", email)
+            return builder.build().toString()
         }
-
-        /** Lien wa.me vers le contact d'activation, message pré-rempli inclus. */
-        fun buildActivationWhatsAppLink(shopName: String, email: String?, userId: String?): String {
-            val message = buildActivationMessage(shopName, email, userId)
-            return "https://wa.me/$SUPPORT_WHATSAPP_NUMBER?text=${Uri.encode(message)}"
-        }
-
     }
 
     /** Les trois niveaux : gratuits, plan de volume, plan haut de gamme. */

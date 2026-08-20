@@ -162,15 +162,14 @@ fun SettingsScreen(
                             icon = LissafiIcons.Partager,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                val link = PremiumManager.buildActivationWhatsAppLink(
-                                    shopName = state.shopName,
-                                    email = authManager.currentUserEmail(),
-                                    userId = authManager.currentUserId()
+                                val link = PremiumManager.buildActivationPaymentLink(
+                                    plan = "plus",
+                                    email = authManager.currentUserEmail()
                                 )
                                 try {
                                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                                 } catch (_: Exception) {
-                                    Toast.makeText(context, "WhatsApp n'est pas installé sur cet appareil.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "Impossible d'ouvrir la page de paiement.", Toast.LENGTH_LONG).show()
                                 }
                             }
                         )
