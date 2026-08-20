@@ -15,7 +15,7 @@ android {
         applicationId = "com.lissafi.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0"
     }
 
@@ -45,6 +45,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            // Réduit la taille de l'APK (ressources inutilisées des libs retirées) :
+            // sur les connexions mobiles faibles de Niamey, un téléchargement plus
+            // court/léger a moins de risque d'être coupé avant la fin.
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
