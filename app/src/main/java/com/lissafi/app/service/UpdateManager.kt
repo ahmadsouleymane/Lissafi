@@ -16,8 +16,10 @@ import java.net.URL
 import java.security.MessageDigest
 
 /**
- * Auto-update : vérifie la dernière version publiée sur la landing, télécharge
- * l'APK et lance l'installation si le code de version est plus récent.
+ * Auto-update OBLIGATOIRE : vérifie la dernière version publiée sur la landing
+ * au démarrage de l'app. Si une version plus récente existe, l'usage de l'app
+ * est bloqué (voir `MandatoryUpdateScreen`) tant que l'utilisateur ne l'a pas
+ * installée.
  *
  * Hors Play Store, on ne peut pas installer en silence : l'installation passe
  * par le dialogue système d'Android (une confirmation de l'utilisateur). Si
@@ -35,28 +37,44 @@ object UpdateManager {
     private val json = Json { ignoreUnknownKeys = true }
 
     @Serializable
-    private data class LatestRelease(
+    data class LatestRelease(
         val versionCode: Int = 0,
         val versionName: String = "",
         val apkUrl: String = "",
         val sha256: String = ""
     )
 
-    /** Vérifie la version, télécharge et lance l'installation si plus récente. */
-    suspend fun checkForUpdate(context: Context) = withContext(Dispatchers.IO) {
+    /**
+     * Renvoie la dernière version publiée si elle est plus récente que celle
+     * installée, sinon `null` (déjà à jour, ou vérification impossible — pas
+     * de réseau, landing indisponible : on ne bloque jamais l'usage sur un
+     * échec de vérification).
+     */
+    suspend fun checkForUpdate(context: Context): LatestRelease? = withContext(Dispatchers.IO) {
         try {
             val latest = json.decodeFromString<LatestRelease>(
-                String(httpGet("$LANDING_URL/latest.json") ?: return@withContext, Charsets.UTF_8)
+                String(httpGet("$LANDING_URL/latest.json") ?: return@withContext null, Charsets.UTF_8)
             )
-            if (latest.versionCode <= currentVersionCode(context)) return@withContext
+            if (latest.versionCode <= currentVersionCode(context)) null else latest
+        } catch (e: Exception) {
+            null
+        }
+    }
 
-            val apkBytes = httpGet("$LANDING_URL${latest.apkUrl}") ?: return@withContext
+    /**
+     * Télécharge l'APK de `latest` et lance son installation. Renvoie `false`
+     * si le téléchargement échoue ou si l'intégrité (sha256) ne correspond pas
+     * — dans ce cas, rien n'est installé.
+     */
+    suspend fun downloadAndInstall(context: Context, latest: LatestRelease): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val apkBytes = httpGet("$LANDING_URL${latest.apkUrl}") ?: return@withContext false
             // Vérifie l'intégrité avant d'installer : si latest.json publie un checksum
             // (release-apk.sh en écrit un depuis 2026-08) et qu'il ne correspond pas au
             // fichier reçu (page d'erreur du serveur, fichier tronqué, altération), on
             // n'installe rien plutôt que de risquer un APK invalide ou compromis.
             if (latest.sha256.isNotBlank() && sha256Of(apkBytes) != latest.sha256.lowercase()) {
-                return@withContext
+                return@withContext false
             }
             // Sous-dossier dédié "updates/" : c'est le seul chemin exposé par le
             // FileProvider (voir res/xml/file_paths.xml), pas la racine du cache.
@@ -64,8 +82,9 @@ object UpdateManager {
             val file = File(updatesDir, "lissafi-update-${latest.versionCode}.apk")
             file.writeBytes(apkBytes)
             install(context, file)
+            true
         } catch (e: Exception) {
-            // Auto-update silencieux : un échec n'interrompt jamais l'usage normal.
+            false
         }
     }
 
