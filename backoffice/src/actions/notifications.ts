@@ -67,7 +67,17 @@ export async function sendManualNotificationForm(_prev: ActionResult | undefined
   if (tokens.length === 0) {
     return { error: `Aucun appareil enregistré pour ce ciblage (${targetSummary}) — ces comptes n'ont pas encore ouvert une version de l'app qui gère les notifications, ou ont refusé la permission.` };
   }
-  const { success, failed } = await sendPushToTokens(tokens, title, body);
+
+  let success: number, failed: number;
+  try {
+    ({ success, failed } = await sendPushToTokens(tokens, title, body));
+  } catch (e) {
+    // Une exception ici vient de Firebase (identifiants absents/invalides), pas
+    // de Supabase — on l'attrape pour ne pas tomber sur l'écran d'erreur générique
+    // et donner un message qui pointe vers la bonne cause.
+    console.error("[notifications] sendPushToTokens:", e);
+    return { error: `Échec de l'envoi Firebase : ${e instanceof Error ? e.message : "erreur inconnue"}. Vérifie FIREBASE_SERVICE_ACCOUNT_JSON dans les réglages Vercel.` };
+  }
 
   const { error: logError } = await supabaseAdmin().from("notification_log").insert({
     kind: "manuel",
