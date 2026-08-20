@@ -64,6 +64,9 @@ export async function sendManualNotificationForm(_prev: ActionResult | undefined
   }
 
   const tokens = (tokenRows ?? []).map((r) => r.fcm_token as string);
+  if (tokens.length === 0) {
+    return { error: `Aucun appareil enregistré pour ce ciblage (${targetSummary}) — ces comptes n'ont pas encore ouvert une version de l'app qui gère les notifications, ou ont refusé la permission.` };
+  }
   const { success, failed } = await sendPushToTokens(tokens, title, body);
 
   const { error: logError } = await supabaseAdmin().from("notification_log").insert({
