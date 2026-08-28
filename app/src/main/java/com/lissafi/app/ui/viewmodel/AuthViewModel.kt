@@ -129,6 +129,30 @@ class AuthViewModel(
         }
     }
 
+    /** Échange l'id_token Google (récupéré via Credential Manager) contre une session. */
+    fun signInWithGoogle(idToken: String) {
+        _state.value = _state.value.copy(isLoading = true, message = null)
+        viewModelScope.launch {
+            when (val result = authManager.signInWithGoogle(idToken)) {
+                is AuthResult.Success -> {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        message = result.message,
+                        isError = false,
+                        isLoggedIn = true
+                    )
+                }
+                is AuthResult.Error -> {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        message = result.message,
+                        isError = true
+                    )
+                }
+            }
+        }
+    }
+
     fun signIn() {
         val state = _state.value
         if (state.email.isBlank() || state.password.isBlank()) {

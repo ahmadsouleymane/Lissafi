@@ -27,6 +27,9 @@ private data class SignInRequest(val email: String, val password: String)
 private data class ResetPasswordRequest(val email: String)
 
 @Serializable
+private data class IdTokenRequest(val provider: String, val id_token: String)
+
+@Serializable
 private data class AuthUser(val id: String, val email: String)
 
 @Serializable
@@ -109,6 +112,40 @@ class AuthManager(private val context: Context) {
                 AuthResult.Error("Pas de connexion Internet. Vérifie ton réseau.")
             } catch (e: Exception) {
                 AuthResult.Error("Erreur inattendue. Réessaie.")
+            }
+        }
+
+    /**
+     * Connexion/inscription via Google : échange l'`id_token` Google contre une
+     * session Supabase (`grant_type=id_token`). Supabase crée le compte s'il
+     * n'existe pas encore. Le numéro WhatsApp est complété après coup (écran de
+     * complétion) car Google ne le fournit pas.
+     */
+    suspend fun signInWithGoogle(idToken: String): AuthResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val url = "${SupabaseManager.getUrl(context)}/auth/v1/token?grant_type=id_token"
+                val anonKey = SupabaseManager.getAnonKey(context)
+
+                val response = http.post(url) {
+                    header("apikey", anonKey)
+                    contentType(ContentType.Application.Json)
+                    setBody(IdTokenRequest(provider = "google", id_token = idToken))
+                }
+
+                if (response.status.value in 200..299) {
+                    val auth = response.body<TokenResponse>()
+                    SupabaseManager.saveSession(context, auth.access_token, auth.refresh_token, auth.user.id, auth.user.email)
+                    AuthResult.Success("Connecté avec Google !")
+                } else {
+                    AuthResult.Error("Connexion Google refusée. Réessaie.")
+                }
+            } catch (e: kotlinx.serialization.SerializationException) {
+                AuthResult.Error("Réponse du serveur invalide. Réessaie.")
+            } catch (e: java.io.IOException) {
+                AuthResult.Error("Pas de connexion Internet. Vérifie ton réseau.")
+            } catch (e: Exception) {
+                AuthResult.Error("Erreur de connexion Google. Réessaie.")
             }
         }
 

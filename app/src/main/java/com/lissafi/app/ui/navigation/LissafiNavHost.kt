@@ -123,10 +123,12 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     // Verrouillage à la fin de l'essai : réévalué à chaque changement d'écran
     // (couvre le retour depuis la page de paiement web après abonnement).
     var isLocked by remember(userId) { mutableStateOf(false) }
+    var needsProfile by remember(userId) { mutableStateOf(false) }
     LaunchedEffect(userId, isLoggedIn, currentRoute) {
         if (isLoggedIn) {
             premiumManager.startTrialIfNeeded()
             isLocked = premiumManager.isLocked()
+            needsProfile = app.database.getSetting("shop_phone").isNullOrBlank()
         }
     }
 
@@ -391,6 +393,31 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     locked = true,
                     onClose = {},
                     onSignOut = { authViewModel.signOut() }
+                )
+            }
+        }
+
+        // ── Complétion de profil : compte Google sans numéro WhatsApp ──
+        if (isLoggedIn && needsProfile) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Background)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+            ) {
+                ProfileCompletionScreen(
+                    onSubmit = { phone, name, market ->
+                        composeScope.launch {
+                            try {
+                                if (phone.isNotBlank()) app.database.setSetting("shop_phone", phone)
+                                if (name.isNotBlank()) app.database.setSetting("owner_name", name)
+                                if (market.isNotBlank()) app.database.setSetting("market", market)
+                            } catch (e: Exception) {
+                                Log.w("LissafiNavHost", "Échec sauvegarde profil", e)
+                            }
+                        }
+                        needsProfile = false
+                    }
                 )
             }
         }
