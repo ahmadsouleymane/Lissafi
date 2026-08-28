@@ -154,6 +154,9 @@ fun AuthScreen(viewModel: AuthViewModel) {
                                 onPasswordChange = { viewModel.setPassword(it) },
                                 onConfirmPasswordChange = { viewModel.setConfirmPassword(it) },
                                 onShopNameChange = { viewModel.setShopName(it) },
+                                onOwnerNameChange = { viewModel.setOwnerName(it) },
+                                onPhoneChange = { viewModel.setPhone(it) },
+                                onMarketChange = { viewModel.setMarket(it) },
                                 onSubmit = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.signUp()
@@ -447,6 +450,9 @@ private fun SignUpForm(
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
     onShopNameChange: (String) -> Unit,
+    onOwnerNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onMarketChange: (String) -> Unit,
     onSubmit: () -> Unit
 ) {
     Column {
@@ -467,7 +473,7 @@ private fun SignUpForm(
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                text = "Suis ta caisse partout : tes ventes, tes clients et tes dettes restent en sécurité.",
+                text = "14 jours d'essai gratuit, toutes les fonctions débloquées.",
                 color = Primary,
                 fontSize = 12.sp,
                 lineHeight = 17.sp,
@@ -477,10 +483,32 @@ private fun SignUpForm(
 
         Spacer(Modifier.height(14.dp))
         AuthTextField(
+            value = state.ownerName,
+            onValueChange = onOwnerNameChange,
+            placeholder = "Ton nom (optionnel)",
+            icon = LissafiIcons.Client
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthTextField(
             value = state.shopName,
             onValueChange = onShopNameChange,
             placeholder = "Nom de ta boutique (optionnel)",
             icon = LissafiIcons.Boutique
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthTextField(
+            value = state.phone,
+            onValueChange = onPhoneChange,
+            placeholder = "Ton numéro WhatsApp",
+            icon = LissafiIcons.Telephone,
+            keyboardType = KeyboardType.Phone
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthTextField(
+            value = state.market,
+            onValueChange = onMarketChange,
+            placeholder = "Ton marché / quartier (optionnel)",
+            icon = LissafiIcons.Lieu
         )
         Spacer(Modifier.height(12.dp))
         AuthEmailField(
@@ -491,7 +519,7 @@ private fun SignUpForm(
         AuthTextField(
             value = state.password,
             onValueChange = onPasswordChange,
-            placeholder = "Mot de passe (6 caractères ou plus)",
+            placeholder = "Mot de passe (8 caractères ou plus)",
             icon = LissafiIcons.Motdepasse,
             keyboardType = KeyboardType.Password,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),

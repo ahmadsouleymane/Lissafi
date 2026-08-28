@@ -76,6 +76,8 @@ object LissafiIcons {
     val Boutique   = Lucide.Building2
     val Email      = Lucide.Mail
     val Motdepasse = Lucide.Lock
+    val Telephone  = Lucide.Phone
+    val Lieu       = Lucide.MapPin
 
     // Statut
     val Sync       = Lucide.Cloud

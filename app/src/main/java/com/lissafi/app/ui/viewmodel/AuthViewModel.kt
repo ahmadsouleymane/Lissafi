@@ -27,6 +27,9 @@ data class AuthState(
     val password: String = "",
     val confirmPassword: String = "",
     val shopName: String = "",
+    val ownerName: String = "",
+    val phone: String = "",
+    val market: String = "",
     val isLoading: Boolean = false,
     val message: String? = null,
     val isError: Boolean = false,
@@ -35,7 +38,7 @@ data class AuthState(
 
 class AuthViewModel(
     private val authManager: AuthManager,
-    private val onShopNameSaved: (String) -> Unit = {}
+    private val onProfileCollected: (shopName: String, ownerName: String, phone: String, market: String) -> Unit = { _, _, _, _ -> }
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
@@ -65,6 +68,18 @@ class AuthViewModel(
         _state.value = _state.value.copy(shopName = name)
     }
 
+    fun setOwnerName(name: String) {
+        _state.value = _state.value.copy(ownerName = name)
+    }
+
+    fun setPhone(phone: String) {
+        _state.value = _state.value.copy(phone = phone)
+    }
+
+    fun setMarket(market: String) {
+        _state.value = _state.value.copy(market = market)
+    }
+
     fun clearMessage() {
         _state.value = _state.value.copy(message = null, isError = false)
     }
@@ -83,13 +98,19 @@ class AuthViewModel(
             _state.value = state.copy(message = "Les mots de passe ne correspondent pas.", isError = true)
             return
         }
+        if (state.phone.count { it.isDigit() } < 8) {
+            _state.value = state.copy(message = "Ton numéro WhatsApp est nécessaire (au moins 8 chiffres).", isError = true)
+            return
+        }
 
         _state.value = state.copy(isLoading = true, message = null)
         viewModelScope.launch {
-            val result = authManager.signUp(state.email, state.password, state.shopName)
+            val result = authManager.signUp(
+                state.email, state.password, state.shopName, state.ownerName, state.phone, state.market
+            )
             when (result) {
                 is AuthResult.Success -> {
-                    onShopNameSaved(state.shopName)
+                    onProfileCollected(state.shopName, state.ownerName, state.phone, state.market)
                     _state.value = _state.value.copy(
                         isLoading = false,
                         message = result.message,

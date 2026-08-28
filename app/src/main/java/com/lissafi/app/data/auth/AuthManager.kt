@@ -14,7 +14,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
 @Serializable
-private data class SignUpRequest(val email: String, val password: String)
+private data class SignUpRequest(
+    val email: String,
+    val password: String,
+    val data: Map<String, String>? = null
+)
 
 @Serializable
 private data class SignInRequest(val email: String, val password: String)
@@ -41,17 +45,32 @@ class AuthManager(private val context: Context) {
 
     private val http get() = SupabaseManager.getHttpClient()
 
-    suspend fun signUp(email: String, password: String, shopName: String = ""): AuthResult =
+    suspend fun signUp(
+        email: String,
+        password: String,
+        shopName: String = "",
+        ownerName: String = "",
+        phone: String = "",
+        market: String = ""
+    ): AuthResult =
         withContext(Dispatchers.IO) {
             try {
                 val cleanEmail = email.trim().lowercase()
                 val url = "${SupabaseManager.getUrl(context)}/auth/v1/signup"
                 val anonKey = SupabaseManager.getAnonKey(context)
 
+                // Métadonnées du compte → raw_user_meta_data (lisible par le back-office).
+                val meta = buildMap {
+                    if (shopName.isNotBlank()) put("shop_name", shopName.trim())
+                    if (ownerName.isNotBlank()) put("owner_name", ownerName.trim())
+                    if (phone.isNotBlank()) put("phone", phone.trim())
+                    if (market.isNotBlank()) put("market", market.trim())
+                }.ifEmpty { null }
+
                 val response = http.post(url) {
                     header("apikey", anonKey)
                     contentType(ContentType.Application.Json)
-                    setBody(SignUpRequest(cleanEmail, password))
+                    setBody(SignUpRequest(cleanEmail, password, meta))
                 }
 
                 when {

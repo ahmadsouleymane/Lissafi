@@ -83,14 +83,15 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val authViewModel  = remember {
         AuthViewModel(
             authManager,
-            onShopNameSaved = { shopName ->
-                if (shopName.isNotBlank()) {
-                    composeScope.launch {
-                        try {
-                            app.database.setSetting("shop_name", shopName)
-                        } catch (e: Exception) {
-                            Log.w("LissafiNavHost", "Échec sauvegarde nom boutique", e)
-                        }
+            onProfileCollected = { shopName, ownerName, phone, market ->
+                composeScope.launch {
+                    try {
+                        if (shopName.isNotBlank()) app.database.setSetting("shop_name", shopName)
+                        if (ownerName.isNotBlank()) app.database.setSetting("owner_name", ownerName)
+                        if (phone.isNotBlank()) app.database.setSetting("shop_phone", phone)
+                        if (market.isNotBlank()) app.database.setSetting("market", market)
+                    } catch (e: Exception) {
+                        Log.w("LissafiNavHost", "Échec sauvegarde profil boutique", e)
                     }
                 }
             }
