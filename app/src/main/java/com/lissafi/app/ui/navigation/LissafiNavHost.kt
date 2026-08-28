@@ -95,6 +95,8 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         Log.w("LissafiNavHost", "Échec sauvegarde profil boutique", e)
                     }
                 }
+                // Funnel : inscription (marché en meta pour la segmentation terrain)
+                api.logEvent("signup", "info", "", if (market.isNotBlank()) "{\"market\":\"$market\"}" else "{}")
             }
         )
     }

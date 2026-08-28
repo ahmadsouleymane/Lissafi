@@ -88,6 +88,7 @@ class PremiumManager(
         if (isPremium()) return
         if (repository.getSetting("trial_start").isNullOrBlank()) {
             repository.setSetting("trial_start", System.currentTimeMillis().toString())
+            api.logEvent("trial_start", "info", "Essai 14 jours démarré")
         }
     }
 

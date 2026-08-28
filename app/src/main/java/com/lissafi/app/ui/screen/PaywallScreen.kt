@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lissafi.app.LissafiApp
 import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.service.PremiumManager
 import com.lissafi.app.ui.components.IconCircle
@@ -84,7 +85,17 @@ fun PaywallScreen(
     onSignOut: () -> Unit
 ) {
     val context = LocalContext.current
+    val app = remember { context.applicationContext as LissafiApp }
     var period by remember { mutableStateOf(Period.YEARLY) }
+
+    LaunchedEffect(Unit) { app.supabaseApi.logEvent("paywall_view", "info", "") }
+
+    fun logClick(plan: String, method: String) {
+        app.supabaseApi.logEvent(
+            "subscribe_click", "info", "",
+            "{\"plan\":\"$plan\",\"period\":\"${period.code}\",\"method\":\"$method\"}"
+        )
+    }
 
     fun openUrl(url: String) {
         try {
@@ -166,9 +177,11 @@ fun PaywallScreen(
                     "Rapports jour / semaine"
                 ),
                 onPayOnline = {
+                    logClick("plus", "card")
                     openUrl(PremiumManager.buildActivationPaymentLink("plus", period.code, currentUserEmail))
                 },
                 onPayWhatsApp = {
+                    logClick("plus", "whatsapp")
                     openUrl(
                         PremiumManager.buildWhatsAppActivationLink(
                             "Petite boutique", period.label, plusPrice(period), currentUserEmail
@@ -195,9 +208,11 @@ fun PaywallScreen(
                     "Support prioritaire"
                 ),
                 onPayOnline = {
+                    logClick("business", "card")
                     openUrl(PremiumManager.buildActivationPaymentLink("business", period.code, currentUserEmail))
                 },
                 onPayWhatsApp = {
+                    logClick("business", "whatsapp")
                     openUrl(
                         PremiumManager.buildWhatsAppActivationLink(
                             "Commerce/Supermarché", period.label, businessPrice(period), currentUserEmail
@@ -211,6 +226,7 @@ fun PaywallScreen(
             // ── Pack Boutique (paiement unique + matériel) ──
             PackCard(
                 onOrderWhatsApp = {
+                    logClick("pack", "whatsapp")
                     openUrl(
                         PremiumManager.buildWhatsAppActivationLink(
                             "Pack Boutique", "imprimante + 1 an", PremiumManager.PACK_ONE_TIME, currentUserEmail
