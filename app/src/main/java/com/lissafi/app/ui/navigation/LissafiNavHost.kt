@@ -40,6 +40,7 @@ import com.lissafi.app.LissafiApp
 import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.PremiumManager
+import com.lissafi.app.service.notification.NotificationNav
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.data.OnboardingManager
 import com.lissafi.app.ui.screen.*
@@ -124,6 +125,15 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
         if (isLoggedIn) {
             premiumManager.startTrialIfNeeded()
             isLocked = premiumManager.isLocked()
+        }
+    }
+
+    // Deep-link : la notification de fin d'essai ouvre le paywall.
+    val openPaywallRequested = NotificationNav.openPaywall.value
+    LaunchedEffect(openPaywallRequested, isLoggedIn) {
+        if (openPaywallRequested && isLoggedIn) {
+            navController.navigate(Routes.PAYWALL)
+            NotificationNav.openPaywall.value = false
         }
     }
 
