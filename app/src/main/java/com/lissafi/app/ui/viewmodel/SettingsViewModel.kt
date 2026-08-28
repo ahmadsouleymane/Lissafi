@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.FormatUtils
+import com.lissafi.app.service.PremiumManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,8 @@ data class SettingsState(
     val shopPhone: String = "",
     val receiptFooterMessage: String = "",
     val isPremium: Boolean = false,
-    val plan: String = "free", // "free" | "plus" | "business"
+    val plan: String = "trial", // "trial" | "plus" | "business" | "locked"
+    val trialDaysLeft: Int = 0,
     val premiumExpiry: Long? = null,
     val premiumExpiryText: String = "",
     val productCount: Int = 0,
@@ -25,7 +27,10 @@ data class SettingsState(
     val isSaving: Boolean = false
 )
 
-class SettingsViewModel(private val repository: LissafiRepository) : ViewModel() {
+class SettingsViewModel(
+    private val repository: LissafiRepository,
+    private val premiumManager: PremiumManager
+) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -41,7 +46,13 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
                 val shopPhone = repository.getShopPhone()
                 val receiptFooterMessage = repository.getSetting("receipt_footer_message") ?: ""
                 val premium = repository.isPremium()
-                val plan = repository.getSetting("plan") ?: if (premium) "plus" else "free"
+                val planKind = when (premiumManager.getPlan()) {
+                    PremiumManager.Plan.TRIAL -> "trial"
+                    PremiumManager.Plan.PLUS -> "plus"
+                    PremiumManager.Plan.BUSINESS -> "business"
+                    PremiumManager.Plan.LOCKED -> "locked"
+                }
+                val trialDaysLeft = premiumManager.trialDaysLeft()
                 val expiry = repository.getPremiumExpiry()
                 val productCount = repository.getProductCount()
                 val clientCount = repository.getClientCount()
@@ -51,7 +62,8 @@ class SettingsViewModel(private val repository: LissafiRepository) : ViewModel()
                     shopPhone = shopPhone,
                     receiptFooterMessage = receiptFooterMessage,
                     isPremium = premium,
-                    plan = plan,
+                    plan = planKind,
+                    trialDaysLeft = trialDaysLeft,
                     premiumExpiry = expiry,
                     premiumExpiryText = if (expiry != null) FormatUtils.formatDate(expiry) else "",
                     productCount = productCount,

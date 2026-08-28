@@ -56,6 +56,7 @@ object Routes {
     const val CLIENT_DETAIL = "client_detail/{clientId}"
     const val ACTIVITY      = "activity"
     const val SETTINGS      = "settings"
+    const val PAYWALL       = "paywall"
 
     fun clientDetail(id: String) = "client_detail/$id"
 }
@@ -115,6 +116,16 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val mainRoutes = setOf(Routes.CAISSE, Routes.PRODUCTS, Routes.CLIENTS, Routes.ACTIVITY)
     val showBottomBar = currentRoute in mainRoutes
 
+    // Verrouillage à la fin de l'essai : réévalué à chaque changement d'écran
+    // (couvre le retour depuis la page de paiement web après abonnement).
+    var isLocked by remember(userId) { mutableStateOf(false) }
+    LaunchedEffect(userId, isLoggedIn, currentRoute) {
+        if (isLoggedIn) {
+            premiumManager.startTrialIfNeeded()
+            isLocked = premiumManager.isLocked()
+        }
+    }
+
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
             app.syncManager.syncInBackground()
@@ -150,7 +161,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val productViewModel: ProductViewModel = remember(userId) { ProductViewModel(repository, premiumManager) }
     val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
     val reportViewModel: ReportViewModel = remember(userId) { ReportViewModel(repository) }
-    val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository) }
+    val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository, premiumManager) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
@@ -300,7 +311,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     ProductsScreen(
                         viewModel = productViewModel,
                         onBack = { navController.popBackStack() },
-                        onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
+                        onNavigateToUpgrade = { navController.navigate(Routes.PAYWALL) }
                     )
                 }
                 composable(Routes.CLIENTS) {
@@ -308,7 +319,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         viewModel = clientViewModel,
                         onClientClick = { clientId -> navController.navigate(Routes.clientDetail(clientId)) },
                         onBack = { navController.popBackStack() },
-                        onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
+                        onNavigateToUpgrade = { navController.navigate(Routes.PAYWALL) }
                     )
                 }
                 composable(
@@ -334,9 +345,40 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         viewModel = settingsViewModel,
                         authManager = authManager,
                         onBack = { navController.popBackStack() },
+                        onSignOut = { authViewModel.signOut() },
+                        onNavigateToPaywall = { navController.navigate(Routes.PAYWALL) }
+                    )
+                }
+                composable(Routes.PAYWALL) {
+                    val settingsState by settingsViewModel.state.collectAsState()
+                    PaywallScreen(
+                        currentUserEmail = authManager.currentUserEmail(),
+                        dismissible = true,
+                        trialDaysLeft = settingsState.trialDaysLeft,
+                        locked = false,
+                        onClose = { navController.popBackStack() },
                         onSignOut = { authViewModel.signOut() }
                     )
                 }
+            }
+        }
+
+        // ── Hard-paywall : essai terminé, on couvre toute l'app ──
+        if (isLoggedIn && isLocked) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Background)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+            ) {
+                PaywallScreen(
+                    currentUserEmail = authManager.currentUserEmail(),
+                    dismissible = false,
+                    trialDaysLeft = 0,
+                    locked = true,
+                    onClose = {},
+                    onSignOut = { authViewModel.signOut() }
+                )
             }
         }
     }
