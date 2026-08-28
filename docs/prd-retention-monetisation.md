@@ -30,6 +30,12 @@ puis **hard-paywall** bloquant. Conversion assistée (push J-3/J-1 + relance Wha
 
 ## 1. Déjà livré (branche `feat/paywall-abonnements`)
 
+> **État au 2026-08-29 :** Phases 1-2 + Blocs **B, C, D terminés** et build vert (app `assembleDebug`,
+> back-office `next build`, landing `vite build`). **Seul le Bloc A (Google Sign-In) reste** — il attend
+> les credentials Google Cloud + Supabase. Décision Bloc D : le paiement en ligne carte/MoMo est **annuel
+> uniquement** (prix serveur `planAmount` = 24000/50000) ; mensuel/trimestriel/espèces passent par WhatsApp
+> (note + bouton sur `/payer` quand `?period=monthly|quarterly`).
+
 - **Phase 1 — Moteur premium & paywall** : `PremiumManager` (`TRIAL/PLUS/BUSINESS/LOCKED`),
   essai 14 j (`trial_start` en `app_settings`), `PaywallScreen.kt` (3 offres, sélecteur période,
   boutons Carte/MoMo + WhatsApp), hard-gate dans `LissafiNavHost` (`Routes.PAYWALL` + overlay si `isLocked`),
