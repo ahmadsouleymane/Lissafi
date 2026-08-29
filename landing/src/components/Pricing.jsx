@@ -1,6 +1,15 @@
-import { Printer } from "lucide-react";
+import { MessageCircle, Printer } from "lucide-react";
 import { copyPartnerCodeForDownload, downloadUrl } from "../lib/tracking";
+import { WHATSAPP_NUMBER } from "../config";
 import { Kicker, Reveal } from "./ui";
+
+// Le Pack Lancement est un produit physique (imprimante à livrer). La commande
+// se fait sur WhatsApp — livraison au Niger uniquement pour le moment.
+function packOrderUrl() {
+  const text =
+    "Bonjour, je veux commander le Pack Lancement Lissafi (imprimante 58 mm + 2 rouleaux + 1 an Petite boutique, 60 000 F). Je suis au Niger.";
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
 
 const TIERS = [
   {
@@ -79,11 +88,14 @@ export default function Pricing() {
             <p className="pack-sub">
               Imprimante + 2 rouleaux + 1 an Petite boutique
             </p>
-            <a className="btn btn-primary" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
+            <a className="btn btn-primary" href={packOrderUrl()} target="_blank" rel="noopener noreferrer">
+              <MessageCircle size={16} /> Commander le pack
+            </a>
+            <a className="btn btn-ghost" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
               Télécharger l'APK
             </a>
             <p className="price-note">
-              Paiement en espèces ou mobile money
+              🇳🇪 Livraison au Niger uniquement pour le moment · paiement à la livraison ou mobile money
             </p>
           </div>
         </div>
