@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "./supabase";
 
 // ============================================================
-// PAIEMENT EN LIGNE — iPayMoney (Niger) + GeniusPay (reste de l'Afrique).
+// PAIEMENT EN LIGNE — carte & mobile money via GeniusPay.
 //
 // Les clés secrètes ne vivent QU'ICI (côté serveur). La landing (statique)
 // appelle les routes /api/payments/* qui délèguent à ce module. Après un
@@ -13,7 +13,6 @@ import { supabaseAdmin } from "./supabase";
 // ============================================================
 
 const GENIUSPAY_BASE = "https://geniuspay.ci/api/v1/merchant";
-const IPAYMONEY_BASE = "https://i-pay.money/api/v1";
 
 const DAY_MS = 86400000;
 const PREMIUM_DAYS = 365;
@@ -56,16 +55,11 @@ export function corsPreflight(): Response {
 }
 
 // ------------------------------------------------------------
-// Token signé pour le transaction_id iPayMoney (stateless).
-// iPayMoney renvoie ce transaction_id en `external_reference` dans ses
-// webhooks/réponses — on y encode email + plan pour résoudre le compte.
+// Token signé pour le transaction_id GeniusPay (stateless) : on y encode
+// email + plan pour résoudre le compte au retour du paiement.
 // ------------------------------------------------------------
 function signingSecret(): string {
-  return (
-    process.env.PAYMENTS_SIGNING_SECRET ||
-    process.env.IPAYMONEY_PRIVATE_KEY ||
-    "lissafi-dev-insecure"
-  );
+  return process.env.PAYMENTS_SIGNING_SECRET || "lissafi-dev-insecure";
 }
 
 function sign(data: string): string {
@@ -203,103 +197,6 @@ export function geniuspayVerifySignature(rawBody: string, signature: string | nu
   const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-// ------------------------------------------------------------
-// iPayMoney (Niger)
-// ------------------------------------------------------------
-
-// Gel volontaire : pas encore de clés live iPayMoney (seulement sandbox).
-// Empêche toute initiation même si des clés sandbox traînent dans l'env —
-// on ne veut pas qu'un vrai client déclenche un paiement sandbox qui ne
-// débouche sur rien. Repasser à `false` quand les clés live sont en place.
-const IPAYMONEY_FROZEN = true;
-
-function ipaymoneyEnv(): { privateKey: string; environment: string } {
-  return {
-    privateKey: (process.env.IPAYMONEY_PRIVATE_KEY || "").trim(),
-    environment: (process.env.IPAYMONEY_ENVIRONMENT || "sandbox").trim(),
-  };
-}
-
-export function isIpaymoneyConfigured(): boolean {
-  return !IPAYMONEY_FROZEN && Boolean(ipaymoneyEnv().privateKey);
-}
-
-/** Crée un paiement iPayMoney (push-to-phone) et renvoie sa référence. */
-export async function ipaymoneyCreatePayment(params: {
-  amount: number;
-  email: string;
-  name: string;
-  msisdn: string;
-  country: string;
-  plan: Plan;
-}): Promise<{ reference: string; status: string }> {
-  const { privateKey, environment } = ipaymoneyEnv();
-  const transactionId = encodePaymentToken(params.email, params.plan);
-
-  const res = await fetch(`${IPAYMONEY_BASE}/payments`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${privateKey}`,
-      "Ipay-Payment-Type": "mobile",
-      "Ipay-Target-Environment": environment,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      customer_name: params.name,
-      currency: "XOF",
-      country: params.country,
-      amount: String(params.amount),
-      transaction_id: transactionId,
-      msisdn: params.msisdn,
-    }),
-  });
-  const json = (await res.json().catch(() => ({}))) as any;
-
-  if (res.status === 422 || json?.status === "failed") {
-    throw new Error(json?.message || "Référence non valide");
-  }
-  if (!res.ok || (json?.status !== "succeeded" && json?.status !== "pending")) {
-    throw new Error(json?.message || `Échec iPayMoney (${res.status})`);
-  }
-  return { reference: json.reference, status: json.status };
-}
-
-/** Statut d'un paiement iPayMoney par référence (retourne email/plan depuis le token). */
-export async function ipaymoneyGetStatus(reference: string): Promise<{
-  status: string;
-  email?: string;
-  plan?: Plan;
-}> {
-  const { privateKey, environment } = ipaymoneyEnv();
-  const res = await fetch(`${IPAYMONEY_BASE}/payments/${encodeURIComponent(reference)}`, {
-    headers: {
-      Authorization: `Bearer ${privateKey}`,
-      "Ipay-Payment-Type": "mobile",
-      "Ipay-Target-Environment": environment,
-      "Content-Type": "application/json",
-    },
-  });
-  const json = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) {
-    throw new Error(json?.message || `Statut iPayMoney indisponible (${res.status})`);
-  }
-  const token = json.external_reference ? decodePaymentToken(json.external_reference) : null;
-  return {
-    status: json.status,
-    email: token?.email,
-    plan: token?.plan,
-  };
-}
-
-/** Vérifie le header `secret-hash` d'un webhook iPayMoney (== clé privée). */
-export function ipaymoneyVerifySecret(secretHash: string | null): boolean {
-  const { privateKey } = ipaymoneyEnv();
-  if (!privateKey || !secretHash) return false;
-  const a = Buffer.from(secretHash);
-  const b = Buffer.from(privateKey);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 

@@ -4,8 +4,6 @@ import {
   corsHeaders,
   corsPreflight,
   geniuspayGetStatus,
-  ipaymoneyGetStatus,
-  isIpaymoneyConfigured,
 } from "@/lib/payments";
 
 // ============================================================
@@ -27,18 +25,8 @@ export async function GET(req: NextRequest) {
   if (!provider || !reference) {
     return Response.json({ ok: false, error: "provider et reference sont requis" }, { status: 400, headers });
   }
-  // Gel iPayMoney (pas de clés live) : coupe aussi le polling de statut,
-  // pas seulement l'initiation — sinon une clé sandbox oubliée dans l'env
-  // suffirait à activer un vrai compte.
-  if (provider === "ipaymoney" && !isIpaymoneyConfigured()) {
-    return Response.json({ ok: false, error: "iPayMoney indisponible" }, { status: 503, headers });
-  }
-
   try {
-    const result =
-      provider === "ipaymoney"
-        ? await ipaymoneyGetStatus(reference)
-        : await geniuspayGetStatus(reference);
+    const result = await geniuspayGetStatus(reference);
 
     let activated = false;
     let reason: string | undefined;

@@ -1811,6 +1811,126 @@ html.has-partner-banner .hero {
   color: #dc2626;
 }
 
+/* ── Checkout responsive : récap + formulaire ── */
+.pay-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 860px) {
+  .pay-main {
+    max-width: 960px;
+  }
+  .pay-layout {
+    grid-template-columns: 340px 1fr;
+    align-items: start;
+    gap: 28px;
+  }
+  .pay-summary {
+    position: sticky;
+    top: 24px;
+  }
+}
+.pay-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 20px;
+  box-shadow: var(--shadow-card);
+}
+.pay-summary-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.pay-plan-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pay-plan-chip {
+  padding: 9px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.pay-plan-chip.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.pay-summary-price {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.pay-summary-price span {
+  font-size: 0.42em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-left: 3px;
+}
+.pay-summary-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: -4px;
+}
+.pay-summary-features {
+  list-style: none;
+  padding: 0;
+  margin: 2px 0 0;
+  display: grid;
+  gap: 9px;
+}
+.pay-summary-features li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.pay-summary-features li svg {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pay-alt {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.pay-alt svg {
+  color: #25d366;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pay-period-note {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  color: var(--primary-600);
+  line-height: 1.5;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

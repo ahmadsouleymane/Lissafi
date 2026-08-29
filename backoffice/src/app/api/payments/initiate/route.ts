@@ -3,9 +3,7 @@ import {
   corsHeaders,
   corsPreflight,
   geniuspayCreatePayment,
-  ipaymoneyCreatePayment,
   isGeniuspayConfigured,
-  isIpaymoneyConfigured,
   landingOrigin,
   planAmount,
   type Plan,
@@ -15,8 +13,7 @@ import {
 // ============================================================
 // POST /api/payments/initiate — crée un paiement côté serveur.
 // Public (appelé par la landing en fetch, CORS restreint à la landing).
-// Routage : carte → GeniusPay ; mobile money Niger → iPayMoney ;
-// mobile money ailleurs → GeniusPay (checkout hébergé).
+// Carte ET mobile money passent par GeniusPay (checkout hébergé).
 // ============================================================
 
 type InitiateBody = {
@@ -56,34 +53,12 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "Email invalide" }, { status: 400, headers });
   }
 
-  // Niger + mobile money → iPayMoney ; tout le reste → GeniusPay.
-  const useIpaymoney = method === "mobile_money" && country === "NE";
-
   try {
-    if (useIpaymoney) {
-      if (!isIpaymoneyConfigured()) {
-        return Response.json(
-          { ok: false, error: "Paiement mobile money Niger indisponible pour le moment. Réessaie dans quelques jours ou contacte-nous sur WhatsApp." },
-          { status: 503, headers },
-        );
-      }
-      const msisdn = phone.replace(/\D/g, "");
-      const { reference } = await ipaymoneyCreatePayment({
-        amount: planAmount(plan),
-        email,
-        name,
-        msisdn,
-        country: "NE",
-        plan,
-      });
-      return Response.json(
-        { ok: true, mode: "push", provider: "ipaymoney", reference, plan },
-        { headers },
-      );
-    }
-
     if (!isGeniuspayConfigured()) {
-      return Response.json({ ok: false, error: "GeniusPay non configuré (clés manquantes)" }, { status: 503, headers });
+      return Response.json(
+        { ok: false, error: "Paiement en ligne indisponible pour le moment. Réessaie plus tard ou active ton compte via WhatsApp." },
+        { status: 503, headers },
+      );
     }
     const origin = landingOrigin();
     const { reference, checkoutUrl } = await geniuspayCreatePayment({
@@ -92,7 +67,7 @@ export async function POST(req: NextRequest) {
       email,
       name,
       phone,
-      country: country || "CI",
+      country: country || "NE",
       method,
       successUrl: `${origin}/paiement/succes`,
       errorUrl: `${origin}/paiement/echec`,
