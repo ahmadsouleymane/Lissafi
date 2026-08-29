@@ -19,7 +19,7 @@ export default function Footer() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <MessageCircle size={15} /> WhatsApp : +225 0160 72 63 14
+          <MessageCircle size={15} /> WhatsApp : +227 99 28 14 91
         </a>
         <a
           className="footer-partner"

@@ -1151,18 +1151,26 @@ button {
 .price-card.top .price-note {
   color: var(--ink-text-2);
 }
+/* Bouton secondaire (Télécharger l'APK) sur la carte foncée : texte clair, sinon illisible */
+.price-card.top .btn-ghost {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.price-card.top .btn-ghost:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
 
 @media (min-width: 640px) and (max-width: 979px) {
   .pricing-grid {
     grid-template-columns: 1fr 1fr;
   }
-  .price-card.top {
-    grid-column: 1 / -1;
-  }
 }
 @media (min-width: 980px) {
   .pricing-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 760px;
+    margin-inline: auto;
   }
 }
 

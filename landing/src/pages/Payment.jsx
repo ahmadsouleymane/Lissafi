@@ -269,7 +269,7 @@ export default function Payment() {
                 className="pay-input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder={method === "mobile_money" ? "+227 90 00 00 00" : "+225 07 00 00 00"}
+                placeholder={method === "mobile_money" ? "+227 90 00 00 00" : "+227 90 00 00 00"}
                 inputMode="tel"
                 autoComplete="tel"
               />
