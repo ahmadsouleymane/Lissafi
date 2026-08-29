@@ -63,7 +63,7 @@ export default function Pricing() {
             <h3>Pack Lancement</h3>
             <p className="pack-desc">
               Tout pour imprimer tes reçus dès le premier jour, avec un an de
-              Lissafi Plus offert.
+              Petite boutique offert.
             </p>
             <ul className="pack-features">
               <li>Imprimante thermique 58 mm (POS)</li>

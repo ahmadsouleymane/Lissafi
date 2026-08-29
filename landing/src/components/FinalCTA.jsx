@@ -22,8 +22,8 @@ export default function FinalCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          Gratuit pour tester. Deux minutes pour installer. Et ta première vente
-          peut être encaissée dans la foulée.
+          14 jours d'essai gratuit. Deux minutes pour installer. Et ta première
+          vente peut être encaissée dans la foulée.
         </motion.p>
 
         <motion.div

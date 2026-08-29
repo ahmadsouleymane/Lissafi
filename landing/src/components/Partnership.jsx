@@ -5,8 +5,8 @@ import { Kicker, Reveal } from "./ui";
 
 const TIERS = [
   { plan: "Pack Boutique", amount: "5 000" },
-  { plan: "Lissafi Plus", amount: "10 000" },
-  { plan: "Lissafi Business", amount: "15 000" },
+  { plan: "Petite boutique", amount: "10 000" },
+  { plan: "Commerce / Supermarché", amount: "15 000" },
 ];
 
 const STEPS = [

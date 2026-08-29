@@ -48,7 +48,14 @@ export default function Hero() {
             </a>
           </motion.div>
 
-          
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+            style={{ marginTop: 16, fontSize: 14, color: "var(--text-secondary)" }}
+          >
+            14 jours d'essai gratuit · sans carte bancaire
+          </motion.p>
         </div>
 
         <motion.div

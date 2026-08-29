@@ -9,12 +9,12 @@ const ITEMS = [
     a: "Oui. Les ventes s'enregistrent directement sur ton téléphone. Quand le réseau revient, tout se synchronise tout seul en arrière-plan.",
   },
   {
-    q: "C'est quoi la limite de la version gratuite ?",
-    a: "10 produits, 10 clients et 10 ventes par jour. C'est fait pour que tu testes en conditions réelles. Lissafi Plus ou Business débloquent beaucoup plus, sans limite de ventes.",
+    q: "Il y a une période d'essai ?",
+    a: "Oui : 14 jours d'essai gratuit avec toutes les fonctions débloquées, sans limite et sans carte bancaire. Ensuite tu choisis une formule ou tu arrêtes — tes produits, tes clients et leurs dettes restent en sécurité.",
   },
   {
-    q: "Comment je paie Lissafi Plus ou Business ?",
-    a: "En espèces ou par mobile money. Une fois le paiement réglé, tu reçois un code d'activation à entrer dans l'app (Réglages → Mon offre). Ton offre est active 365 jours, sans abonnement qui se renouvelle tout seul.",
+    q: "Combien ça coûte et comment je paie ?",
+    a: "Petite boutique à partir de 3 000 F/mois (24 000 F/an), Commerce/Supermarché à partir de 6 000 F/mois. Tu paies par carte, mobile money, ou en espèces via WhatsApp. Au mois, au trimestre ou à l'année — sans renouvellement automatique surprise.",
   },
   {
     q: "Sur quel téléphone ça marche ?",
