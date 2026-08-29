@@ -11,6 +11,7 @@ import type {
   Client,
   DebtTransaction,
   ExplorerData,
+  Funnel,
   NotificationLog,
   PartnerPayout,
   PartnerSale,
@@ -107,6 +108,27 @@ export async function getSignupsSeries(days = 30): Promise<SignupPoint[]> {
   } catch (e) {
     logRpcError("getSignupsSeries", e);
     return [];
+  }
+}
+
+/** Entonnoir de conversion (inscriptions → essais → activation → intention → abonnés). */
+export async function getFunnel(days = 30): Promise<Funnel> {
+  const empty: Funnel = {
+    days,
+    signups: 0,
+    trials: 0,
+    first_product: 0,
+    first_sale: 0,
+    subscribe_click: 0,
+    subscribed: 0,
+  };
+  try {
+    const { data, error } = await supabaseAdmin().rpc("admin_funnel", { days });
+    if (error) logRpcError("getFunnel", error);
+    return { ...empty, ...((data ?? {}) as Partial<Funnel>) };
+  } catch (e) {
+    logRpcError("getFunnel", e);
+    return empty;
   }
 }
 

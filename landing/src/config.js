@@ -3,7 +3,7 @@
 export const APK = "lissafi.apk";
 
 // Numéro WhatsApp d'activation (même numéro que dans l'app — PremiumManager.kt).
-export const WHATSAPP_NUMBER = "2250160726314";
+export const WHATSAPP_NUMBER = "22799281491";
 export const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 // Back-office où vit le portail partenaire (auto-inscription + espace) et le

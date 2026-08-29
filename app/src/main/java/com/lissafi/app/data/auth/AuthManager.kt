@@ -14,13 +14,20 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
 @Serializable
-private data class SignUpRequest(val email: String, val password: String)
+private data class SignUpRequest(
+    val email: String,
+    val password: String,
+    val data: Map<String, String>? = null
+)
 
 @Serializable
 private data class SignInRequest(val email: String, val password: String)
 
 @Serializable
 private data class ResetPasswordRequest(val email: String)
+
+@Serializable
+private data class IdTokenRequest(val provider: String, val id_token: String)
 
 @Serializable
 private data class AuthUser(val id: String, val email: String)
@@ -41,17 +48,32 @@ class AuthManager(private val context: Context) {
 
     private val http get() = SupabaseManager.getHttpClient()
 
-    suspend fun signUp(email: String, password: String, shopName: String = ""): AuthResult =
+    suspend fun signUp(
+        email: String,
+        password: String,
+        shopName: String = "",
+        ownerName: String = "",
+        phone: String = "",
+        market: String = ""
+    ): AuthResult =
         withContext(Dispatchers.IO) {
             try {
                 val cleanEmail = email.trim().lowercase()
                 val url = "${SupabaseManager.getUrl(context)}/auth/v1/signup"
                 val anonKey = SupabaseManager.getAnonKey(context)
 
+                // Métadonnées du compte → raw_user_meta_data (lisible par le back-office).
+                val meta = buildMap {
+                    if (shopName.isNotBlank()) put("shop_name", shopName.trim())
+                    if (ownerName.isNotBlank()) put("owner_name", ownerName.trim())
+                    if (phone.isNotBlank()) put("phone", phone.trim())
+                    if (market.isNotBlank()) put("market", market.trim())
+                }.ifEmpty { null }
+
                 val response = http.post(url) {
                     header("apikey", anonKey)
                     contentType(ContentType.Application.Json)
-                    setBody(SignUpRequest(cleanEmail, password))
+                    setBody(SignUpRequest(cleanEmail, password, meta))
                 }
 
                 when {
@@ -90,6 +112,40 @@ class AuthManager(private val context: Context) {
                 AuthResult.Error("Pas de connexion Internet. Vérifie ton réseau.")
             } catch (e: Exception) {
                 AuthResult.Error("Erreur inattendue. Réessaie.")
+            }
+        }
+
+    /**
+     * Connexion/inscription via Google : échange l'`id_token` Google contre une
+     * session Supabase (`grant_type=id_token`). Supabase crée le compte s'il
+     * n'existe pas encore. Le numéro WhatsApp est complété après coup (écran de
+     * complétion) car Google ne le fournit pas.
+     */
+    suspend fun signInWithGoogle(idToken: String): AuthResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val url = "${SupabaseManager.getUrl(context)}/auth/v1/token?grant_type=id_token"
+                val anonKey = SupabaseManager.getAnonKey(context)
+
+                val response = http.post(url) {
+                    header("apikey", anonKey)
+                    contentType(ContentType.Application.Json)
+                    setBody(IdTokenRequest(provider = "google", id_token = idToken))
+                }
+
+                if (response.status.value in 200..299) {
+                    val auth = response.body<TokenResponse>()
+                    SupabaseManager.saveSession(context, auth.access_token, auth.refresh_token, auth.user.id, auth.user.email)
+                    AuthResult.Success("Connecté avec Google !")
+                } else {
+                    AuthResult.Error("Connexion Google refusée. Réessaie.")
+                }
+            } catch (e: kotlinx.serialization.SerializationException) {
+                AuthResult.Error("Réponse du serveur invalide. Réessaie.")
+            } catch (e: java.io.IOException) {
+                AuthResult.Error("Pas de connexion Internet. Vérifie ton réseau.")
+            } catch (e: Exception) {
+                AuthResult.Error("Erreur de connexion Google. Réessaie.")
             }
         }
 

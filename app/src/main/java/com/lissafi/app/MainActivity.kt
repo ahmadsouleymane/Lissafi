@@ -1,5 +1,6 @@
 package com.lissafi.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.lissafi.app.service.SignatureVerifier
 import com.lissafi.app.service.UpdateManager
+import com.lissafi.app.service.notification.NotificationNav
 import com.lissafi.app.ui.navigation.LissafiNavHost
 import com.lissafi.app.ui.screen.MandatoryUpdateScreen
 import com.lissafi.app.ui.theme.LissafiTheme
@@ -32,6 +34,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        consumePaywallDeepLink(intent)
         setContent {
             LissafiTheme {
                 // Vérification de mise à jour AVANT tout accès à l'app : voir
@@ -78,6 +81,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        consumePaywallDeepLink(intent)
+    }
+
+    /** Un tap sur la notification de fin d'essai demande l'ouverture du paywall. */
+    private fun consumePaywallDeepLink(intent: Intent?) {
+        if (intent?.getBooleanExtra(NotificationNav.EXTRA_OPEN_PAYWALL, false) == true) {
+            NotificationNav.openPaywall.value = true
         }
     }
 }

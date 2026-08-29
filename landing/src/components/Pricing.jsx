@@ -4,57 +4,41 @@ import { Kicker, Reveal } from "./ui";
 
 const TIERS = [
   {
-    name: "Gratuit",
-    amount: "0 F",
-    period: "pour découvrir la caisse",
-    features: [
-      ["10 produits au catalogue", true],
-      ["10 clients suivis", true],
-      ["10 ventes par jour", true],
-      ["Marche sans réseau", true],
-    ],
-    cta: "Télécharger l'APK",
-  },
-  {
-    name: "Lissafi Plus",
+    name: "Petite boutique",
     badge: "Populaire",
-    amount: "30 000 F",
+    amount: "24 000 F",
     period: "/an",
-    sub: "= 82 F par jour",
+    sub: "= 66 F par jour · ou 3 000 F/mois",
     features: [
-      ["100 produits au catalogue", true],
-      ["100 clients & crédits suivis", true],
+      ["Jusqu'à 200 produits", true],
+      ["Clients & crédits illimités", true],
       ["Ventes illimitées chaque jour", true],
-      ["Historique illimité", true],
-      ["Gestion de stock complète", true],
-      ["Rapports jour / semaine / mois", true],
-      ["Export de tes données", true],
+      ["Ticket WhatsApp & impression", true],
+      ["Rapports jour / semaine", true],
+      ["Sauvegarde cloud", true],
     ],
     plan: "plus",
     cta: "Payer en ligne",
-    note: "Mobile money ou carte, activation automatique",
+    note: "Carte ou mobile money · ou paie au mois sur WhatsApp",
   },
   {
-    name: "Lissafi Business",
+    name: "Commerce / Supermarché",
     badge: "Tout inclus",
     top: true,
-    amount: "75 000 F",
+    amount: "50 000 F",
     period: "/an",
-    sub: "= 205 F par jour",
+    sub: "ou 6 000 F/mois",
     features: [
-      ["Tout Lissafi Plus", true],
+      ["Tout Petite boutique", true],
       ["Produits illimités", true],
-      ["Clients & crédits illimités", true],
-      ["Jusqu'à 5 utilisateurs sur le même compte", true],
-      ["Sauvegarde cloud renforcée", true],
-      ["Accompagnement au démarrage", true],
-      ["Formation de ton équipe sur place", true],
+      ["Multi-caisses (chiffre global)", true],
+      ["Plusieurs utilisateurs", true],
+      ["Export CSV", true],
       ["Support prioritaire", true],
-      ["Accès en avant-première aux nouveautés", true],
     ],
     plan: "business",
     cta: "Payer en ligne",
-    note: "Mobile money ou carte, activation automatique",
+    note: "Carte ou mobile money · ou paie au mois sur WhatsApp",
   },
 ];
 
@@ -66,8 +50,8 @@ export default function Pricing() {
           <Kicker>Les tarifs</Kicker>
           <h2>Un tarif pour chaque étape de ta boutique.</h2>
           <p>
-            <b>Prix de lancement</b> : ils augmenteront après le lancement.
-            Profites-en maintenant.
+            <b>14 jours d'essai gratuit</b>, toutes les fonctions débloquées.
+            Tu ne paies que si Lissafi te fait gagner du temps.
           </p>
         </Reveal>
 
@@ -84,7 +68,7 @@ export default function Pricing() {
             <ul className="pack-features">
               <li>Imprimante thermique 58 mm (POS)</li>
               <li>2 rouleaux de papier thermique</li>
-              <li>1 an Lissafi Plus offert</li>
+              <li>1 an Petite boutique offert</li>
               <li>Ventes illimitées pendant 1 an</li>
             </ul>
           </div>
@@ -93,7 +77,7 @@ export default function Pricing() {
               60 000 F<small> une fois</small>
             </div>
             <p className="pack-sub">
-              Imprimante + 2 rouleaux + 1 an Lissafi Plus
+              Imprimante + 2 rouleaux + 1 an Petite boutique
             </p>
             <a className="btn btn-primary" href={downloadUrl()} download onClick={() => copyPartnerCodeForDownload()}>
               Télécharger l'APK

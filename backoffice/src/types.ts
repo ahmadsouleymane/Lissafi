@@ -64,6 +64,16 @@ export type SignupPoint = {
   signups: number;
 };
 
+export type Funnel = {
+  days: number;
+  signups: number;
+  trials: number;
+  first_product: number;
+  first_sale: number;
+  subscribe_click: number;
+  subscribed: number;
+};
+
 export type AppLog = {
   id: number;
   user_id: string;

@@ -127,6 +127,11 @@ dependencies {
     // Chiffrement des préférences (tokens de session GoTrue au repos)
     implementation(libs.androidx.security.crypto)
 
+    // Connexion Google via Credential Manager (jeton id_token → Supabase)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.google.identity.googleid)
+
     // Core library desugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

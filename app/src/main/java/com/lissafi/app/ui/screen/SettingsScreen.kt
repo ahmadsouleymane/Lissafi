@@ -55,7 +55,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     authManager: AuthManager,
     onBack: () -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onNavigateToPaywall: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
@@ -65,16 +66,20 @@ fun SettingsScreen(
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
     val isDarkMode = ThemeManager.isDark
+    val isPaid = state.plan == "plus" || state.plan == "business"
+    val isTrial = state.plan == "trial"
+    val hasAccess = state.plan != "locked"
     val planLabel = when (state.plan) {
-        "business" -> "Lissafi Business"
-        "plus" -> "Lissafi Plus"
+        "business" -> "Commerce / Supermarché"
+        "plus" -> "Petite boutique"
+        "trial" -> "Essai gratuit"
         else -> null
     }
-    val planSubtitle = when {
-        state.plan == "business" -> "Tout est illimité · Expire le ${state.premiumExpiryText}"
-        state.plan == "plus" -> "100 produits · 100 clients · Expire le ${state.premiumExpiryText}"
-        state.isPremium -> "Expire le ${state.premiumExpiryText}"
-        else -> "Limitée à 10 produits, 10 clients et 10 ventes par jour"
+    val planSubtitle = when (state.plan) {
+        "business" -> "Tout illimité · Expire le ${state.premiumExpiryText}"
+        "plus" -> "${PremiumManager.MAX_PLUS_PRODUCTS} produits · Expire le ${state.premiumExpiryText}"
+        "trial" -> "Il te reste ${state.trialDaysLeft} jour${if (state.trialDaysLeft > 1) "s" else ""} · tout est débloqué"
+        else -> "Ton essai est terminé — choisis une formule"
     }
     val syncLabel = when (syncStatus) {
         SyncStatus.SYNCING -> "Synchronisation…"
@@ -103,9 +108,13 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp)
         ) {
-            // ── STATUT PREMIUM — bannière verte ──
+            // ── STATUT ABONNEMENT ──
             LissafiCard(
-                containerColor = if (state.isPremium) PrimaryContainer else Secondary.copy(alpha = 0.06f),
+                containerColor = when {
+                    isPaid -> PrimaryContainer
+                    isTrial -> Primary.copy(alpha = 0.08f)
+                    else -> Error.copy(alpha = 0.08f)
+                },
                 cornerRadius = 20,
                 elevation = 0
             ) {
@@ -116,16 +125,16 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconCircle(
-                        icon = if (state.isPremium) LissafiIcons.Boutique else LissafiIcons.Alerte,
-                        backgroundColor = if (state.isPremium) Primary.copy(alpha = 0.15f) else Secondary.copy(alpha = 0.12f),
-                        iconTint = if (state.isPremium) Primary else Secondary,
+                        icon = if (hasAccess) LissafiIcons.Boutique else LissafiIcons.Alerte,
+                        backgroundColor = if (hasAccess) Primary.copy(alpha = 0.15f) else Error.copy(alpha = 0.15f),
+                        iconTint = if (hasAccess) Primary else Error,
                         size = 48,
                         iconSize = 24
                     )
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = planLabel?.let { "$it actif" } ?: "Version gratuite",
+                            text = planLabel?.let { if (isPaid) "$it actif" else it } ?: "Essai terminé",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = OnBackground
@@ -136,41 +145,16 @@ fun SettingsScreen(
                             color = TextSecondary,
                             lineHeight = 16.sp
                         )
-                        if (!state.isPremium) {
-                            Spacer(Modifier.height(10.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FreeLimitBar(
-                                    label = "produits",
-                                    count = state.productCount,
-                                    max = PremiumManager.MAX_FREE_PRODUCTS,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                FreeLimitBar(
-                                    label = "clients",
-                                    count = state.clientCount,
-                                    max = PremiumManager.MAX_FREE_CREDITS,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
                     }
                 }
-                if (!state.isPremium) {
+                if (!isPaid) {
                     Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
                         PrimaryActionButton(
-                            text = "ACTIVER LISSAFI PLUS",
-                            icon = LissafiIcons.Partager,
+                            text = if (isTrial) "VOIR LES FORMULES" else "CHOISIR UNE FORMULE",
+                            icon = LissafiIcons.Boutique,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                val link = PremiumManager.buildActivationPaymentLink(
-                                    plan = "plus",
-                                    email = authManager.currentUserEmail()
-                                )
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                                } catch (_: Exception) {
-                                    Toast.makeText(context, "Impossible d'ouvrir la page de paiement.", Toast.LENGTH_LONG).show()
-                                }
+                                onNavigateToPaywall()
                             }
                         )
                     }
@@ -321,7 +305,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
             LissafiCard(
-                onClick = if (state.isPremium) {{ showShopDialog = true }} else null,
+                onClick = if (hasAccess) {{ showShopDialog = true }} else null,
                 cornerRadius = 20
             ) {
                 Row(
@@ -332,8 +316,8 @@ fun SettingsScreen(
                 ) {
                     IconCircle(
                         icon = LissafiIcons.Imprimer,
-                        backgroundColor = if (state.isPremium) Primary.copy(alpha = 0.08f) else SurfaceAlt,
-                        iconTint = if (state.isPremium) Primary else TextSecondary,
+                        backgroundColor = if (hasAccess) Primary.copy(alpha = 0.08f) else SurfaceAlt,
+                        iconTint = if (hasAccess) Primary else TextSecondary,
                         size = 44,
                         iconSize = 22
                     )
@@ -342,10 +326,10 @@ fun SettingsScreen(
                         text = "Nom, téléphone et message perso sur le reçu",
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = if (state.isPremium) OnBackground else TextSecondary,
+                        color = if (hasAccess) OnBackground else TextSecondary,
                         modifier = Modifier.weight(1f)
                     )
-                    if (state.isPremium) {
+                    if (hasAccess) {
                         Icon(
                             imageVector = LissafiIcons.Retour,
                             contentDescription = null,
@@ -353,7 +337,7 @@ fun SettingsScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
-                        StatusBadge(text = "Plus", color = Secondary)
+                        StatusBadge(text = "Abonnement", color = Secondary)
                     }
                 }
             }

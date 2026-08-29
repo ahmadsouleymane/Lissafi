@@ -288,6 +288,30 @@ AS $func$
     ORDER BY d;
 $func$;
 
+-- Entonnoir de conversion (N derniers jours) : inscriptions → essais →
+-- activation (1er produit, 1re vente) → intention d'achat → abonnés.
+-- S'appuie sur les events du funnel émis par l'app (app_logs) + l'état premium.
+-- Les étapes « visiteurs landing » et « téléchargements » viennent d'un beacon
+-- externe (landing) et sont ajoutées côté page si disponibles.
+CREATE OR REPLACE FUNCTION public.admin_funnel(days int DEFAULT 30)
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
+AS $func$
+    WITH win AS (
+        SELECT now() - (interval '1 day' * days) AS from_ts,
+               (extract(epoch FROM now() - (interval '1 day' * days)) * 1000)::bigint AS from_ms
+    )
+    SELECT jsonb_build_object(
+        'days', days,
+        'signups',         (SELECT count(*) FROM auth.users u, win w WHERE u.created_at >= w.from_ts),
+        'trials',          (SELECT count(DISTINCT l.user_id) FROM app_logs l, win w WHERE l.event_type = 'trial_start' AND l.created_at >= w.from_ms),
+        'first_product',   (SELECT count(DISTINCT l.user_id) FROM app_logs l, win w WHERE l.event_type = 'first_product' AND l.created_at >= w.from_ms),
+        'first_sale',      (SELECT count(DISTINCT l.user_id) FROM app_logs l, win w WHERE l.event_type = 'first_sale' AND l.created_at >= w.from_ms),
+        'subscribe_click', (SELECT count(DISTINCT l.user_id) FROM app_logs l, win w WHERE l.event_type = 'subscribe_click' AND l.created_at >= w.from_ms),
+        'subscribed',      (SELECT count(*) FROM app_settings WHERE key = 'is_premium' AND value = 'true')
+    );
+$func$;
+
 -- Liste des comptes + indicateurs agrégés (pour /comptes et /premium)
 CREATE OR REPLACE FUNCTION public.admin_user_summaries()
 RETURNS jsonb
@@ -433,6 +457,7 @@ REVOKE EXECUTE ON FUNCTION public.admin_user_summaries() FROM PUBLIC, anon, auth
 REVOKE EXECUTE ON FUNCTION public.admin_user_emails() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.admin_audit_logs(bigint, bigint, int) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.admin_logs(bigint, bigint, text, text, uuid, int) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_funnel(int) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.admin_stats() TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_sales_series(int) TO service_role;
@@ -441,6 +466,7 @@ GRANT EXECUTE ON FUNCTION public.admin_user_summaries() TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_user_emails() TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_audit_logs(bigint, bigint, int) TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_logs(bigint, bigint, text, text, uuid, int) TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_funnel(int) TO service_role;
 
 -- ============================================================
 -- 6ter. SÉCURITÉ — INTERDIRE L'AUTO-OCTROI DU PREMIUM VIA POSTGREST

@@ -43,11 +43,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -60,13 +62,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.lissafi.app.R
+import com.lissafi.app.data.auth.GoogleSignInHelper
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.ui.components.SegmentedControl
 import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
+import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
@@ -82,6 +87,8 @@ import com.lissafi.app.ui.viewmodel.AuthViewModel
 fun AuthScreen(viewModel: AuthViewModel) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
@@ -123,6 +130,22 @@ fun AuthScreen(viewModel: AuthViewModel) {
                         }
                     )
 
+                    if (state.mode != AuthMode.RESET_PASSWORD) {
+                        Spacer(Modifier.height(16.dp))
+                        GoogleSignInButton(
+                            isLoading = state.isLoading,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                scope.launch {
+                                    val token = GoogleSignInHelper.getIdToken(context)
+                                    if (token != null) viewModel.signInWithGoogle(token)
+                                }
+                            }
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        AuthDivider()
+                    }
+
                     Spacer(Modifier.height(16.dp))
 
                     AnimatedContent(
@@ -154,6 +177,9 @@ fun AuthScreen(viewModel: AuthViewModel) {
                                 onPasswordChange = { viewModel.setPassword(it) },
                                 onConfirmPasswordChange = { viewModel.setConfirmPassword(it) },
                                 onShopNameChange = { viewModel.setShopName(it) },
+                                onOwnerNameChange = { viewModel.setOwnerName(it) },
+                                onPhoneChange = { viewModel.setPhone(it) },
+                                onMarketChange = { viewModel.setMarket(it) },
                                 onSubmit = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.signUp()
@@ -375,6 +401,35 @@ private fun AuthResetButton(
     }
 }
 
+/** Bouton « Continuer avec Google » (Credential Manager). */
+@Composable
+private fun GoogleSignInButton(isLoading: Boolean, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = !isLoading,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Border),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = OnBackground)
+    ) {
+        Text("G", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF4285F4))
+        Spacer(Modifier.width(10.dp))
+        Text("Continuer avec Google", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+/** Séparateur « ou » entre la connexion Google et le formulaire email. */
+@Composable
+private fun AuthDivider() {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Box(Modifier.weight(1f).height(1.dp).background(Border))
+        Text("ou", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 10.dp))
+        Box(Modifier.weight(1f).height(1.dp).background(Border))
+    }
+}
+
 @Composable
 private fun SignInForm(
     state: AuthState,
@@ -447,6 +502,9 @@ private fun SignUpForm(
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
     onShopNameChange: (String) -> Unit,
+    onOwnerNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onMarketChange: (String) -> Unit,
     onSubmit: () -> Unit
 ) {
     Column {
@@ -467,7 +525,7 @@ private fun SignUpForm(
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                text = "Suis ta caisse partout : tes ventes, tes clients et tes dettes restent en sécurité.",
+                text = "14 jours d'essai gratuit, toutes les fonctions débloquées.",
                 color = Primary,
                 fontSize = 12.sp,
                 lineHeight = 17.sp,
@@ -477,10 +535,32 @@ private fun SignUpForm(
 
         Spacer(Modifier.height(14.dp))
         AuthTextField(
+            value = state.ownerName,
+            onValueChange = onOwnerNameChange,
+            placeholder = "Ton nom (optionnel)",
+            icon = LissafiIcons.Client
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthTextField(
             value = state.shopName,
             onValueChange = onShopNameChange,
             placeholder = "Nom de ta boutique (optionnel)",
             icon = LissafiIcons.Boutique
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthTextField(
+            value = state.phone,
+            onValueChange = onPhoneChange,
+            placeholder = "Ton numéro WhatsApp",
+            icon = LissafiIcons.Telephone,
+            keyboardType = KeyboardType.Phone
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthTextField(
+            value = state.market,
+            onValueChange = onMarketChange,
+            placeholder = "Ton marché / quartier (optionnel)",
+            icon = LissafiIcons.Lieu
         )
         Spacer(Modifier.height(12.dp))
         AuthEmailField(
@@ -491,7 +571,7 @@ private fun SignUpForm(
         AuthTextField(
             value = state.password,
             onValueChange = onPasswordChange,
-            placeholder = "Mot de passe (6 caractères ou plus)",
+            placeholder = "Mot de passe (8 caractères ou plus)",
             icon = LissafiIcons.Motdepasse,
             keyboardType = KeyboardType.Password,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),

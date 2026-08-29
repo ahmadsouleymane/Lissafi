@@ -47,7 +47,19 @@ class LissafiRepository(
     suspend fun upsertProduct(product: Product) {
         val p = product.copy(userId = currentUserId)
         db.upsertProduct(p)
+        logFunnelOnce("first_product")
         syncToRemote()
+    }
+
+    /**
+     * Émet un événement de funnel une seule fois par compte (flag local `evt_*`),
+     * fire-and-forget vers le back-office. Ne déclenche pas de synchro.
+     */
+    private suspend fun logFunnelOnce(event: String) {
+        val key = "evt_$event"
+        if (db.getSetting(key) != null) return
+        db.setSetting(key, "1")
+        api.logEvent(event, "info", "")
     }
 
     suspend fun deleteProduct(product: Product) {
@@ -62,6 +74,7 @@ class LissafiRepository(
         val s = sale.copy(userId = currentUserId)
         val itms = items.map { it.copy(userId = currentUserId) }
         val saleId = db.insertSale(s, itms)
+        logFunnelOnce("first_sale")
         // Le push (api.insertSale + finalizeSalePush) est fait par SyncManager.pushSales,
         // sous le mutex → une seule source de push, pas de doublons.
         syncToRemote()

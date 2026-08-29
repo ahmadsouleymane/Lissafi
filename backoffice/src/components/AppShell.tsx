@@ -17,6 +17,7 @@ import {
   IconMenu,
   IconClose,
   IconSettings,
+  IconTrend,
   IconUsers,
 } from "./icons";
 import { logout } from "@/actions/auth";
@@ -24,6 +25,7 @@ import { cx } from "./ui";
 
 const NAV = [
   { href: "/", label: "Tableau de bord", icon: IconGrid, exact: true },
+  { href: "/funnel", label: "Entonnoir", icon: IconTrend },
   { href: "/comptes", label: "Comptes", icon: IconUsers },
   { href: "/premium", label: "Premium", icon: IconCrown },
   { href: "/partenaires", label: "Partenaires", icon: IconHandshake },

@@ -40,6 +40,7 @@ import com.lissafi.app.LissafiApp
 import com.lissafi.app.data.auth.AuthManager
 import com.lissafi.app.data.repository.LissafiRepository
 import com.lissafi.app.service.PremiumManager
+import com.lissafi.app.service.notification.NotificationNav
 import com.lissafi.app.ui.components.LissafiIcons
 import com.lissafi.app.data.OnboardingManager
 import com.lissafi.app.ui.screen.*
@@ -56,6 +57,7 @@ object Routes {
     const val CLIENT_DETAIL = "client_detail/{clientId}"
     const val ACTIVITY      = "activity"
     const val SETTINGS      = "settings"
+    const val PAYWALL       = "paywall"
 
     fun clientDetail(id: String) = "client_detail/$id"
 }
@@ -82,16 +84,19 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val authViewModel  = remember {
         AuthViewModel(
             authManager,
-            onShopNameSaved = { shopName ->
-                if (shopName.isNotBlank()) {
-                    composeScope.launch {
-                        try {
-                            app.database.setSetting("shop_name", shopName)
-                        } catch (e: Exception) {
-                            Log.w("LissafiNavHost", "Échec sauvegarde nom boutique", e)
-                        }
+            onProfileCollected = { shopName, ownerName, phone, market ->
+                composeScope.launch {
+                    try {
+                        if (shopName.isNotBlank()) app.database.setSetting("shop_name", shopName)
+                        if (ownerName.isNotBlank()) app.database.setSetting("owner_name", ownerName)
+                        if (phone.isNotBlank()) app.database.setSetting("shop_phone", phone)
+                        if (market.isNotBlank()) app.database.setSetting("market", market)
+                    } catch (e: Exception) {
+                        Log.w("LissafiNavHost", "Échec sauvegarde profil boutique", e)
                     }
                 }
+                // Funnel : inscription (marché en meta pour la segmentation terrain)
+                api.logEvent("signup", "info", "", if (market.isNotBlank()) "{\"market\":\"$market\"}" else "{}")
             }
         )
     }
@@ -114,6 +119,27 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
 
     val mainRoutes = setOf(Routes.CAISSE, Routes.PRODUCTS, Routes.CLIENTS, Routes.ACTIVITY)
     val showBottomBar = currentRoute in mainRoutes
+
+    // Verrouillage à la fin de l'essai : réévalué à chaque changement d'écran
+    // (couvre le retour depuis la page de paiement web après abonnement).
+    var isLocked by remember(userId) { mutableStateOf(false) }
+    var needsProfile by remember(userId) { mutableStateOf(false) }
+    LaunchedEffect(userId, isLoggedIn, currentRoute) {
+        if (isLoggedIn) {
+            premiumManager.startTrialIfNeeded()
+            isLocked = premiumManager.isLocked()
+            needsProfile = app.database.getSetting("shop_phone").isNullOrBlank()
+        }
+    }
+
+    // Deep-link : la notification de fin d'essai ouvre le paywall.
+    val openPaywallRequested = NotificationNav.openPaywall.value
+    LaunchedEffect(openPaywallRequested, isLoggedIn) {
+        if (openPaywallRequested && isLoggedIn) {
+            navController.navigate(Routes.PAYWALL)
+            NotificationNav.openPaywall.value = false
+        }
+    }
 
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
@@ -150,7 +176,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val productViewModel: ProductViewModel = remember(userId) { ProductViewModel(repository, premiumManager) }
     val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
     val reportViewModel: ReportViewModel = remember(userId) { ReportViewModel(repository) }
-    val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository) }
+    val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository, premiumManager) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
@@ -300,7 +326,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     ProductsScreen(
                         viewModel = productViewModel,
                         onBack = { navController.popBackStack() },
-                        onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
+                        onNavigateToUpgrade = { navController.navigate(Routes.PAYWALL) }
                     )
                 }
                 composable(Routes.CLIENTS) {
@@ -308,7 +334,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         viewModel = clientViewModel,
                         onClientClick = { clientId -> navController.navigate(Routes.clientDetail(clientId)) },
                         onBack = { navController.popBackStack() },
-                        onNavigateToUpgrade = { navController.navigate(Routes.SETTINGS) }
+                        onNavigateToUpgrade = { navController.navigate(Routes.PAYWALL) }
                     )
                 }
                 composable(
@@ -334,9 +360,65 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         viewModel = settingsViewModel,
                         authManager = authManager,
                         onBack = { navController.popBackStack() },
+                        onSignOut = { authViewModel.signOut() },
+                        onNavigateToPaywall = { navController.navigate(Routes.PAYWALL) }
+                    )
+                }
+                composable(Routes.PAYWALL) {
+                    val settingsState by settingsViewModel.state.collectAsState()
+                    PaywallScreen(
+                        currentUserEmail = authManager.currentUserEmail(),
+                        dismissible = true,
+                        trialDaysLeft = settingsState.trialDaysLeft,
+                        locked = false,
+                        onClose = { navController.popBackStack() },
                         onSignOut = { authViewModel.signOut() }
                     )
                 }
+            }
+        }
+
+        // ── Hard-paywall : essai terminé, on couvre toute l'app ──
+        if (isLoggedIn && isLocked) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Background)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+            ) {
+                PaywallScreen(
+                    currentUserEmail = authManager.currentUserEmail(),
+                    dismissible = false,
+                    trialDaysLeft = 0,
+                    locked = true,
+                    onClose = {},
+                    onSignOut = { authViewModel.signOut() }
+                )
+            }
+        }
+
+        // ── Complétion de profil : compte Google sans numéro WhatsApp ──
+        if (isLoggedIn && needsProfile) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Background)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+            ) {
+                ProfileCompletionScreen(
+                    onSubmit = { phone, name, market ->
+                        composeScope.launch {
+                            try {
+                                if (phone.isNotBlank()) app.database.setSetting("shop_phone", phone)
+                                if (name.isNotBlank()) app.database.setSetting("owner_name", name)
+                                if (market.isNotBlank()) app.database.setSetting("market", market)
+                            } catch (e: Exception) {
+                                Log.w("LissafiNavHost", "Échec sauvegarde profil", e)
+                            }
+                        }
+                        needsProfile = false
+                    }
+                )
             }
         }
     }

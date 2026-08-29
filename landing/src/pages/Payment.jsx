@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { initiatePayment, pollStatus } from "../lib/payments";
 import { formatFCFA } from "../lib/format";
+import { WHATSAPP_NUMBER } from "../config";
 
 // ============================================================
 // Page de paiement en ligne (/payer). Hors de l'app, sur le même
@@ -18,16 +19,23 @@ import { formatFCFA } from "../lib/format";
 
 const PLANS = {
   plus: {
-    name: "Lissafi Plus",
-    amount: 30000,
-    desc: "100 produits, ventes illimitées, 1 an",
+    name: "Petite boutique",
+    amount: 24000,
+    desc: "~200 produits, ventes illimitées, 1 an",
   },
   business: {
-    name: "Lissafi Business",
-    amount: 75000,
-    desc: "Tout illimité, jusqu'à 5 utilisateurs, 1 an",
+    name: "Commerce / Supermarché",
+    amount: 50000,
+    desc: "Tout illimité, multi-caisses, 1 an",
   },
 };
+
+// Le paiement en ligne active un abonnement annuel. Les cadences mensuelle/
+// trimestrielle choisies dans l'app passent par WhatsApp (activation manuelle).
+function whatsappPayUrl(planName) {
+  const text = `Bonjour, je veux m'abonner à Lissafi (${planName}). Comment payer ?`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
 
 const COUNTRIES = [
   ["NE", "Niger"],
@@ -51,6 +59,8 @@ export default function Payment() {
   const [plan, setPlan] = useState(
     () => new URLSearchParams(window.location.search).get("plan") === "business" ? "business" : "plus",
   );
+  const period = new URLSearchParams(window.location.search).get("period") || "yearly";
+  const wantsShortPeriod = period === "monthly" || period === "quarterly";
   const [method, setMethod] = useState("mobile_money");
   const [country, setCountry] = useState("NE");
   const [name, setName] = useState("");
@@ -164,6 +174,16 @@ export default function Payment() {
         <form className="pay-card" onSubmit={submit}>
           <fieldset className="pay-block">
             <legend>1 · Ton abonnement</legend>
+            {wantsShortPeriod && (
+              <div className="pay-hint" style={{ marginBottom: 12 }}>
+                Le paiement en ligne active un abonnement <b>annuel</b> (le plus avantageux).
+                Pour payer <b>au mois ou au trimestre</b>,{" "}
+                <a href={whatsappPayUrl(PLANS[plan].name)} target="_blank" rel="noreferrer">
+                  écris-nous sur WhatsApp
+                </a>
+                .
+              </div>
+            )}
             <div className="pay-radio-group">
               {Object.entries(PLANS).map(([key, p]) => (
                 <button
@@ -291,6 +311,14 @@ export default function Payment() {
             Paiement traité par {isNigerMobile ? "iPayMoney" : "GeniusPay"}. Tes données
             sont transmises en HTTPS.
           </p>
+
+          <p className="pay-secure">
+            Pas de carte ni de mobile money, ou tu préfères payer en espèces ?{" "}
+            <a href={whatsappPayUrl(PLANS[plan].name)} target="_blank" rel="noreferrer">
+              Active ton compte via WhatsApp
+            </a>
+            .
+          </p>
         </form>
       </main>
     </div>
@@ -317,7 +345,7 @@ function Result({ kind, plan, activated = true, onRetry }) {
           <p>
             {isOk
               ? activated
-                ? `Ton compte ${plan === "business" ? "Business" : "Plus"} est activé pour 1 an. Ouvre l'app Lissafi pour en profiter.`
+                ? `Ton compte ${plan === "business" ? "Commerce / Supermarché" : "Petite boutique"} est activé pour 1 an. Ouvre l'app Lissafi pour en profiter.`
                 : "Paiement reçu, mais aucun compte Lissafi ne correspond à cet email. Vérifie l'email saisi puis contacte-nous sur WhatsApp avec ta preuve de paiement."
               : "Le paiement n'a pas abouti. Tu peux réessayer ou nous contacter sur WhatsApp."}
           </p>

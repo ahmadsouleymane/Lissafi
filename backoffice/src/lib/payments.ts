@@ -21,8 +21,11 @@ const PREMIUM_DAYS = 365;
 export type Plan = "plus" | "business";
 export type PaymentMethod = "mobile_money" | "card";
 
-// Prix alignés sur la landing (Pricing.jsx) : 30 000 F Plus / 75 000 F Business.
-const PLAN_PRICES: Record<Plan, number> = { plus: 30000, business: 75000 };
+// Paiement en ligne = abonnement ANNUEL (le seul supporté par le flux
+// carte/Mobile Money). Prix alignés sur PremiumManager.kt et la landing :
+// 24 000 F Petite boutique (plus) / 50 000 F Commerce (business).
+// Mensuel/trimestriel se règlent via WhatsApp (activation manuelle back-office).
+const PLAN_PRICES: Record<Plan, number> = { plus: 24000, business: 50000 };
 
 export function planAmount(plan: Plan): number {
   return PLAN_PRICES[plan];
