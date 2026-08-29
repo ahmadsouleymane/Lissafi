@@ -457,6 +457,7 @@ REVOKE EXECUTE ON FUNCTION public.admin_user_summaries() FROM PUBLIC, anon, auth
 REVOKE EXECUTE ON FUNCTION public.admin_user_emails() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.admin_audit_logs(bigint, bigint, int) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.admin_logs(bigint, bigint, text, text, uuid, int) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_funnel(int) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.admin_stats() TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_sales_series(int) TO service_role;
@@ -465,6 +466,7 @@ GRANT EXECUTE ON FUNCTION public.admin_user_summaries() TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_user_emails() TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_audit_logs(bigint, bigint, int) TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_logs(bigint, bigint, text, text, uuid, int) TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_funnel(int) TO service_role;
 
 -- ============================================================
 -- 6ter. SÉCURITÉ — INTERDIRE L'AUTO-OCTROI DU PREMIUM VIA POSTGREST
