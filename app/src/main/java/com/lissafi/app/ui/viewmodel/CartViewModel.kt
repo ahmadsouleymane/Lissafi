@@ -144,6 +144,10 @@ class CartViewModel(
     suspend fun encaisser(amountPaid: Int): Boolean {
         if (!premiumManager.canMakeSale()) return false
         val s = _state.value
+        // Défense en profondeur : une vente à crédit SANS client rattaché
+        // enregistrerait une dette dans le vide (argent dû non tracé). L'UI le
+        // bloque déjà, mais on refuse ici aussi pour ne jamais perdre une dette.
+        if (s.isCredit && s.selectedClient == null) return false
         val sale = Sale(
             date = System.currentTimeMillis(),
             total = s.total,

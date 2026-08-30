@@ -535,7 +535,7 @@ fun CaisseScreen(
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 scope.launch {
                                     if (viewModel.encaisser(0)) viewModel.clearCart()
-                                    else Toast.makeText(context, "Limite de 10 ventes par jour atteinte. Passe à Lissafi Plus.", Toast.LENGTH_LONG).show()
+                                    else Toast.makeText(context, "Ton essai gratuit est terminé. Abonne-toi pour continuer à vendre.", Toast.LENGTH_LONG).show()
                                 }
                             }
                             else -> {
@@ -574,7 +574,7 @@ fun CaisseScreen(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 scope.launch {
                     if (viewModel.encaisser(paid)) viewModel.clearCart()
-                    else Toast.makeText(context, "Limite de 10 ventes par jour atteinte. Passe à Lissafi Plus.", Toast.LENGTH_LONG).show()
+                    else Toast.makeText(context, "Ton essai gratuit est terminé. Abonne-toi pour continuer à vendre.", Toast.LENGTH_LONG).show()
                 }
                 amountText = ""
                 showEncaisseSheet = false
@@ -1358,7 +1358,7 @@ private fun ClientPickerSheet(
                             if (newName.isNotBlank()) {
                                 scope.launch {
                                     if (!viewModel.canAddClient()) {
-                                        Toast.makeText(ctx, "Limite atteinte. Passe à Lissafi Plus pour ajouter plus de clients.", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(ctx, "Ton essai gratuit est terminé. Abonne-toi pour ajouter des clients.", Toast.LENGTH_LONG).show()
                                         return@launch
                                     }
                                     val client = Client(
@@ -1387,7 +1387,7 @@ private fun ClientPickerSheet(
                     onClick = {
                         scope.launch {
                             if (!viewModel.canAddClient()) {
-                                Toast.makeText(ctx, "Limite atteinte. Passe à Lissafi Plus pour ajouter plus de clients.", Toast.LENGTH_LONG).show()
+                                Toast.makeText(ctx, "Ton essai gratuit est terminé. Abonne-toi pour ajouter des clients.", Toast.LENGTH_LONG).show()
                             } else {
                                 showNewClientForm = true
                             }

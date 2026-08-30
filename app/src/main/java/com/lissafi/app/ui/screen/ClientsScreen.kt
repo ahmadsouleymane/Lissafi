@@ -237,7 +237,7 @@ fun ClientsScreen(viewModel: ClientViewModel, onClientClick: (String) -> Unit, o
     if (showPremiumDialog) {
         // Limite atteinte → pop-up premium (remplace le Toast)
         PremiumLimitDialog(
-            message = "Passe à Lissafi Plus pour ajouter jusqu'à 100 clients, ou Lissafi Business pour l'illimité.",
+            message = "Ton essai gratuit est terminé. Abonne-toi pour continuer à ajouter des clients.",
             onUpgrade = {
                 showPremiumDialog = false
                 onNavigateToUpgrade()

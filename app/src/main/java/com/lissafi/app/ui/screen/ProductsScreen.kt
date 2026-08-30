@@ -246,7 +246,7 @@ fun ProductsScreen(viewModel: ProductViewModel, onBack: () -> Unit, onNavigateTo
     if (showPremiumDialog) {
         // Limite atteinte → pop-up premium (remplace le Toast)
         PremiumLimitDialog(
-            message = "Passe à Lissafi Plus pour ajouter jusqu'à 100 produits, ou Lissafi Business pour l'illimité.",
+            message = "La formule Plus gère jusqu'à 200 produits. Passe à Lissafi Business pour un catalogue illimité.",
             onUpgrade = {
                 showPremiumDialog = false
                 onNavigateToUpgrade()
