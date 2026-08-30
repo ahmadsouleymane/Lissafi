@@ -2,14 +2,26 @@
 <!--
   Certificate pinning du domaine Supabase (empreinte SPKI SHA-256).
   Empreinte obtenue avec :
-    echo | openssl s_client -servername <host> -connect <host>:443 2>/dev/null \
+    echo | openssl s_client -servername <host> -connect <host>:443 -showcerts 2>/dev/null \
       | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der \
       | openssl dgst -sha256 -binary | openssl enc -base64
 
-  ⚠️ SI SUPABASE FAIT TOURNER SON CERTIFICAT : les connexions échoueront
-  jusqu'à l'expiration du pin (2027-08-12). Avant toute rotation, re-calcule
-  l'empreinte et mets à jour <pin> (et repousse l'expiration si besoin).
+  ⚠️ STRATÉGIE : on épingle l'AUTORITÉ (intermédiaire Google WE1 + racine
+  GTS Root R4), PAS le certificat feuille. Google Trust Services émet des
+  feuilles à courte durée (~90 jours) qui tournent souvent : épingler la
+  feuille casse la synchro à chaque rotation. L'intermédiaire et la racine
+  sont stables (des années), donc le pinning survit aux rotations tant que
+  Supabase reste chez Google Trust Services.
+
+  ⚠️ SI SUPABASE CHANGE D'AUTORITÉ (ex. passage à Let's Encrypt/Cloudflare) :
+  les connexions échoueront jusqu'à l'expiration ci-dessous. Re-calcule alors
+  les deux pins (intermédiaire + racine) et repousse l'expiration.
   En dehors de cette fenêtre, le pin n'est plus exigé (repli trust-anchors).
+
+  Pins vérifiés le 2026-08-30 (chaîne réellement servie) :
+    feuille        CN=supabase.co                 yyBDqvMo9Jc2CwnVJBDj8TE8u5xHielbUS/+h7VM2xs=
+    intermédiaire  Google Trust Services WE1       kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=
+    racine         GTS Root R4                     mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=
 -->
 <network-security-config>
     <domain-config>
@@ -17,8 +29,11 @@
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-        <pin-set expiration="2027-08-12">
-            <pin digest="SHA-256">ZcJbApTb7wyllleAjHw2vYAskqdT+DhMY9aPDFwAtf4=</pin>
+        <pin-set expiration="2028-08-30">
+            <!-- Intermédiaire Google Trust Services WE1 (émetteur des feuilles Supabase). -->
+            <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
+            <!-- Racine GTS Root R4 (backup si l'intermédiaire change). -->
+            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
         </pin-set>
     </domain-config>
 </network-security-config>

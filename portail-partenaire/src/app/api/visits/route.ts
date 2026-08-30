@@ -42,8 +42,11 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const headers = corsHeaders(origin);
 
-  // Origine non autorisée → 403 (l'en-tête Allow-Origin vide bloque déjà côté navigateur).
-  if (origin && !headers["Access-Control-Allow-Origin"]) {
+  // Le beacon n'est appelé que par la landing (POST cross-origin) : un vrai
+  // navigateur envoie TOUJOURS l'en-tête Origin. On exige donc une origine
+  // autorisée. Sans en-tête Origin (curl/script), on rejette aussi — sinon un
+  // script pourrait gonfler à l'infini les visites/commissions d'un partenaire.
+  if (!headers["Access-Control-Allow-Origin"]) {
     return new NextResponse(null, { status: 403, headers });
   }
 
