@@ -194,6 +194,10 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            // Réserve la hauteur de la barre système Android (boutons
+                            // Retour/Home ou barre de gestes) : sinon la pilule flottante
+                            // se dessine par-dessus et les clics sont interceptés.
+                            .navigationBarsPadding()
                             .padding(horizontal = 20.dp, vertical = 12.dp)
                     ) {
                         Surface(
