@@ -516,7 +516,7 @@ private fun ReportIssueDialog(
             }
         },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 CapsuleTextField(
                     value = subject,
                     onValueChange = { subject = it },
@@ -606,7 +606,7 @@ private fun ShopInfoDialog(
             }
         },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 CapsuleTextField(
                     value = name,
                     onValueChange = { name = it },
