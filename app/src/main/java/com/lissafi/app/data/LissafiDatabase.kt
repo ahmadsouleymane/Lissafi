@@ -23,7 +23,10 @@ class LissafiDatabase private constructor(context: Context) :
         // purge le hash résiduel éventuellement stocké dans app_settings.
         // v5 = colonne `synced` sur debt_transactions (local uniquement, pas mirroré sur
         // Supabase) : évite de repousser tout l'historique des dettes à chaque synchro.
-        const val DATABASE_VERSION = 5
+        // v6 = colonne `shop_id` sur les 5 tables métier (offre Grand boutique, boutique
+        // partagée). Additif : shop_id = user_id pour l'existant ; les lectures restent
+        // filtrées par user_id dans ce lot (bascule sur shop_id au lot suivant).
+        const val DATABASE_VERSION = 6
 
         @Volatile
         private var INSTANCE: LissafiDatabase? = null
@@ -51,6 +54,7 @@ class LissafiDatabase private constructor(context: Context) :
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
                 user_id TEXT NOT NULL DEFAULT '',
+                shop_id TEXT NOT NULL DEFAULT '',
                 deleted INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (barcode, user_id)
             )
@@ -65,7 +69,8 @@ class LissafiDatabase private constructor(context: Context) :
                 is_credit INTEGER NOT NULL DEFAULT 0,
                 client_id TEXT,
                 synced INTEGER NOT NULL DEFAULT 0,
-                user_id TEXT NOT NULL DEFAULT ''
+                user_id TEXT NOT NULL DEFAULT '',
+                shop_id TEXT NOT NULL DEFAULT ''
             )
         """)
         db.execSQL("""
@@ -76,7 +81,8 @@ class LissafiDatabase private constructor(context: Context) :
                 name TEXT NOT NULL,
                 price INTEGER NOT NULL,
                 quantity REAL NOT NULL DEFAULT 1.0,
-                user_id TEXT NOT NULL DEFAULT ''
+                user_id TEXT NOT NULL DEFAULT '',
+                shop_id TEXT NOT NULL DEFAULT ''
             )
         """)
         db.execSQL("""
@@ -87,7 +93,8 @@ class LissafiDatabase private constructor(context: Context) :
                 total_debt INTEGER NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
-                user_id TEXT NOT NULL DEFAULT ''
+                user_id TEXT NOT NULL DEFAULT '',
+                shop_id TEXT NOT NULL DEFAULT ''
             )
         """)
         db.execSQL("""
@@ -99,7 +106,8 @@ class LissafiDatabase private constructor(context: Context) :
                 date INTEGER NOT NULL,
                 note TEXT NOT NULL DEFAULT '',
                 user_id TEXT NOT NULL DEFAULT '',
-                synced INTEGER NOT NULL DEFAULT 0
+                synced INTEGER NOT NULL DEFAULT 0,
+                shop_id TEXT NOT NULL DEFAULT ''
             )
         """)
         db.execSQL("""
@@ -164,6 +172,16 @@ class LissafiDatabase private constructor(context: Context) :
         if (oldVersion < 5) {
             try { db.execSQL("ALTER TABLE debt_transactions ADD COLUMN synced INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
             try { db.execSQL("UPDATE debt_transactions SET synced = 1") } catch (_: Exception) {}
+        }
+
+        // V5 → V6 : colonne shop_id (boutique partagée, offre Grand boutique).
+        // Additif : chaque compte devient sa boutique solo → shop_id = user_id pour l'existant.
+        // Les lectures restent filtrées par user_id dans ce lot (bascule sur shop_id au lot suivant).
+        if (oldVersion < 6) {
+            for (t in listOf("products", "sales", "sale_items", "clients", "debt_transactions")) {
+                try { db.execSQL("ALTER TABLE $t ADD COLUMN shop_id TEXT NOT NULL DEFAULT ''") } catch (_: Exception) {}
+                try { db.execSQL("UPDATE $t SET shop_id = user_id WHERE shop_id = ''") } catch (_: Exception) {}
+            }
         }
     }
 

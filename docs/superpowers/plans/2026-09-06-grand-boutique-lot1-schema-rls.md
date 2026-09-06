@@ -261,7 +261,25 @@ CREATE POLICY "Shop sees debt_transactions" ON debt_transactions
     FOR ALL USING (is_shop_member(shop_id)) WITH CHECK (is_shop_member(shop_id));
 ```
 
-- [ ] **Step 2: Garde anti-lockout** — vérifier qu'aucune ligne métier n'a `shop_id IS NULL`
+- [ ] **Step 2: Filet de sécurité `default_shop_id()`** — tant que l'app ne renseigne pas
+  encore `shop_id` (avant le Lot 3), une ligne insérée sans `shop_id` serait rejetée par
+  `WITH CHECK (is_shop_member(NULL))`. Un trigger `BEFORE INSERT` sur les 5 tables pose
+  `shop_id := user_id` quand il est NULL (le BEFORE trigger s'exécute avant la vérification RLS) :
+
+```sql
+CREATE OR REPLACE FUNCTION public.default_shop_id()
+RETURNS trigger LANGUAGE plpgsql AS $func$
+BEGIN
+    IF NEW.shop_id IS NULL THEN NEW.shop_id := NEW.user_id; END IF;
+    RETURN NEW;
+END;
+$func$;
+-- puis un trigger `trg_default_shop_id BEFORE INSERT` sur chacune des 5 tables.
+```
+
+  C'est ce qui garantit la **non-régression** des comptes solo sans toucher à l'app dans ce lot.
+
+- [ ] **Step 3: Garde anti-lockout** — vérifier qu'aucune ligne métier n'a `shop_id IS NULL`
   après backfill (sinon elle deviendrait invisible). Requête de contrôle à exécuter manuellement :
 
 ```sql
