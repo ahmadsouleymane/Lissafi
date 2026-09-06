@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +65,7 @@ fun SettingsScreen(
     val haptic = LocalHapticFeedback.current
     var showShopDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
@@ -387,6 +391,54 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(20.dp))
 
+            // ── SÉCURITÉ ──
+            SectionHeader(
+                text = "SÉCURITÉ",
+                icon = LissafiIcons.Motdepasse,
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            )
+            LissafiCard(onClick = { showPinDialog = true }, cornerRadius = 20) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconCircle(
+                        icon = LissafiIcons.Motdepasse,
+                        backgroundColor = if (state.hasManagerPin) Primary.copy(alpha = 0.1f) else SurfaceAlt,
+                        iconTint = if (state.hasManagerPin) Primary else TextSecondary,
+                        size = 44,
+                        iconSize = 22
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Verrou modification / annulation",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = OnBackground
+                        )
+                        Text(
+                            text = if (state.hasManagerPin)
+                                "Activé — un code est demandé avant de modifier ou annuler une vente"
+                            else
+                                "Désactivé — protège tes ventes d'une modification par un employé",
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            lineHeight = 16.sp
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    StatusBadge(
+                        text = if (state.hasManagerPin) "Activé" else "Inactif",
+                        color = if (state.hasManagerPin) Primary else TextSecondary
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
             // ── DONNÉES ──
             SectionHeader(
                 text = "DONNÉES",
@@ -462,6 +514,129 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showPinDialog) {
+        ManagerPinDialog(
+            hasPin = state.hasManagerPin,
+            onDismiss = { showPinDialog = false },
+            onCreate = { pin, cb -> viewModel.setManagerPin(pin, cb) },
+            onChange = { cur, newPin, cb -> viewModel.changeManagerPin(cur, newPin, cb) },
+            onDisable = { cur, cb -> viewModel.disableManagerPin(cur, cb) }
+        )
+    }
+}
+
+// ============================================================
+// DIALOGUE VERROU GÉRANT (PIN)
+// ============================================================
+@Composable
+private fun ManagerPinDialog(
+    hasPin: Boolean,
+    onDismiss: () -> Unit,
+    onCreate: (pin: String, onResult: (Boolean) -> Unit) -> Unit,
+    onChange: (current: String, newPin: String, onResult: (Boolean) -> Unit) -> Unit,
+    onDisable: (current: String, onResult: (Boolean) -> Unit) -> Unit
+) {
+    var current by remember { mutableStateOf("") }
+    var newPin by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
+        icon = {
+            Box(
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(Primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(LissafiIcons.Motdepasse, contentDescription = null, tint = Primary, modifier = Modifier.size(28.dp)) }
+        },
+        title = {
+            Text(
+                text = if (hasPin) "Verrou activé" else "Activer le verrou",
+                fontWeight = FontWeight.Bold, fontSize = 18.sp, color = OnBackground, textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = if (hasPin)
+                        "Change le code, ou désactive le verrou. Le code actuel est requis."
+                    else
+                        "Choisis un code à 4–6 chiffres. Il sera demandé avant toute modification ou annulation d'une vente.",
+                    fontSize = 13.sp, color = TextSecondary, lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(12.dp))
+                if (hasPin) {
+                    PinInput(current, { current = it.filter { c -> c.isDigit() }.take(6); error = null }, "Code actuel")
+                    Spacer(Modifier.height(8.dp))
+                }
+                PinInput(newPin, { newPin = it.filter { c -> c.isDigit() }.take(6); error = null }, if (hasPin) "Nouveau code (optionnel)" else "Nouveau code")
+                Spacer(Modifier.height(8.dp))
+                PinInput(confirmPin, { confirmPin = it.filter { c -> c.isDigit() }.take(6); error = null }, "Confirmer le code")
+                if (error != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(error!!, color = Error, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        },
+        confirmButton = {
+            Column {
+                PrimaryActionButton(
+                    text = if (hasPin) "Changer le code" else "Activer le verrou",
+                    icon = LissafiIcons.Valider,
+                    enabled = !busy && newPin.length >= 4 && newPin == confirmPin && (!hasPin || current.length >= 4),
+                    onClick = {
+                        error = null
+                        if (newPin != confirmPin) { error = "Les codes ne correspondent pas."; return@PrimaryActionButton }
+                        if (newPin.length < 4) { error = "Le code doit faire 4 à 6 chiffres."; return@PrimaryActionButton }
+                        busy = true
+                        val cb: (Boolean) -> Unit = { ok -> busy = false; if (ok) onDismiss() else error = "Code actuel incorrect." }
+                        if (hasPin) onChange(current, newPin, cb) else onCreate(newPin, cb)
+                    }
+                )
+                if (hasPin) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            error = null
+                            if (current.length < 4) { error = "Entre le code actuel pour désactiver."; return@OutlinedButton }
+                            busy = true
+                            onDisable(current) { ok -> busy = false; if (ok) onDismiss() else error = "Code actuel incorrect." }
+                        },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Error)
+                    ) { Text("Désactiver le verrou", fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
+                }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer", color = TextSecondary) } }
+    )
+}
+
+@Composable
+private fun PinInput(value: String, onValueChange: (String) -> Unit, placeholder: String) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder, fontSize = 14.sp, color = TextTertiary) },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Primary,
+            unfocusedBorderColor = Border,
+            focusedContainerColor = Surface,
+            unfocusedContainerColor = Surface,
+            cursorColor = Primary
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 // ============================================================

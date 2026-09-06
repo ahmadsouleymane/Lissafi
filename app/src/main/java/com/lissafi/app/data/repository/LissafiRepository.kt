@@ -23,6 +23,16 @@ class LissafiRepository(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    companion object {
+        /** Clé locale du hash du PIN gérant (exclue de la synchro — voir SyncManager.pushSettings). */
+        const val KEY_MANAGER_PIN = "manager_pin_hash"
+
+        private fun hashPin(pin: String): String =
+            java.security.MessageDigest.getInstance("SHA-256")
+                .digest(pin.trim().toByteArray())
+                .joinToString("") { "%02x".format(it) }
+    }
+
     /**
      * Fournit le userId courant pour toutes les opérations.
      * Fourni par le ViewModel/Screen via le callback.
@@ -254,6 +264,25 @@ class LissafiRepository(
     suspend fun setSetting(key: String, value: String) {
         db.setSetting(key, value)
         syncToRemote()
+    }
+
+    // --- Verrou gérant (PIN local anti-fraude) ---
+    // Le hash reste LOCAL (jamais poussé — exclu de pushSettings) : il protège la
+    // modification/annulation d'une vente contre un employé, sur cet appareil.
+
+    suspend fun hasManagerPin(): Boolean = !getSetting(KEY_MANAGER_PIN).isNullOrBlank()
+
+    /** Pose/écrase le PIN gérant (haché). Écriture LOCALE uniquement (pas de sync). */
+    suspend fun setManagerPin(pin: String) = db.setSetting(KEY_MANAGER_PIN, hashPin(pin))
+
+    /** Désactive le verrou. Écriture LOCALE uniquement. */
+    suspend fun clearManagerPin() = db.setSetting(KEY_MANAGER_PIN, "")
+
+    /** Vrai si le PIN correspond, ou si aucun PIN n'est configuré (pas de verrou). */
+    suspend fun verifyManagerPin(pin: String): Boolean {
+        val stored = getSetting(KEY_MANAGER_PIN)
+        if (stored.isNullOrBlank()) return true
+        return stored == hashPin(pin)
     }
 
     suspend fun isPremium(): Boolean = getSetting("is_premium") == "true"

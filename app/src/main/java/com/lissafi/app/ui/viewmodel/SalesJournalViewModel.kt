@@ -43,10 +43,25 @@ class SalesJournalViewModel(
     private val _clients = MutableStateFlow<List<Client>>(emptyList())
     val clients: StateFlow<List<Client>> = _clients.asStateFlow()
 
+    // Verrou gérant : un PIN est-il exigé avant de modifier/annuler une vente ?
+    private val _pinRequired = MutableStateFlow(false)
+    val pinRequired: StateFlow<Boolean> = _pinRequired.asStateFlow()
+
     init {
         loadJournal()
         viewModelScope.launch {
             try { _clients.value = repository.getAllClients() } catch (e: Exception) { Log.w(TAG, "clients", e) }
+        }
+        viewModelScope.launch {
+            try { _pinRequired.value = repository.hasManagerPin() } catch (e: Exception) { Log.w(TAG, "pin", e) }
+        }
+    }
+
+    /** Vérifie le PIN gérant (asynchrone) ; renvoie le résultat via callback. */
+    fun verifyPin(pin: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = try { repository.verifyManagerPin(pin) } catch (e: Exception) { false }
+            onResult(ok)
         }
     }
 

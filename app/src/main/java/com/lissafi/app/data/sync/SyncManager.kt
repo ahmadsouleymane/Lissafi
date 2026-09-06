@@ -267,6 +267,7 @@ class SyncManager(
         )
         for (setting in settings) {
             if (setting.key == "last_sync_timestamp") continue // Ne pas sync le timestamp
+            if (setting.key == "manager_pin_hash") continue     // PIN gérant : LOCAL uniquement
             if (setting.key in serverManaged) continue
             api.setSetting(setting.key, setting.value)
         }

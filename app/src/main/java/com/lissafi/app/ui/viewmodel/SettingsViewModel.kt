@@ -24,6 +24,7 @@ data class SettingsState(
     val premiumExpiryText: String = "",
     val productCount: Int = 0,
     val clientCount: Int = 0,
+    val hasManagerPin: Boolean = false,
     val isSaving: Boolean = false
 )
 
@@ -56,6 +57,7 @@ class SettingsViewModel(
                 val expiry = repository.getPremiumExpiry()
                 val productCount = repository.getProductCount()
                 val clientCount = repository.getClientCount()
+                val hasManagerPin = repository.hasManagerPin()
 
                 _state.value = _state.value.copy(
                     shopName = shopName,
@@ -67,10 +69,55 @@ class SettingsViewModel(
                     premiumExpiry = expiry,
                     premiumExpiryText = if (expiry != null) FormatUtils.formatDate(expiry) else "",
                     productCount = productCount,
-                    clientCount = clientCount
+                    clientCount = clientCount,
+                    hasManagerPin = hasManagerPin
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Échec chargement réglages", e)
+            }
+        }
+    }
+
+    /** Crée un PIN gérant (première activation du verrou). */
+    fun setManagerPin(pin: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.setManagerPin(pin)
+                _state.value = _state.value.copy(hasManagerPin = true)
+                onResult(true)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec création PIN", e)
+                onResult(false)
+            }
+        }
+    }
+
+    /** Change le PIN gérant : exige le code actuel correct. */
+    fun changeManagerPin(current: String, newPin: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (!repository.verifyManagerPin(current)) { onResult(false); return@launch }
+                repository.setManagerPin(newPin)
+                _state.value = _state.value.copy(hasManagerPin = true)
+                onResult(true)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec changement PIN", e)
+                onResult(false)
+            }
+        }
+    }
+
+    /** Désactive le verrou : exige le code actuel correct. */
+    fun disableManagerPin(current: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (!repository.verifyManagerPin(current)) { onResult(false); return@launch }
+                repository.clearManagerPin()
+                _state.value = _state.value.copy(hasManagerPin = false)
+                onResult(true)
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec désactivation PIN", e)
+                onResult(false)
             }
         }
     }

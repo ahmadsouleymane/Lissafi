@@ -3,13 +3,17 @@ package com.lissafi.app.ui.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +49,7 @@ import com.lissafi.app.ui.theme.Background
 import com.lissafi.app.ui.theme.Border
 import com.lissafi.app.ui.theme.Error
 import com.lissafi.app.ui.theme.OnBackground
+import com.lissafi.app.ui.theme.OnPrimary
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.Secondary
 import com.lissafi.app.ui.theme.Success
@@ -66,12 +71,34 @@ fun SalesJournalScreen(
     val state by viewModel.state.collectAsState()
     val detail by viewModel.detail.collectAsState()
     val clients by viewModel.clients.collectAsState()
+    val pinRequired by viewModel.pinRequired.collectAsState()
 
     // Rafraîchit le journal à chaque entrée sur l'écran (nouvelles ventes depuis la dernière visite).
     LaunchedEffect(Unit) { viewModel.loadJournal() }
 
     // Le bouton retour système ferme d'abord le détail ouvert, pas tout l'écran.
     BackHandler(enabled = detail != null) { viewModel.clearSelection() }
+
+    var query by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf(JournalFilter.TOUS) }
+    val clientNameById = remember(clients) { clients.associate { it.id to it.name } }
+
+    // Filtrage côté client (le journal charge jusqu'à 500 ventes).
+    val filtered = remember(state.sales, query, filter, clientNameById) {
+        state.sales.filter { s ->
+            val q = query.trim()
+            val matchQuery = q.isBlank() ||
+                s.id.toString().contains(q) ||
+                (s.clientId?.let { clientNameById[it] }?.contains(q, ignoreCase = true) == true)
+            val matchFilter = when (filter) {
+                JournalFilter.TOUS -> true
+                JournalFilter.COMPTANT -> !s.isCredit && !s.cancelled
+                JournalFilter.CREDIT -> s.isCredit && !s.cancelled
+                JournalFilter.ANNULEES -> s.cancelled
+            }
+            matchQuery && matchFilter
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -96,35 +123,75 @@ fun SalesJournalScreen(
                     modifier = Modifier.padding(top = 24.dp)
                 )
                 else -> {
-                    // Pré-groupement par jour (les ventes sont déjà triées date desc) :
-                    // on n'utilise JAMAIS un var mutable pour dédupliquer les en-têtes dans
-                    // un LazyColumn (composition paresseuse, ordre non garanti).
-                    val grouped = remember(state.sales) {
-                        val fmtDay = SimpleDateFormat("EEEE d MMMM", Locale.FRENCH)
-                        val map = LinkedHashMap<String, MutableList<Sale>>()
-                        for (s in state.sales) {
-                            val day = fmtDay.format(java.util.Date(s.date)).replaceFirstChar { it.uppercase() }
-                            map.getOrPut(day) { mutableListOf() }.add(s)
-                        }
-                        map
-                    }
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    // Bandeau récap (sur l'ensemble du journal, pas le filtre).
+                    JournalRecap(state.sales)
+                    SearchField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = "Rechercher (N° vente ou client)…",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        grouped.forEach { (day, sales) ->
-                            item(key = "header_$day") {
-                                SectionHeader(
-                                    text = day,
-                                    icon = LissafiIcons.Recents,
-                                    modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)
+                        JournalFilter.values().forEach { f ->
+                            FilterChip(
+                                selected = filter == f,
+                                onClick = { filter = f },
+                                label = { Text(f.label, fontSize = 12.sp) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = OnPrimary,
+                                    containerColor = SurfaceAlt,
+                                    labelColor = TextSecondary
                                 )
-                            }
-                            items(sales, key = { it.id }) { sale ->
-                                SaleJournalRow(sale) { viewModel.openSale(sale.id) }
-                            }
+                            )
                         }
-                        item { Spacer(Modifier.height(24.dp)) }
+                    }
+
+                    if (filtered.isEmpty()) {
+                        EmptyState(
+                            icon = LissafiIcons.Rechercher,
+                            title = "Aucun résultat",
+                            message = "Aucune vente ne correspond à ta recherche ou à ce filtre.",
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    } else {
+                        // Pré-groupement par jour (les ventes sont déjà triées date desc) :
+                        // on n'utilise JAMAIS un var mutable pour dédupliquer les en-têtes dans
+                        // un LazyColumn (composition paresseuse, ordre non garanti).
+                        val grouped = remember(filtered) {
+                            val fmtDay = SimpleDateFormat("EEEE d MMMM", Locale.FRENCH)
+                            val map = LinkedHashMap<String, MutableList<Sale>>()
+                            for (s in filtered) {
+                                val day = fmtDay.format(java.util.Date(s.date)).replaceFirstChar { it.uppercase() }
+                                map.getOrPut(day) { mutableListOf() }.add(s)
+                            }
+                            map
+                        }
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            grouped.forEach { (day, sales) ->
+                                item(key = "header_$day") {
+                                    SectionHeader(
+                                        text = day,
+                                        icon = LissafiIcons.Recents,
+                                        modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)
+                                    )
+                                }
+                                items(sales, key = { it.id }) { sale ->
+                                    SaleJournalRow(sale) { viewModel.openSale(sale.id) }
+                                }
+                            }
+                            item { Spacer(Modifier.height(24.dp)) }
+                        }
                     }
                 }
             }
@@ -138,11 +205,50 @@ fun SalesJournalScreen(
                 audit = d.audit,
                 clientName = d.clientName,
                 clients = clients,
+                pinRequired = pinRequired,
+                onVerifyPin = { pin, cb -> viewModel.verifyPin(pin, cb) },
                 onClose = { viewModel.clearSelection() },
                 onSave = { items, isCredit, client -> viewModel.saveModification(items, isCredit, client) },
                 onCancel = { reason -> viewModel.cancelSale(reason) }
             )
         }
+    }
+}
+
+private enum class JournalFilter(val label: String) {
+    TOUS("Toutes"),
+    COMPTANT("Comptant"),
+    CREDIT("Crédit"),
+    ANNULEES("Annulées")
+}
+
+/** Bandeau récap : encaissé (hors annulées), nb de ventes, nb d'annulations. */
+@Composable
+private fun JournalRecap(sales: List<Sale>) {
+    val encaisse = sales.filter { !it.cancelled }.sumOf { it.total }
+    val nbVentes = sales.count { !it.cancelled }
+    val nbAnnulees = sales.count { it.cancelled }
+    LissafiCard(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+        cornerRadius = 16,
+        elevation = 2
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            RecapCell(FormatUtils.formatFCFA(encaisse).removeSuffix(" FCFA"), "encaissé", Primary)
+            RecapCell("$nbVentes", "vente${if (nbVentes > 1) "s" else ""}", OnBackground)
+            RecapCell("$nbAnnulees", "annulée${if (nbAnnulees > 1) "s" else ""}", if (nbAnnulees > 0) Error else TextTertiary)
+        }
+    }
+}
+
+@Composable
+private fun RecapCell(value: String, label: String, color: androidx.compose.ui.graphics.Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = color, maxLines = 1)
+        Text(label, fontSize = 11.sp, color = TextSecondary)
     }
 }
 
@@ -196,6 +302,8 @@ private fun SaleDetailScreen(
     audit: List<SaleAuditEntry>,
     clientName: String?,
     clients: List<Client>,
+    pinRequired: Boolean,
+    onVerifyPin: (String, (Boolean) -> Unit) -> Unit,
     onClose: () -> Unit,
     onSave: (items: List<CartItem>, isCredit: Boolean, client: Client?) -> Unit,
     onCancel: (reason: String) -> Unit
@@ -206,6 +314,13 @@ private fun SaleDetailScreen(
     var showAddItem by remember { mutableStateOf(false) }
     var showClientPicker by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
+    // Action en attente de validation par le PIN gérant (modif ou annulation).
+    var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    // Exécute l'action directement, ou via le verrou PIN s'il est activé.
+    fun guarded(action: () -> Unit) {
+        if (pinRequired) pendingAction = action else action()
+    }
 
     val readOnly = sale.cancelled
     val total = editItems.sumOf { (it.price * it.quantity).roundToInt() }
@@ -355,7 +470,7 @@ private fun SaleDetailScreen(
                     PrimaryActionButton(
                         text = "Enregistrer les modifications",
                         icon = LissafiIcons.Valider,
-                        onClick = { onSave(editItems.toList(), isCredit, selectedClient) },
+                        onClick = { guarded { onSave(editItems.toList(), isCredit, selectedClient) } },
                         enabled = editItems.isNotEmpty() && (!isCredit || selectedClient != null) && total > 0
                     )
                     Spacer(Modifier.height(10.dp))
@@ -398,7 +513,19 @@ private fun SaleDetailScreen(
     if (showCancelDialog) {
         CancelReasonDialog(
             onDismiss = { showCancelDialog = false },
-            onConfirm = { reason -> showCancelDialog = false; onCancel(reason) }
+            onConfirm = { reason -> showCancelDialog = false; guarded { onCancel(reason) } }
+        )
+    }
+
+    if (pendingAction != null) {
+        PinPromptDialog(
+            onVerify = onVerifyPin,
+            onDismiss = { pendingAction = null },
+            onSuccess = {
+                val action = pendingAction
+                pendingAction = null
+                action?.invoke()
+            }
         )
     }
 }
@@ -548,6 +675,68 @@ private fun CancelReasonDialog(onDismiss: () -> Unit, onConfirm: (String) -> Uni
             )
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Retour", color = TextSecondary) } }
+    )
+}
+
+// ── Dialogue : saisie du PIN gérant (verrou modif/annulation) ──
+@Composable
+private fun PinPromptDialog(
+    onVerify: (String, (Boolean) -> Unit) -> Unit,
+    onDismiss: () -> Unit,
+    onSuccess: () -> Unit
+) {
+    var pin by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf(false) }
+    var checking by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Surface,
+        icon = {
+            Box(
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(Primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(LissafiIcons.Motdepasse, contentDescription = null, tint = Primary, modifier = Modifier.size(28.dp)) }
+        },
+        title = { Text("Code gérant requis", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = OnBackground, textAlign = TextAlign.Center) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    "Entre le code pour confirmer cette opération sur la vente.",
+                    fontSize = 13.sp, color = TextSecondary, lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { pin = it.filter { c -> c.isDigit() }.take(6); error = false },
+                    placeholder = { Text("Code (4 à 6 chiffres)") },
+                    singleLine = true,
+                    isError = error,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (error) {
+                    Text("Code incorrect.", color = Error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                }
+            }
+        },
+        confirmButton = {
+            PrimaryActionButton(
+                text = "Valider",
+                icon = LissafiIcons.Valider,
+                enabled = pin.length >= 4 && !checking,
+                onClick = {
+                    checking = true
+                    onVerify(pin) { ok ->
+                        checking = false
+                        if (ok) onSuccess() else error = true
+                    }
+                }
+            )
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler", color = TextSecondary) } }
     )
 }
 
