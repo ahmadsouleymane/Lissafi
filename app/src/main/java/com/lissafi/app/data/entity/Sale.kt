@@ -13,5 +13,9 @@ data class Sale(
     @SerialName("is_credit") val isCredit: Boolean = false,
     @SerialName("client_id") val clientId: String? = null,
     val synced: Boolean = false,
+    // Annulation (soft) : une vente n'est JAMAIS supprimée réellement — on la
+    // marque annulée pour garder la trace (anti-fraude). Exclue du chiffre
+    // d'affaires et des rapports, mais visible dans le Journal des ventes.
+    val cancelled: Boolean = false,
     @SerialName("user_id") val userId: String = ""
 )

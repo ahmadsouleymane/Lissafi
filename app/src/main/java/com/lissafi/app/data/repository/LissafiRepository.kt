@@ -5,8 +5,11 @@ import com.lissafi.app.data.entity.Client
 import com.lissafi.app.data.entity.DebtTransaction
 import com.lissafi.app.data.entity.Product
 import com.lissafi.app.data.entity.Sale
+import com.lissafi.app.data.entity.SaleAuditEntry
 import com.lissafi.app.data.entity.SaleItem
 import com.lissafi.app.data.remote.SupabaseApi
+import com.lissafi.app.service.FormatUtils
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -74,6 +77,16 @@ class LissafiRepository(
         val s = sale.copy(userId = currentUserId)
         val itms = items.map { it.copy(userId = currentUserId) }
         val saleId = db.insertSale(s, itms)
+        // Trace de création (Journal des ventes / anti-fraude).
+        db.addSaleAudit(
+            SaleAuditEntry(
+                saleId = saleId,
+                action = "created",
+                details = "Vente enregistrée · ${FormatUtils.formatFCFA(s.total)}" + if (s.isCredit) " (crédit)" else "",
+                date = System.currentTimeMillis(),
+                userId = currentUserId
+            )
+        )
         logFunnelOnce("first_sale")
         // Le push (api.insertSale + finalizeSalePush) est fait par SyncManager.pushSales,
         // sous le mutex → une seule source de push, pas de doublons.
@@ -83,6 +96,124 @@ class LissafiRepository(
 
     suspend fun getSalesBetween(start: Long, end: Long): List<Sale> = db.getSalesBetween(start, end, currentUserId)
     suspend fun getSaleItems(saleId: Long): List<SaleItem> = db.getSaleItems(saleId)
+
+    // --- Journal des ventes (consultation / modification / annulation) ---
+
+    suspend fun getSalesJournal(limit: Int = 500): List<Sale> = db.getSalesJournal(currentUserId, limit)
+    suspend fun getSaleById(id: Long): Sale? = db.getSaleById(id, currentUserId)
+    suspend fun getSaleAudit(saleId: Long): List<SaleAuditEntry> = db.getSaleAudit(saleId)
+
+    /**
+     * Modifie une vente : remplace les articles, met à jour le total/mode de
+     * paiement, ajuste le stock (restaure l'ancien, applique le nouveau) et la
+     * dette (si crédit), et écrit une entrée d'audit. Rien n'est perdu : la
+     * modification est tracée en base, locale et distante.
+     */
+    suspend fun modifySale(
+        oldSale: Sale,
+        oldItems: List<SaleItem>,
+        newSale: Sale,
+        newItems: List<SaleItem>,
+        auditDetails: String
+    ) {
+        val uid = currentUserId
+        val now = System.currentTimeMillis()
+        val itemsWithUser = newItems.map { it.copy(saleId = oldSale.id, userId = uid) }
+        val saleToStore = newSale.copy(id = oldSale.id, userId = uid, cancelled = false)
+        db.modifySaleAtomic(
+            saleToStore,
+            itemsWithUser,
+            SaleAuditEntry(saleId = oldSale.id, action = "modified", details = auditDetails, date = now, userId = uid)
+        )
+        adjustStockForChange(oldItems, newItems, uid, now)
+        adjustDebtForChange(oldSale, newSale, now, uid)
+        syncToRemote()
+    }
+
+    /**
+     * Annule (soft) une vente : elle reste en base marquée annulée (jamais
+     * supprimée), le stock est restauré et la dette annulée si c'était un crédit.
+     * Un motif obligatoire est consigné dans la trace d'audit.
+     */
+    suspend fun cancelSale(sale: Sale, items: List<SaleItem>, reason: String) {
+        val uid = currentUserId
+        val now = System.currentTimeMillis()
+        val details = "Vente annulée" + if (reason.isNotBlank()) " · $reason" else ""
+        db.cancelSaleAtomic(
+            sale.id,
+            SaleAuditEntry(saleId = sale.id, action = "cancelled", details = details, date = now, userId = uid)
+        )
+        // Restaure le stock : les articles n'ont finalement pas été vendus.
+        for (item in items) {
+            try {
+                val product = db.getProduct(item.barcode, uid) ?: continue
+                db.upsertProduct(product.copy(stock = maxOf(0, product.stock + item.quantity.roundToInt()), updatedAt = now))
+            } catch (_: Exception) {}
+        }
+        // Annule la dette si c'était un crédit.
+        if (sale.isCredit && sale.clientId != null) {
+            db.addDebtTransaction(
+                DebtTransaction(
+                    clientId = sale.clientId, saleId = sale.id, amount = -sale.total,
+                    date = now, note = "Annulation vente N°${sale.id}", userId = uid
+                )
+            )
+        }
+        syncToRemote()
+    }
+
+    /** Ajuste le stock au changement d'articles : delta = ancienne qté − nouvelle qté (par code-barres). */
+    private suspend fun adjustStockForChange(oldItems: List<SaleItem>, newItems: List<SaleItem>, uid: String, now: Long) {
+        val delta = HashMap<String, Int>()
+        for (it in oldItems) delta[it.barcode] = (delta[it.barcode] ?: 0) + it.quantity.roundToInt()
+        for (it in newItems) delta[it.barcode] = (delta[it.barcode] ?: 0) - it.quantity.roundToInt()
+        for ((barcode, d) in delta) {
+            if (d == 0) continue
+            try {
+                val product = db.getProduct(barcode, uid) ?: continue
+                db.upsertProduct(product.copy(stock = maxOf(0, product.stock + d), updatedAt = now))
+            } catch (_: Exception) {}
+        }
+    }
+
+    /** Ajuste la dette du/des client(s) au changement (crédit ↔ comptant, montant, client). */
+    private suspend fun adjustDebtForChange(oldSale: Sale, newSale: Sale, now: Long, uid: String) {
+        val oldClient = oldSale.clientId
+        val newClient = newSale.clientId
+        val oldCredit = oldSale.isCredit && oldClient != null
+        val newCredit = newSale.isCredit && newClient != null
+
+        if (oldCredit && newCredit && oldClient == newClient) {
+            val diff = newSale.total - oldSale.total
+            if (diff != 0) {
+                db.addDebtTransaction(
+                    DebtTransaction(
+                        clientId = oldClient!!, saleId = oldSale.id, amount = diff,
+                        date = now, note = "Modification vente N°${oldSale.id}", userId = uid
+                    )
+                )
+            }
+            return
+        }
+        // Client changé, ou bascule crédit/comptant : on défait l'ancien effet…
+        if (oldCredit) {
+            db.addDebtTransaction(
+                DebtTransaction(
+                    clientId = oldClient!!, saleId = oldSale.id, amount = -oldSale.total,
+                    date = now, note = "Annulation crédit vente N°${oldSale.id}", userId = uid
+                )
+            )
+        }
+        // …et on applique le nouveau.
+        if (newCredit) {
+            db.addDebtTransaction(
+                DebtTransaction(
+                    clientId = newClient!!, saleId = oldSale.id, amount = newSale.total,
+                    date = now, note = "Vente N°${oldSale.id} (modifiée)", userId = uid
+                )
+            )
+        }
+    }
     suspend fun getTopProducts(start: Long, end: Long) = db.getTopProducts(start, end, currentUserId)
     suspend fun countSalesBetween(start: Long, end: Long): Int = db.countSalesBetween(start, end, currentUserId)
     suspend fun sumTotalBetween(start: Long, end: Long): Int = db.sumTotalBetween(start, end, currentUserId)

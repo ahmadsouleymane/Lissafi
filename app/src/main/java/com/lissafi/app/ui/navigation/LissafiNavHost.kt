@@ -56,6 +56,7 @@ object Routes {
     const val CLIENTS       = "clients"
     const val CLIENT_DETAIL = "client_detail/{clientId}"
     const val ACTIVITY      = "activity"
+    const val JOURNAL       = "journal"
     const val SETTINGS      = "settings"
     const val PAYWALL       = "paywall"
 
@@ -176,6 +177,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val productViewModel: ProductViewModel = remember(userId) { ProductViewModel(repository, premiumManager) }
     val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
     val reportViewModel: ReportViewModel = remember(userId) { ReportViewModel(repository) }
+    val salesJournalViewModel: SalesJournalViewModel = remember(userId) { SalesJournalViewModel(repository) }
     val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository, premiumManager) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -356,7 +358,14 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                     ReportsScreen(
                         viewModel = reportViewModel,
                         onBack = { navController.popBackStack() },
-                        onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) }
+                        onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) },
+                        onNavigateToJournal = { navController.navigate(Routes.JOURNAL) }
+                    )
+                }
+                composable(Routes.JOURNAL) {
+                    SalesJournalScreen(
+                        viewModel = salesJournalViewModel,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable(Routes.SETTINGS) {

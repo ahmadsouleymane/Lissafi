@@ -135,7 +135,9 @@ class SyncManager(
                     runStep("pushProducts") { pushProducts() },
                     runStep("pushClients") { pushClients() },
                     runStep("pushSales") { pushSales() },
+                    runStep("pushSaleUpdates") { pushSaleUpdates() },
                     runStep("pushDebtTransactions") { pushDebtTransactions() },
+                    runStep("pushSaleAudit") { pushSaleAudit() },
                     runStep("pushSettings") { pushSettings() }
                 ).all { it }
 
@@ -145,6 +147,7 @@ class SyncManager(
                     runStep("pullClients") { pullClients() },
                     runStep("pullSales") { pullSales() },
                     runStep("pullDebtTransactions") { pullDebtTransactions() },
+                    runStep("pullSaleAudit") { pullSaleAudit() },
                     runStep("pullSettings") { pullSettings() }
                 ).all { it }
 
@@ -211,6 +214,33 @@ class SyncManager(
                 AppLog.d(TAG, "Push vente → remote OK")
             }
         }
+    }
+
+    /**
+     * Re-pousse les ventes DÉJÀ synchronisées mais modifiées/annulées localement
+     * (flag `dirty`). PATCH de la ligne + remplacement des articles, puis `dirty=0`.
+     * Séparé de pushSales (qui fait des INSERT) pour ne jamais dupliquer une vente.
+     */
+    private suspend fun pushSaleUpdates() {
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val dirty = db.getDirtySyncedSales(userId)
+        for (sale in dirty) {
+            api.updateSale(sale)
+            val items = db.getSaleItems(sale.id)
+            api.replaceSaleItems(sale.id, items)
+            db.markSaleClean(sale.id)
+        }
+        if (dirty.isNotEmpty()) AppLog.d(TAG, "Push ventes modifiées: ${dirty.size}")
+    }
+
+    /** Pousse la trace d'audit (append-only) non encore synchronisée. */
+    private suspend fun pushSaleAudit() {
+        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val unsynced = db.getUnsyncedAudit(userId)
+        if (unsynced.isEmpty()) return
+        api.insertAuditEntries(unsynced)
+        for (entry in unsynced) db.markAuditSynced(entry.id)
+        AppLog.d(TAG, "Push audit ventes: ${unsynced.size}")
     }
 
     private suspend fun pushDebtTransactions() {
@@ -283,6 +313,9 @@ class SyncManager(
         // les ventes anciennes ne doivent pas disparaître (avant : limité à 30 jours).
         val uid = currentUserId
         val remote = api.getSalesBetween(0L, System.currentTimeMillis())
+        // Ventes modifiées localement pas encore poussées : on ne les écrase JAMAIS
+        // avec la version distante (le PATCH partira au prochain pushSaleUpdates).
+        val dirtyIds = db.getDirtySyncedSales(uid).map { it.id }.toSet()
         var skipped = 0
         for (sale in remote) {
             if (sale.userId != uid || sale.total < 0 || sale.amountPaid < 0) { skipped++; continue }
@@ -294,6 +327,23 @@ class SyncManager(
                 for (item in items) {
                     if (item.userId != uid || item.price < 0 || item.quantity <= 0) { skipped++; continue }
                     db.insertSaleItemIfNotExists(item)
+                }
+            } else if (sale.id !in dirtyIds) {
+                // Vente déjà locale : propage une annulation / modification faite sur
+                // un AUTRE appareil (only if pas de modif locale en attente).
+                val local = db.getSaleById(sale.id, uid)
+                val differs = local != null && (
+                    local.cancelled != sale.cancelled ||
+                    local.total != sale.total ||
+                    local.isCredit != sale.isCredit ||
+                    local.clientId != sale.clientId
+                )
+                if (differs) {
+                    // Si le total a changé, les articles ont pu changer aussi → on les re-tire.
+                    val items = if (local!!.total != sale.total) {
+                        api.getSaleItems(sale.id).filter { it.userId == uid && it.price >= 0 && it.quantity > 0 }
+                    } else emptyList()
+                    db.updateSaleFromRemote(sale, items)
                 }
             }
         }
@@ -316,6 +366,16 @@ class SyncManager(
             }
         }
         AppLog.d(TAG, "Pull dettes terminé, $skipped ignorées")
+    }
+
+    private suspend fun pullSaleAudit() {
+        val uid = currentUserId
+        val remote = api.getSaleAudit()
+        for (entry in remote) {
+            if (entry.userId != uid || entry.action.isBlank()) continue
+            db.insertAuditIfNotExists(entry)
+        }
+        AppLog.d(TAG, "Pull audit ventes: ${remote.size} reçues")
     }
 
     private suspend fun pullSettings() {

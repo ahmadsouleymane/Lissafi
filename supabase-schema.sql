@@ -34,8 +34,14 @@ CREATE TABLE IF NOT EXISTS sales (
     is_credit BOOLEAN NOT NULL DEFAULT false,
     client_id TEXT,
     synced BOOLEAN NOT NULL DEFAULT false,
+    -- Annulation douce : une vente n'est jamais supprimée, elle est marquée
+    -- annulée (trace anti-fraude). Exclue du CA mais conservée en base.
+    cancelled BOOLEAN NOT NULL DEFAULT false,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
 );
+
+-- Annulation douce : ajoute la colonne sur les tables déjà créées (idempotent).
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS cancelled BOOLEAN NOT NULL DEFAULT false;
 
 -- 3. Table des articles vendus
 CREATE TABLE IF NOT EXISTS sale_items (
@@ -88,6 +94,18 @@ CREATE TABLE IF NOT EXISTS device_tokens (
     UNIQUE (fcm_token)
 );
 
+-- 8. Journal d'audit des ventes (append-only) — trace inaltérable des
+-- créations / modifications / annulations. Anti-fraude : une vente ne peut
+-- pas être dissimulée sans laisser d'entrée horodatée synchronisée ici.
+CREATE TABLE IF NOT EXISTS sale_audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    sale_id BIGINT NOT NULL,
+    action TEXT NOT NULL,      -- 'created' | 'modified' | 'cancelled'
+    details TEXT NOT NULL DEFAULT '',
+    date BIGINT NOT NULL,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
 -- ============================================================
 -- INDEX
 -- ============================================================
@@ -98,6 +116,8 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
 CREATE INDEX IF NOT EXISTS idx_debt_transactions_client ON debt_transactions(client_id);
 CREATE INDEX IF NOT EXISTS idx_products_user ON products(user_id);
 CREATE INDEX IF NOT EXISTS idx_clients_user ON clients(user_id);
+CREATE INDEX IF NOT EXISTS idx_sale_audit_sale ON sale_audit_log(sale_id);
+CREATE INDEX IF NOT EXISTS idx_sale_audit_user ON sale_audit_log(user_id);
 
 -- ============================================================
 -- ROW LEVEL SECURITY — Isolation par utilisateur
@@ -110,6 +130,7 @@ ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE debt_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE device_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sale_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Chaque utilisateur ne voit QUE ses propres données
 -- auth.uid() = l'ID de l'utilisateur connecté
@@ -142,6 +163,19 @@ CREATE POLICY "User sees own settings" ON app_settings
 DROP POLICY IF EXISTS "User sees own device_tokens" ON device_tokens;
 CREATE POLICY "User sees own device_tokens" ON device_tokens
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Journal d'audit : APPEND-ONLY côté serveur. L'utilisateur peut lire et
+-- insérer SES entrées, mais jamais les modifier ni les supprimer (aucune
+-- policy UPDATE/DELETE). C'est la garantie anti-fraude : même le propriétaire
+-- du compte ne peut pas effacer la trace d'une vente. Le back-office
+-- (service_role) bypasse la RLS pour la lecture/le contrôle admin.
+DROP POLICY IF EXISTS "User reads own audit" ON sale_audit_log;
+CREATE POLICY "User reads own audit" ON sale_audit_log
+    FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User inserts own audit" ON sale_audit_log;
+CREATE POLICY "User inserts own audit" ON sale_audit_log
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Réassigne un token FCM au compte connecté (auth.uid()).
 -- SECURITY DEFINER : contourne la RLS pour permettre à un 2e utilisateur de

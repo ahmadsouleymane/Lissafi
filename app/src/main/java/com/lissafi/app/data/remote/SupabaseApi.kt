@@ -67,6 +67,17 @@ private data class PartnerNameRpcPayload(val p_code: String)
 @Serializable
 private data class PartnerInstallPayload(val p_code: String)
 
+/** Corps du PATCH d'une vente (on ne touche pas à id / date / user_id / synced). */
+@Serializable
+private data class SaleUpdatePayload(
+    val total: Int,
+    val amount_paid: Int,
+    val change_given: Int,
+    val is_credit: Boolean,
+    val client_id: String?,
+    val cancelled: Boolean
+)
+
 /**
  * Client REST Supabase (PostgREST).
  *
@@ -275,6 +286,81 @@ class SupabaseApi(private val context: Context) {
         }
         ensureSuccess(response, "getSaleItems")
         response.body<List<SaleItem>>()
+    }
+
+    /**
+     * Met à jour une vente EXISTANTE côté serveur (PATCH par id) : total, mode
+     * de paiement, client, et surtout `cancelled`. Utilisé pour re-pousser une
+     * vente modifiée/annulée localement APRÈS sa 1re synchro — jamais un POST
+     * (qui créerait un doublon avec un nouvel id BIGSERIAL).
+     */
+    suspend fun updateSale(sale: Sale) = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        val response = http.patch(restUrl("sales")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            parameter("id", "eq.${sale.id}")
+            contentType(ContentType.Application.Json)
+            setBody(
+                SaleUpdatePayload(
+                    total = sale.total,
+                    amount_paid = sale.amountPaid,
+                    change_given = sale.changeGiven,
+                    is_credit = sale.isCredit,
+                    client_id = sale.clientId,
+                    cancelled = sale.cancelled
+                )
+            )
+        }
+        ensureSuccess(response, "updateSale")
+    }
+
+    /** Remplace tous les articles d'une vente (DELETE puis INSERT) — modification du panier. */
+    suspend fun replaceSaleItems(saleId: Long, items: List<SaleItem>) = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        val del = http.delete(restUrl("sale_items")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            parameter("sale_id", "eq.$saleId")
+        }
+        ensureSuccess(del, "replaceSaleItems(delete)")
+        if (items.isEmpty()) return@withContext
+        val withSaleId = items.map { it.copy(saleId = saleId) }
+        val response = http.post(restUrl("sale_items")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            contentType(ContentType.Application.Json)
+            setBody(withSaleId)
+        }
+        ensureSuccess(response, "replaceSaleItems(insert)")
+    }
+
+    // ==================== JOURNAL D'AUDIT ====================
+
+    /** Pousse des entrées d'audit (append-only) vers Supabase. */
+    suspend fun insertAuditEntries(entries: List<SaleAuditEntry>) = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        if (entries.isEmpty()) return@withContext
+        // id = 0 (omis) → le serveur génère le BIGSERIAL.
+        val body = entries.map { it.copy(id = 0) }
+        val response = http.post(restUrl("sale_audit_log")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        ensureSuccess(response, "insertAuditEntries")
+    }
+
+    /** Récupère tout l'historique d'audit du compte (RLS filtre par utilisateur). */
+    suspend fun getSaleAudit(): List<SaleAuditEntry> = withContext(Dispatchers.IO) {
+        val response = http.get(restUrl("sale_audit_log")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            parameter("select", "*")
+        }
+        ensureSuccess(response, "getSaleAudit")
+        response.body<List<SaleAuditEntry>>()
     }
 
     // ==================== CLIENTS ====================

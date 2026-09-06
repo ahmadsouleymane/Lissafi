@@ -23,7 +23,11 @@ class LissafiDatabase private constructor(context: Context) :
         // purge le hash résiduel éventuellement stocké dans app_settings.
         // v5 = colonne `synced` sur debt_transactions (local uniquement, pas mirroré sur
         // Supabase) : évite de repousser tout l'historique des dettes à chaque synchro.
-        const val DATABASE_VERSION = 5
+        // v6 = Journal des ventes : colonne `cancelled` sur sales (annulation douce,
+        // mirrorée), colonne `dirty` locale (vente modifiée à re-pousser en PATCH), et
+        // table `sale_audit_log` (trace append-only des créations/modifs/annulations,
+        // mirrorée sur Supabase — anti-fraude).
+        const val DATABASE_VERSION = 6
 
         @Volatile
         private var INSTANCE: LissafiDatabase? = null
@@ -65,7 +69,12 @@ class LissafiDatabase private constructor(context: Context) :
                 is_credit INTEGER NOT NULL DEFAULT 0,
                 client_id TEXT,
                 synced INTEGER NOT NULL DEFAULT 0,
-                user_id TEXT NOT NULL DEFAULT ''
+                user_id TEXT NOT NULL DEFAULT '',
+                -- Colonnes ajoutées en v6, placées APRÈS user_id pour que l'ordre
+                -- des colonnes (SELECT *) soit identique à celui d'une base migrée
+                -- (les ALTER TABLE ADD ci-dessous ajoutent forcément en fin de table).
+                cancelled INTEGER NOT NULL DEFAULT 0,
+                dirty INTEGER NOT NULL DEFAULT 0
             )
         """)
         db.execSQL("""
@@ -106,6 +115,19 @@ class LissafiDatabase private constructor(context: Context) :
             CREATE TABLE IF NOT EXISTS app_settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            )
+        """)
+        // Journal d'audit des ventes (append-only) : trace inaltérable des
+        // créations / modifications / annulations. `synced` local uniquement.
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS sale_audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sale_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                details TEXT NOT NULL DEFAULT '',
+                date INTEGER NOT NULL,
+                user_id TEXT NOT NULL DEFAULT '',
+                synced INTEGER NOT NULL DEFAULT 0
             )
         """)
     }
@@ -164,6 +186,27 @@ class LissafiDatabase private constructor(context: Context) :
         if (oldVersion < 5) {
             try { db.execSQL("ALTER TABLE debt_transactions ADD COLUMN synced INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
             try { db.execSQL("UPDATE debt_transactions SET synced = 1") } catch (_: Exception) {}
+        }
+
+        // V5 → V6 : Journal des ventes. Colonnes `cancelled` (annulation douce,
+        // mirrorée sur Supabase) et `dirty` (locale : vente modifiée à re-pousser)
+        // sur sales ; table `sale_audit_log` (trace append-only).
+        if (oldVersion < 6) {
+            try { db.execSQL("ALTER TABLE sales ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
+            try { db.execSQL("ALTER TABLE sales ADD COLUMN dirty INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
+            try {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sale_audit_log (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        sale_id INTEGER NOT NULL,
+                        action TEXT NOT NULL,
+                        details TEXT NOT NULL DEFAULT '',
+                        date INTEGER NOT NULL,
+                        user_id TEXT NOT NULL DEFAULT '',
+                        synced INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            } catch (_: Exception) {}
         }
     }
 
@@ -320,10 +363,34 @@ class LissafiDatabase private constructor(context: Context) :
         val list = mutableListOf<Sale>()
         val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
-        readableDatabase.rawQuery("SELECT * FROM sales WHERE date >= ? AND date < ? $where ORDER BY date DESC", args).use { cursor ->
+        // Rapports : les ventes annulées sont exclues du chiffre d'affaires (cancelled = 0).
+        readableDatabase.rawQuery("SELECT * FROM sales WHERE date >= ? AND date < ? AND cancelled = 0 $where ORDER BY date DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toSale())
         }
         list
+    }
+
+    /**
+     * Journal des ventes : TOUTES les ventes de la période, y compris les
+     * annulées (affichées barrées / marquées « Annulée »). Ne jamais filtrer
+     * `cancelled` ici — le journal doit montrer l'intégralité de l'activité.
+     */
+    suspend fun getSalesJournal(userId: String = "", limit: Int = 500): List<Sale> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<Sale>()
+        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId, limit.toString()) else arrayOf(limit.toString())
+        readableDatabase.rawQuery("SELECT * FROM sales $where ORDER BY date DESC LIMIT ?", args).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toSale())
+        }
+        list
+    }
+
+    suspend fun getSaleById(id: Long, userId: String = ""): Sale? = withContext(Dispatchers.IO) {
+        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(id.toString(), userId) else arrayOf(id.toString())
+        readableDatabase.rawQuery("SELECT * FROM sales WHERE id = ?$where", args).use { cursor ->
+            if (cursor.moveToFirst()) cursor.toSale() else null
+        }
     }
 
     suspend fun getSaleItems(saleId: Long): List<SaleItem> = withContext(Dispatchers.IO) {
@@ -343,7 +410,7 @@ class LissafiDatabase private constructor(context: Context) :
         readableDatabase.rawQuery("""
             SELECT si.name, SUM(si.quantity) as total_qty, COUNT(DISTINCT si.sale_id) as cnt
             FROM sale_items si JOIN sales s ON si.sale_id = s.id
-            WHERE s.date >= ? AND s.date < ? $where
+            WHERE s.date >= ? AND s.date < ? AND s.cancelled = 0 $where
             GROUP BY si.name ORDER BY total_qty DESC
         """, args).use { cursor ->
             while (cursor.moveToNext()) {
@@ -356,7 +423,7 @@ class LissafiDatabase private constructor(context: Context) :
     suspend fun countSalesBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
         val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
-        readableDatabase.rawQuery("SELECT COUNT(*) FROM sales WHERE date >= ? AND date < ? $where", args).use { cursor ->
+        readableDatabase.rawQuery("SELECT COUNT(*) FROM sales WHERE date >= ? AND date < ? AND cancelled = 0 $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
         }
     }
@@ -364,7 +431,7 @@ class LissafiDatabase private constructor(context: Context) :
     suspend fun sumTotalBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
         val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
-        readableDatabase.rawQuery("SELECT COALESCE(SUM(total), 0) FROM sales WHERE date >= ? AND date < ? $where", args).use { cursor ->
+        readableDatabase.rawQuery("SELECT COALESCE(SUM(total), 0) FROM sales WHERE date >= ? AND date < ? AND cancelled = 0 $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
         }
     }
@@ -372,7 +439,7 @@ class LissafiDatabase private constructor(context: Context) :
     suspend fun sumCreditBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
         val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
-        readableDatabase.rawQuery("SELECT COALESCE(SUM(total), 0) FROM sales WHERE date >= ? AND date < ? AND is_credit = 1 $where", args).use { cursor ->
+        readableDatabase.rawQuery("SELECT COALESCE(SUM(total), 0) FROM sales WHERE date >= ? AND date < ? AND is_credit = 1 AND cancelled = 0 $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
         }
     }
@@ -516,6 +583,210 @@ class LissafiDatabase private constructor(context: Context) :
         }
     }
 
+    // ==================== JOURNAL DES VENTES (modif / annulation / audit) ====================
+
+    /**
+     * Applique une MODIFICATION de vente de façon atomique : mise à jour de la
+     * ligne `sales`, remplacement complet des articles, et insertion de l'entrée
+     * d'audit — le tout dans UNE transaction (jamais d'état intermédiaire visible
+     * ou poussé). Si la vente était déjà synchronisée, on la marque `dirty=1`
+     * pour qu'elle soit re-poussée en PATCH (et non ré-insérée → doublon).
+     */
+    suspend fun modifySaleAtomic(sale: Sale, items: List<SaleItem>, audit: SaleAuditEntry) = withContext(Dispatchers.IO) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val wasSynced = db.rawQuery("SELECT synced FROM sales WHERE id = ?", arrayOf(sale.id.toString())).use {
+                if (it.moveToFirst()) it.getInt(0) == 1 else false
+            }
+            val cv = ContentValues().apply {
+                put("total", sale.total)
+                put("amount_paid", sale.amountPaid)
+                put("change_given", sale.changeGiven)
+                put("is_credit", if (sale.isCredit) 1 else 0)
+                put("client_id", sale.clientId)
+                put("cancelled", if (sale.cancelled) 1 else 0)
+                // Vente déjà distante → à re-pousser en PATCH ; vente jamais synchro →
+                // elle partira en INSERT avec ses nouvelles valeurs, pas besoin de dirty.
+                if (wasSynced) put("dirty", 1)
+            }
+            db.update("sales", cv, "id = ?", arrayOf(sale.id.toString()))
+
+            db.delete("sale_items", "sale_id = ?", arrayOf(sale.id.toString()))
+            for (item in items) {
+                val itemCv = ContentValues().apply {
+                    put("sale_id", sale.id)
+                    put("barcode", item.barcode)
+                    put("name", item.name)
+                    put("price", item.price)
+                    put("quantity", item.quantity)
+                    put("user_id", item.userId)
+                }
+                db.insert("sale_items", null, itemCv)
+            }
+            insertAuditInternal(db, audit)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * Annule (soft) une vente : `cancelled=1` + entrée d'audit, atomiquement. La
+     * vente n'est JAMAIS supprimée. `dirty=1` si elle était déjà synchronisée.
+     */
+    suspend fun cancelSaleAtomic(saleId: Long, audit: SaleAuditEntry) = withContext(Dispatchers.IO) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val wasSynced = db.rawQuery("SELECT synced FROM sales WHERE id = ?", arrayOf(saleId.toString())).use {
+                if (it.moveToFirst()) it.getInt(0) == 1 else false
+            }
+            val cv = ContentValues().apply {
+                put("cancelled", 1)
+                if (wasSynced) put("dirty", 1)
+            }
+            db.update("sales", cv, "id = ?", arrayOf(saleId.toString()))
+            insertAuditInternal(db, audit)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Insertion d'une entrée d'audit dans une transaction déjà ouverte. */
+    private fun insertAuditInternal(db: SQLiteDatabase, audit: SaleAuditEntry) {
+        val cv = ContentValues().apply {
+            put("sale_id", audit.saleId)
+            put("action", audit.action)
+            put("details", audit.details)
+            put("date", audit.date)
+            put("user_id", audit.userId)
+            put("synced", 0)
+        }
+        db.insert("sale_audit_log", null, cv)
+    }
+
+    /** Ajoute une entrée d'audit (ex. à la création d'une vente). */
+    suspend fun addSaleAudit(audit: SaleAuditEntry) = withContext(Dispatchers.IO) {
+        insertAuditInternal(writableDatabase, audit)
+    }
+
+    /** Historique complet d'une vente (plus récent en premier). */
+    suspend fun getSaleAudit(saleId: Long): List<SaleAuditEntry> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<SaleAuditEntry>()
+        readableDatabase.rawQuery(
+            "SELECT id, sale_id, action, details, date, user_id FROM sale_audit_log WHERE sale_id = ? ORDER BY date DESC",
+            arrayOf(saleId.toString())
+        ).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toSaleAuditEntry())
+        }
+        list
+    }
+
+    // ── Helpers de synchro (Journal) ──
+
+    /** Ventes déjà synchronisées mais modifiées localement, à re-pousser en PATCH. */
+    suspend fun getDirtySyncedSales(userId: String = ""): List<Sale> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<Sale>()
+        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId) else null
+        readableDatabase.rawQuery("SELECT * FROM sales WHERE synced = 1 AND dirty = 1 $where ORDER BY date ASC", args).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toSale())
+        }
+        list
+    }
+
+    suspend fun markSaleClean(id: Long) = withContext(Dispatchers.IO) {
+        val cv = ContentValues().apply { put("dirty", 0) }
+        writableDatabase.update("sales", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    /** Met à jour une vente locale existante depuis Supabase (annulation/modif reçue d'un autre appareil). */
+    suspend fun updateSaleFromRemote(sale: Sale, items: List<SaleItem>) = withContext(Dispatchers.IO) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val cv = ContentValues().apply {
+                put("total", sale.total)
+                put("amount_paid", sale.amountPaid)
+                put("change_given", sale.changeGiven)
+                put("is_credit", if (sale.isCredit) 1 else 0)
+                put("client_id", sale.clientId)
+                put("cancelled", if (sale.cancelled) 1 else 0)
+                put("synced", 1)
+                put("dirty", 0)
+            }
+            db.update("sales", cv, "id = ?", arrayOf(sale.id.toString()))
+            if (items.isNotEmpty()) {
+                db.delete("sale_items", "sale_id = ?", arrayOf(sale.id.toString()))
+                for (item in items) {
+                    val itemCv = ContentValues().apply {
+                        put("sale_id", sale.id)
+                        put("barcode", item.barcode)
+                        put("name", item.name)
+                        put("price", item.price)
+                        put("quantity", item.quantity)
+                        put("user_id", item.userId)
+                    }
+                    db.insert("sale_items", null, itemCv)
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * Entrées d'audit à pousser. On ne pousse une entrée QUE si la vente
+     * référencée est déjà synchronisée (sales.synced = 1) : son `sale_id` est
+     * alors l'id définitif (aligné sur le BIGSERIAL distant par finalizeSalePush).
+     * Sinon on attend le prochain cycle — jamais de trace pointant vers un id
+     * local périmé côté serveur.
+     */
+    suspend fun getUnsyncedAudit(userId: String = ""): List<SaleAuditEntry> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<SaleAuditEntry>()
+        val where = if (userId.isNotEmpty()) "AND a.user_id = ?" else ""
+        val args = if (userId.isNotEmpty()) arrayOf(userId) else null
+        readableDatabase.rawQuery(
+            """
+            SELECT a.id, a.sale_id, a.action, a.details, a.date, a.user_id
+            FROM sale_audit_log a JOIN sales s ON a.sale_id = s.id
+            WHERE a.synced = 0 AND s.synced = 1 $where ORDER BY a.date ASC
+            """,
+            args
+        ).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.toSaleAuditEntry())
+        }
+        list
+    }
+
+    suspend fun markAuditSynced(id: Long) = withContext(Dispatchers.IO) {
+        val cv = ContentValues().apply { put("synced", 1) }
+        writableDatabase.update("sale_audit_log", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    /** Insère une entrée d'audit venue du serveur si elle n'existe pas déjà (clé naturelle). */
+    suspend fun insertAuditIfNotExists(audit: SaleAuditEntry) = withContext(Dispatchers.IO) {
+        readableDatabase.rawQuery(
+            "SELECT 1 FROM sale_audit_log WHERE sale_id = ? AND date = ? AND action = ?",
+            arrayOf(audit.saleId.toString(), audit.date.toString(), audit.action)
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) {
+                val cv = ContentValues().apply {
+                    put("sale_id", audit.saleId)
+                    put("action", audit.action)
+                    put("details", audit.details)
+                    put("date", audit.date)
+                    put("user_id", audit.userId)
+                    put("synced", 1)
+                }
+                writableDatabase.insert("sale_audit_log", null, cv)
+            }
+        }
+    }
+
     // ==================== SETTINGS ====================
 
     suspend fun getSetting(key: String): String? = withContext(Dispatchers.IO) {
@@ -597,6 +868,10 @@ class LissafiDatabase private constructor(context: Context) :
                         arrayOf(freeId.toString(), newId.toString())
                     )
                     db.execSQL(
+                        "UPDATE sale_audit_log SET sale_id = ? WHERE sale_id = ?",
+                        arrayOf(freeId.toString(), newId.toString())
+                    )
+                    db.execSQL(
                         "UPDATE sales SET id = ? WHERE id = ?",
                         arrayOf(freeId.toString(), newId.toString())
                     )
@@ -608,6 +883,10 @@ class LissafiDatabase private constructor(context: Context) :
                 )
                 db.execSQL(
                     "UPDATE debt_transactions SET sale_id = ? WHERE sale_id = ?",
+                    arrayOf(newId.toString(), oldId.toString())
+                )
+                db.execSQL(
+                    "UPDATE sale_audit_log SET sale_id = ? WHERE sale_id = ?",
                     arrayOf(newId.toString(), oldId.toString())
                 )
                 db.execSQL(
@@ -640,6 +919,7 @@ class LissafiDatabase private constructor(context: Context) :
                 put("is_credit", if (sale.isCredit) 1 else 0)
                 put("client_id", sale.clientId)
                 put("synced", 1)
+                put("cancelled", if (sale.cancelled) 1 else 0)
                 put("user_id", sale.userId)
             }
             writableDatabase.insert("sales", null, cv)
@@ -711,7 +991,18 @@ private fun Cursor.toSale() = Sale(
     isCredit = getInt(5) == 1,
     clientId = getString(6),
     synced = getInt(7) == 1,
-    userId = if (columnCount > 8) getString(8) else ""
+    userId = if (columnCount > 8) getString(8) else "",
+    // cancelled = colonne 9 (ajoutée en v6, après user_id — voir onCreate/onUpgrade).
+    cancelled = if (columnCount > 9) getInt(9) == 1 else false
+)
+
+private fun Cursor.toSaleAuditEntry() = SaleAuditEntry(
+    id = getLong(0),
+    saleId = getLong(1),
+    action = getString(2),
+    details = getString(3),
+    date = getLong(4),
+    userId = if (columnCount > 5) getString(5) else ""
 )
 
 private fun Cursor.toSaleItem() = SaleItem(

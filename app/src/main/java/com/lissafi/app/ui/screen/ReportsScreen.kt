@@ -60,7 +60,8 @@ import java.util.Locale
 fun ReportsScreen(
     viewModel: ReportViewModel,
     onBack: () -> Unit,
-    onNavigateToProducts: () -> Unit
+    onNavigateToProducts: () -> Unit,
+    onNavigateToJournal: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -105,6 +106,32 @@ fun ReportsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         )
+
+        // ── ACCÈS AU JOURNAL DES VENTES ──
+        LissafiCard(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            onClick = onNavigateToJournal,
+            cornerRadius = 16,
+            elevation = 2
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconCircle(icon = LissafiIcons.Recents, size = 40, iconSize = 20)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Journal des ventes", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = OnBackground)
+                    Text("Consulter, corriger ou annuler une vente", fontSize = 12.sp, color = TextSecondary)
+                }
+                Icon(
+                    imageVector = LissafiIcons.Retour,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         // Le stock bas est géré dans l'écran Produits (badge par produit).
 
