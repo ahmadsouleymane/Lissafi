@@ -246,6 +246,50 @@ export async function getUserDetail(
   };
 }
 
+export type SaleAuditRow = {
+  id: number;
+  sale_id: number;
+  action: string; // 'created' | 'modified' | 'cancelled'
+  details: string;
+  date: number;
+  user_id: string;
+  email?: string | null;
+};
+
+/**
+ * Journal d'audit des ventes (sale_audit_log) : trace des créations /
+ * modifications / annulations, email du compte joint. Anti-fraude : permet au
+ * patron de surveiller à distance toute retouche de vente.
+ * `action` : "changes" (défaut) = modifiées + annulées ; "all" = tout ;
+ * sinon une action précise.
+ */
+export async function getSaleAuditLog(
+  opts: { action?: string; fromTs?: number; limit?: number } = {}
+): Promise<SaleAuditRow[]> {
+  try {
+    let query = supabaseAdmin()
+      .from("sale_audit_log")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(opts.limit ?? 300);
+
+    const action = opts.action ?? "changes";
+    if (action === "changes") query = query.in("action", ["modified", "cancelled"]);
+    else if (action !== "all" && action) query = query.eq("action", action);
+
+    if (opts.fromTs && opts.fromTs > 0) query = query.gte("date", Date.now() - opts.fromTs);
+
+    const { data, error } = await query;
+    if (error) logRpcError("getSaleAuditLog", error);
+    const rows = (data ?? []) as SaleAuditRow[];
+    const emails = await getUserEmails();
+    return rows.map((r) => ({ ...r, email: emails[r.user_id] ?? null }));
+  } catch (e) {
+    logRpcError("getSaleAuditLog", e);
+    return [];
+  }
+}
+
 /** Paramètres globaux du back-office. */
 export async function getAdminSettings(): Promise<Record<string, string>> {
   const { data } = await supabaseAdmin().from("admin_settings").select("*");
