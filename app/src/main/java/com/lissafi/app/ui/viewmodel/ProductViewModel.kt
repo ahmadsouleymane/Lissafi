@@ -82,9 +82,14 @@ class ProductViewModel(
     fun addProduct(product: Product) {
         viewModelScope.launch {
             try {
+                // La limite ne concerne que les NOUVEAUX produits : modifier un produit
+                // existant (prix, stock, catégorie) doit rester possible même quand le
+                // catalogue a atteint la limite du plan — sinon la sauvegarde d'une
+                // simple correction serait silencieusement bloquée.
+                val isNew = repository.getProduct(product.barcode) == null
                 // Re-vérifie la limite au moment de l'écriture (course TOCTOU : deux
-                // clics rapides ne doivent pas dépasser la limite gratuite).
-                if (!premiumManager.canAddProduct()) {
+                // clics rapides ne doivent pas dépasser la limite du plan).
+                if (isNew && !premiumManager.canAddProduct()) {
                     _state.value = _state.value.copy(isLimitReached = true)
                     return@launch
                 }

@@ -81,6 +81,7 @@ import com.lissafi.app.ui.viewmodel.CartViewModel
 import com.lissafi.app.ui.viewmodel.LastSale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private val QUICK_CASH = listOf(100, 500, 1000, 5000, 10000)
 
@@ -849,7 +850,11 @@ private fun CartItemRow(
         }
         Spacer(Modifier.width(8.dp))
         Text(
-            text = FormatUtils.formatFCFA((item.price * item.quantity).toInt()),
+            // roundToInt() (et non toInt()) : cohérent avec le total du panier
+            // (CartViewModel.computeTotal) et le ticket (ReceiptService) — sinon,
+            // pour une quantité au poids, les lignes affichées ne s'additionnent
+            // pas au total montré.
+            text = FormatUtils.formatFCFA((item.price * item.quantity).roundToInt()),
             fontWeight = FontWeight.Medium,
             fontSize = 15.sp,
             color = OnBackground,

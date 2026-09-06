@@ -307,7 +307,11 @@ class SyncManager(
         for (client in clients) {
             val remote = api.getDebtTransactions(client.id)
             for (txn in remote) {
-                if (txn.userId != uid || txn.amount < 0) { skipped++; continue }
+                // NE PAS filtrer sur amount < 0 : les remboursements sont stockés en
+                // montants négatifs (voir ClientViewModel.addRepayment). Les rejeter ici
+                // faisait disparaître tout l'historique de remboursement sur un 2e appareil
+                // ou après réinstallation, et corrompait le recalcul local de la dette.
+                if (txn.userId != uid || txn.amount == 0) { skipped++; continue }
                 db.insertDebtTransactionIfNotExists(txn)
             }
         }
