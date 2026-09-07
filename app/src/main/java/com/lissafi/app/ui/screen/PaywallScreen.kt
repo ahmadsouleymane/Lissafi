@@ -62,6 +62,12 @@ private fun businessPrice(p: Period) = when (p) {
     Period.YEARLY -> PremiumManager.BUSINESS_YEARLY
 }
 
+private fun grandPrice(p: Period) = when (p) {
+    Period.MONTHLY -> PremiumManager.GRAND_MONTHLY
+    Period.QUARTERLY -> PremiumManager.GRAND_QUARTERLY
+    Period.YEARLY -> PremiumManager.GRAND_YEARLY
+}
+
 /** Équivalent mensuel affiché sous le prix (argument valeur). */
 private fun perMonth(price: Int, p: Period): Int = when (p) {
     Period.MONTHLY -> price
@@ -192,18 +198,16 @@ fun PaywallScreen(
 
             Spacer(Modifier.height(14.dp))
 
-            // ── Commerce / Supermarché (BUSINESS) ──
+            // ── Commerce / Supermarché (BUSINESS) — une caisse, catalogue illimité ──
             PlanCard(
                 title = "Commerce / Supermarché",
-                subtitle = "Plusieurs caisses, chiffre global",
+                subtitle = "Une caisse, tout illimité",
                 price = businessPrice(period),
                 perMonth = perMonth(businessPrice(period), period),
                 period = period,
                 highlighted = true,
                 features = listOf(
-                    "Tout illimité",
-                    "Multi-caisses (CA global)",
-                    "Plusieurs utilisateurs",
+                    "Produits illimités",
                     "Rapports avancés + export CSV",
                     "Support prioritaire"
                 ),
@@ -216,6 +220,38 @@ fun PaywallScreen(
                     openUrl(
                         PremiumManager.buildWhatsAppActivationLink(
                             "Commerce/Supermarché", period.label, businessPrice(period), currentUserEmail
+                        )
+                    )
+                }
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            // ── Grand boutique (GRAND_BOUTIQUE) — plusieurs caisses partagées ──
+            PlanCard(
+                title = "Grand boutique",
+                subtitle = "Plusieurs caisses, chiffre global",
+                price = grandPrice(period),
+                perMonth = perMonth(grandPrice(period), period),
+                period = period,
+                highlighted = false,
+                features = listOf(
+                    "Tout illimité",
+                    "Plusieurs caisses (2 incluses)",
+                    "Stock, clients et crédits partagés",
+                    "Chiffre par caisse et par vendeur",
+                    "Rôles patron / vendeur",
+                    "Support prioritaire"
+                ),
+                onPayOnline = {
+                    logClick("grand_boutique", "card")
+                    openUrl(PremiumManager.buildActivationPaymentLink("grand_boutique", period.code, currentUserEmail))
+                },
+                onPayWhatsApp = {
+                    logClick("grand_boutique", "whatsapp")
+                    openUrl(
+                        PremiumManager.buildWhatsAppActivationLink(
+                            "Grand boutique", period.label, grandPrice(period), currentUserEmail
                         )
                     )
                 }

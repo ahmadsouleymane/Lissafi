@@ -245,7 +245,7 @@ class SyncManager(
         // les refuserait.
         val serverManaged = setOf(
             "is_premium", "plan", "premium_expiry", "activation_code",
-            "demo_taken", "activation_method"
+            "demo_taken", "activation_method", "max_caisses"
         )
         for (setting in settings) {
             if (setting.key == "last_sync_timestamp") continue // Ne pas sync le timestamp

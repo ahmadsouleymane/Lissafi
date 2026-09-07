@@ -24,6 +24,10 @@ class PremiumManager(
         const val BUSINESS_MONTHLY = 6_000
         const val BUSINESS_QUARTERLY = 15_000
         const val BUSINESS_YEARLY = 50_000
+        // Grand boutique (multi-caisses). Tarifs de départ à valider (2 caisses incluses).
+        const val GRAND_MONTHLY = 10_000
+        const val GRAND_QUARTERLY = 27_000
+        const val GRAND_YEARLY = 90_000
         /** Pack Boutique : paiement unique = imprimante 58 mm + 2 rouleaux + 1 an Petite boutique. */
         const val PACK_ONE_TIME = 60_000
 
@@ -60,14 +64,21 @@ class PremiumManager(
      * - BUSINESS: Commerce/Supermarché (payant, illimité, multi-postes)
      * - LOCKED  : essai terminé et aucun abonnement → app bloquée (paywall)
      */
-    enum class Plan { TRIAL, PLUS, BUSINESS, LOCKED }
+    enum class Plan { TRIAL, PLUS, BUSINESS, GRAND_BOUTIQUE, LOCKED }
 
     suspend fun getPlan(): Plan {
         if (isPremium()) {
-            return if (repository.getSetting("plan") == "business") Plan.BUSINESS else Plan.PLUS
+            return when (repository.getSetting("plan")) {
+                "grand_boutique" -> Plan.GRAND_BOUTIQUE
+                "business" -> Plan.BUSINESS
+                else -> Plan.PLUS
+            }
         }
         return if (isInTrial()) Plan.TRIAL else Plan.LOCKED
     }
+
+    /** Nombre de caisses autorisé (app_settings `max_caisses`, posé par le serveur). Défaut 1. */
+    suspend fun maxCaisses(): Int = repository.getSetting("max_caisses")?.toIntOrNull() ?: 1
 
     suspend fun isPremium(): Boolean {
         val premium = repository.isPremium()
@@ -129,7 +140,11 @@ class PremiumManager(
 
             // On répercute localement l'état posé par le serveur.
             repository.setSetting("is_premium", "true")
-            repository.setSetting("plan", if (result.plan == "business") "business" else "plus")
+            val planValue = when (result.plan) {
+                "grand_boutique", "business" -> result.plan
+                else -> "plus"
+            }
+            repository.setSetting("plan", planValue)
             result.premium_expiry?.let { repository.setSetting("premium_expiry", it.toString()) }
             repository.setSetting("activation_code", trimmed)
             true
@@ -140,7 +155,7 @@ class PremiumManager(
 
     /** Ajout produit : TRIAL/BUSINESS illimité, PLUS ≤200, LOCKED interdit. */
     suspend fun canAddProduct(): Boolean = when (getPlan()) {
-        Plan.TRIAL, Plan.BUSINESS -> true
+        Plan.TRIAL, Plan.BUSINESS, Plan.GRAND_BOUTIQUE -> true
         Plan.PLUS -> repository.getProductCount() < MAX_PLUS_PRODUCTS
         Plan.LOCKED -> false
     }

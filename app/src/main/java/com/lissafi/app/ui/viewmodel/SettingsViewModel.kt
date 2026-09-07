@@ -50,6 +50,7 @@ class SettingsViewModel(
                     PremiumManager.Plan.TRIAL -> "trial"
                     PremiumManager.Plan.PLUS -> "plus"
                     PremiumManager.Plan.BUSINESS -> "business"
+                    PremiumManager.Plan.GRAND_BOUTIQUE -> "grand_boutique"
                     PremiumManager.Plan.LOCKED -> "locked"
                 }
                 val trialDaysLeft = premiumManager.trialDaysLeft()

@@ -67,16 +67,18 @@ fun SettingsScreen(
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
     val isDarkMode = ThemeManager.isDark
-    val isPaid = state.plan == "plus" || state.plan == "business"
+    val isPaid = state.plan == "plus" || state.plan == "business" || state.plan == "grand_boutique"
     val isTrial = state.plan == "trial"
     val hasAccess = state.plan != "locked"
     val planLabel = when (state.plan) {
+        "grand_boutique" -> "Grand boutique"
         "business" -> "Commerce / Supermarché"
         "plus" -> "Petite boutique"
         "trial" -> "Essai gratuit"
         else -> null
     }
     val planSubtitle = when (state.plan) {
+        "grand_boutique" -> "Multi-caisses · Expire le ${state.premiumExpiryText}"
         "business" -> "Tout illimité · Expire le ${state.premiumExpiryText}"
         "plus" -> "${PremiumManager.MAX_PLUS_PRODUCTS} produits · Expire le ${state.premiumExpiryText}"
         "trial" -> "Il te reste ${state.trialDaysLeft} jour${if (state.trialDaysLeft > 1) "s" else ""} · tout est débloqué"

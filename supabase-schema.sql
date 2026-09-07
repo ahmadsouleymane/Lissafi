@@ -480,11 +480,16 @@ GRANT  EXECUTE ON FUNCTION public.leave_shop() TO authenticated;
 -- modifiable par les clients (RLS + REVOKE) — seul service_role / la fonction.
 CREATE TABLE IF NOT EXISTS public.premium_codes (
     code TEXT PRIMARY KEY,
-    plan TEXT NOT NULL CHECK (plan IN ('plus', 'business')),
+    plan TEXT NOT NULL CHECK (plan IN ('plus', 'business', 'grand_boutique')),
     used_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     used_at BIGINT,
     created_at BIGINT NOT NULL DEFAULT (extract(epoch FROM now()) * 1000)::bigint
 );
+
+-- Élargit la contrainte de plan sur une table déjà créée (idempotent).
+ALTER TABLE public.premium_codes DROP CONSTRAINT IF EXISTS premium_codes_plan_check;
+ALTER TABLE public.premium_codes ADD CONSTRAINT premium_codes_plan_check
+    CHECK (plan IN ('plus', 'business', 'grand_boutique'));
 
 ALTER TABLE public.premium_codes ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.premium_codes FROM anon, authenticated;
@@ -513,6 +518,7 @@ AS $func$
 DECLARE
     v_plan text;
     v_expiry bigint;
+    v_max_caisses int;
 BEGIN
     IF auth.uid() IS NULL THEN
         RAISE EXCEPTION 'not_authenticated';
@@ -528,6 +534,8 @@ BEGIN
     END IF;
 
     v_expiry := (extract(epoch FROM now() + interval '365 days') * 1000)::bigint;
+    -- Nombre de caisses inclus : 2 pour Grand boutique, 1 sinon (mono-caisse).
+    v_max_caisses := CASE v_plan WHEN 'grand_boutique' THEN 2 ELSE 1 END;
 
     UPDATE public.premium_codes
     SET used_by = auth.uid(),
@@ -541,10 +549,11 @@ BEGIN
         ('plan', v_plan, auth.uid()),
         ('premium_expiry', v_expiry::text, auth.uid()),
         ('activation_code', p_code, auth.uid()),
+        ('max_caisses', v_max_caisses::text, auth.uid()),
         ('demo_taken', 'true', auth.uid())
     ON CONFLICT (key, user_id) DO UPDATE SET value = EXCLUDED.value;
 
-    RETURN jsonb_build_object('ok', true, 'plan', v_plan, 'premium_expiry', v_expiry);
+    RETURN jsonb_build_object('ok', true, 'plan', v_plan, 'premium_expiry', v_expiry, 'max_caisses', v_max_caisses);
 END;
 $func$;
 
