@@ -107,6 +107,13 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val repository = remember(userId) {
         LissafiRepository(db, api, onDataChanged = { app.syncManager.syncInBackground() })
             .withUserId(userId)
+            .also { repo ->
+                // Boutique partagée (Grand boutique) : les lectures/écritures sont
+                // portées par le shop_id (repli sur user_id pour une boutique solo).
+                repo.currentShopIdProvider = {
+                    com.lissafi.app.data.remote.SupabaseManager.currentShopId(app)
+                }
+            }
     }
     val premiumManager = remember(userId) { PremiumManager(repository, api) }
 

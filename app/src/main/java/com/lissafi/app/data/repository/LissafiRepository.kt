@@ -28,6 +28,15 @@ class LissafiRepository(
 
     private val currentUserId: String get() = currentUserIdProvider()
 
+    /**
+     * Fournit l'ID de boutique courant (Grand boutique). Par défaut = l'utilisateur
+     * (boutique solo, shop_id = user_id). Réglé par LissafiNavHost à partir de
+     * SupabaseManager.currentShopId pour une caisse rattachée à un patron.
+     */
+    var currentShopIdProvider: () -> String = { currentUserId }
+
+    private val currentShopId: String get() = currentShopIdProvider()
+
     fun withUserId(id: String): LissafiRepository {
         currentUserIdProvider = { id }
         return this
@@ -37,15 +46,15 @@ class LissafiRepository(
 
     val productsFlow: Flow<List<Product>> get() = db.productsFlow
 
-    suspend fun getAllProducts(): List<Product> = db.getAllProducts(currentUserId)
-    suspend fun getProduct(barcode: String): Product? = db.getProduct(barcode, currentUserId)
-    suspend fun searchProducts(query: String): List<Product> = db.searchProducts(query, currentUserId)
-    suspend fun getProductCount(): Int = db.getProductCount(currentUserId)
-    suspend fun getRecentProducts(limit: Int = 8): List<Product> = db.getRecentProducts(limit, currentUserId)
-    suspend fun getLowStockProducts(): List<Product> = db.getLowStockProducts(currentUserId)
+    suspend fun getAllProducts(): List<Product> = db.getAllProducts(currentShopId)
+    suspend fun getProduct(barcode: String): Product? = db.getProduct(barcode, currentShopId)
+    suspend fun searchProducts(query: String): List<Product> = db.searchProducts(query, currentShopId)
+    suspend fun getProductCount(): Int = db.getProductCount(currentShopId)
+    suspend fun getRecentProducts(limit: Int = 8): List<Product> = db.getRecentProducts(limit, currentShopId)
+    suspend fun getLowStockProducts(): List<Product> = db.getLowStockProducts(currentShopId)
 
     suspend fun upsertProduct(product: Product) {
-        val p = product.copy(userId = currentUserId)
+        val p = product.copy(userId = currentUserId, shopId = currentShopId)
         db.upsertProduct(p)
         logFunnelOnce("first_product")
         syncToRemote()
@@ -64,15 +73,15 @@ class LissafiRepository(
 
     suspend fun deleteProduct(product: Product) {
         // Soft delete local ; la suppression (deleted=1) est poussée par SyncManager.pushProducts.
-        db.deleteProduct(product.copy(userId = currentUserId))
+        db.deleteProduct(product.copy(userId = currentUserId, shopId = currentShopId))
         syncToRemote()
     }
 
     // --- Ventes ---
 
     suspend fun insertSale(sale: Sale, items: List<SaleItem>): Long {
-        val s = sale.copy(userId = currentUserId)
-        val itms = items.map { it.copy(userId = currentUserId) }
+        val s = sale.copy(userId = currentUserId, shopId = currentShopId)
+        val itms = items.map { it.copy(userId = currentUserId, shopId = currentShopId) }
         val saleId = db.insertSale(s, itms)
         logFunnelOnce("first_sale")
         // Le push (api.insertSale + finalizeSalePush) est fait par SyncManager.pushSales,
@@ -81,24 +90,24 @@ class LissafiRepository(
         return saleId
     }
 
-    suspend fun getSalesBetween(start: Long, end: Long): List<Sale> = db.getSalesBetween(start, end, currentUserId)
+    suspend fun getSalesBetween(start: Long, end: Long): List<Sale> = db.getSalesBetween(start, end, currentShopId)
     suspend fun getSaleItems(saleId: Long): List<SaleItem> = db.getSaleItems(saleId)
-    suspend fun getTopProducts(start: Long, end: Long) = db.getTopProducts(start, end, currentUserId)
-    suspend fun countSalesBetween(start: Long, end: Long): Int = db.countSalesBetween(start, end, currentUserId)
-    suspend fun sumTotalBetween(start: Long, end: Long): Int = db.sumTotalBetween(start, end, currentUserId)
-    suspend fun sumCreditBetween(start: Long, end: Long): Int = db.sumCreditBetween(start, end, currentUserId)
+    suspend fun getTopProducts(start: Long, end: Long) = db.getTopProducts(start, end, currentShopId)
+    suspend fun countSalesBetween(start: Long, end: Long): Int = db.countSalesBetween(start, end, currentShopId)
+    suspend fun sumTotalBetween(start: Long, end: Long): Int = db.sumTotalBetween(start, end, currentShopId)
+    suspend fun sumCreditBetween(start: Long, end: Long): Int = db.sumCreditBetween(start, end, currentShopId)
 
     // --- Clients ---
 
     val clientsFlow: Flow<List<Client>> get() = db.clientsFlow
 
-    suspend fun getAllClients(): List<Client> = db.getAllClients(currentUserId)
-    suspend fun getClient(id: String): Client? = db.getClient(id, currentUserId)
-    suspend fun searchClients(query: String): List<Client> = db.searchClients(query, currentUserId)
-    suspend fun getClientCount(): Int = db.getClientCount(currentUserId)
+    suspend fun getAllClients(): List<Client> = db.getAllClients(currentShopId)
+    suspend fun getClient(id: String): Client? = db.getClient(id, currentShopId)
+    suspend fun searchClients(query: String): List<Client> = db.searchClients(query, currentShopId)
+    suspend fun getClientCount(): Int = db.getClientCount(currentShopId)
 
     suspend fun upsertClient(client: Client) {
-        val c = client.copy(userId = currentUserId)
+        val c = client.copy(userId = currentUserId, shopId = currentShopId)
         db.upsertClient(c)
         syncToRemote()
     }
@@ -106,15 +115,15 @@ class LissafiRepository(
     // --- Dettes ---
 
     suspend fun getDebtTransactions(clientId: String): List<DebtTransaction> =
-        db.getDebtTransactions(clientId, currentUserId)
+        db.getDebtTransactions(clientId, currentShopId)
 
     suspend fun addDebtTransaction(transaction: DebtTransaction) {
-        val t = transaction.copy(userId = currentUserId)
+        val t = transaction.copy(userId = currentUserId, shopId = currentShopId)
         db.addDebtTransaction(t)
         syncToRemote()
     }
 
-    suspend fun getTotalDebt(clientId: String): Int = db.getTotalDebt(clientId, currentUserId)
+    suspend fun getTotalDebt(clientId: String): Int = db.getTotalDebt(clientId, currentShopId)
 
     // --- Paramètres ---
 

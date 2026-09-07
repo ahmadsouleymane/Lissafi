@@ -193,29 +193,29 @@ class SyncManager(
     // ==================== PUSH (local → Supabase) ====================
 
     private suspend fun pushProducts() {
-        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val shopId = currentShopId
         // On pousse aussi les produits supprimés (soft delete) : c'est ainsi que la
         // suppression est propagée au serveur et aux autres appareils.
-        val all = db.getAllProductsIncludingDeleted(userId)
+        val all = db.getAllProductsIncludingDeleted(shopId).map { it.copy(shopId = shopId) }
         if (all.isEmpty()) return
         api.upsertProducts(all)
         AppLog.d(TAG, "Push produits: ${all.size} envoyés")
     }
 
     private suspend fun pushClients() {
-        val userId = SupabaseManager.currentUserId(context) ?: ""
-        val all = db.getAllClients(userId)
+        val shopId = currentShopId
+        val all = db.getAllClients(shopId).map { it.copy(shopId = shopId) }
         if (all.isEmpty()) return
         api.upsertClients(all)
         AppLog.d(TAG, "Push clients: ${all.size} envoyés")
     }
 
     private suspend fun pushSales() {
-        val userId = SupabaseManager.currentUserId(context) ?: ""
-        val unsynced = db.getUnsyncedSales(userId)
+        val shopId = currentShopId
+        val unsynced = db.getUnsyncedSales(shopId)
         for (sale in unsynced) {
-            val items = db.getSaleItems(sale.id)
-            val remoteId = api.insertSale(sale, items)
+            val items = db.getSaleItems(sale.id).map { it.copy(shopId = shopId) }
+            val remoteId = api.insertSale(sale.copy(shopId = shopId), items)
             if (remoteId > 0) {
                 // Aligner l'id local sur l'id généré par Supabase et marquer la vente
                 // synchronisée, en une seule transaction atomique (voir finalizeSalePush).
@@ -226,13 +226,13 @@ class SyncManager(
     }
 
     private suspend fun pushDebtTransactions() {
-        val userId = SupabaseManager.currentUserId(context) ?: ""
+        val shopId = currentShopId
         // Ne pousser que les transactions pas encore synchronisées (flag local `synced`) :
         // repousser tout l'historique de tous les clients à chaque cycle déclenchait un GET
         // de dédoublonnage par transaction (O(n²) requêtes réseau).
-        val unsynced = db.getUnsyncedDebtTransactions(userId)
+        val unsynced = db.getUnsyncedDebtTransactions(shopId)
         for (txn in unsynced) {
-            api.addDebtTransaction(txn)
+            api.addDebtTransaction(txn.copy(shopId = shopId))
             db.markDebtTransactionSynced(txn.id)
         }
         AppLog.d(TAG, "Push dettes: ${unsynced.size} envoyées")
@@ -259,13 +259,13 @@ class SyncManager(
 
     private suspend fun pullProducts() {
         val remote = api.getAllProducts()
-        val uid = currentUserId
+        val shopId = currentShopId
         var skipped = 0
         for (product in remote) {
             // Validation d'intégrité : montants/stock non négatifs, nom présent,
-            // ligne liée au compte connecté (RLS en défense, mais on ne fait pas
+            // ligne liée à MA boutique (RLS en défense, mais on ne fait pas
             // confiance à un serveur compromis).
-            if (product.userId != uid ||
+            if (!belongsToShop(product.shopId, product.userId, shopId) ||
                 product.name.isBlank() ||
                 product.sellPrice < 0 ||
                 product.buyPrice < 0 ||
@@ -278,10 +278,10 @@ class SyncManager(
 
     private suspend fun pullClients() {
         val remote = api.getAllClients()
-        val uid = currentUserId
+        val shopId = currentShopId
         var skipped = 0
         for (client in remote) {
-            if (client.userId != uid ||
+            if (!belongsToShop(client.shopId, client.userId, shopId) ||
                 client.name.isBlank() ||
                 client.totalDebt < 0
             ) { skipped++; continue }
@@ -293,18 +293,18 @@ class SyncManager(
     private suspend fun pullSales() {
         // Récupérer TOUT l'historique : après une réinstallation ou sur un 2e appareil,
         // les ventes anciennes ne doivent pas disparaître (avant : limité à 30 jours).
-        val uid = currentUserId
+        val shopId = currentShopId
         val remote = api.getSalesBetween(0L, System.currentTimeMillis())
         var skipped = 0
         for (sale in remote) {
-            if (sale.userId != uid || sale.total < 0 || sale.amountPaid < 0) { skipped++; continue }
+            if (!belongsToShop(sale.shopId, sale.userId, shopId) || sale.total < 0 || sale.amountPaid < 0) { skipped++; continue }
             if (!db.saleExists(sale.id)) {
                 // On récupère d'abord les articles : si l'opération échoue, la vente
                 // n'est pas insérée partiellement et sera retentée au prochain sync.
                 val items = api.getSaleItems(sale.id)
                 db.insertSaleIfNotExists(sale)
                 for (item in items) {
-                    if (item.userId != uid || item.price < 0 || item.quantity <= 0) { skipped++; continue }
+                    if (!belongsToShop(item.shopId, item.userId, shopId) || item.price < 0 || item.quantity <= 0) { skipped++; continue }
                     db.insertSaleItemIfNotExists(item)
                 }
             }
@@ -313,13 +313,13 @@ class SyncManager(
     }
 
     private suspend fun pullDebtTransactions() {
-        val uid = currentUserId
-        val clients = db.getAllClients(uid)
+        val shopId = currentShopId
+        val clients = db.getAllClients(shopId)
         var skipped = 0
         for (client in clients) {
             val remote = api.getDebtTransactions(client.id)
             for (txn in remote) {
-                if (txn.userId != uid || txn.amount < 0) { skipped++; continue }
+                if (!belongsToShop(txn.shopId, txn.userId, shopId) || txn.amount < 0) { skipped++; continue }
                 db.insertDebtTransactionIfNotExists(txn)
             }
         }
@@ -337,4 +337,17 @@ class SyncManager(
 
     private val currentUserId: String
         get() = SupabaseManager.currentUserId(context) ?: ""
+
+    /** Boutique courante (Grand boutique) : shop amorcé, sinon repli sur user_id (solo). */
+    private val currentShopId: String
+        get() = SupabaseManager.currentShopId(context)
+
+    /**
+     * Une ligne distante appartient-elle à ma boutique ? Si elle porte un shop_id,
+     * on compare au shop_id courant. Sinon (schéma multi-caisses pas encore déployé
+     * côté serveur, ou vieilles lignes), on retombe sur l'appartenance par user_id —
+     * évite de tout rejeter au pull pendant la fenêtre APK-mis-à-jour / SQL-pas-encore-appliqué.
+     */
+    private fun belongsToShop(rowShopId: String, rowUserId: String, shopId: String): Boolean =
+        if (rowShopId.isNotBlank()) rowShopId == shopId else rowUserId == currentUserId
 }

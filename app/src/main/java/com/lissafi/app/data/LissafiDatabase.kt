@@ -54,8 +54,8 @@ class LissafiDatabase private constructor(context: Context) :
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
                 user_id TEXT NOT NULL DEFAULT '',
-                shop_id TEXT NOT NULL DEFAULT '',
                 deleted INTEGER NOT NULL DEFAULT 0,
+                shop_id TEXT NOT NULL DEFAULT '',
                 PRIMARY KEY (barcode, user_id)
             )
         """)
@@ -186,13 +186,16 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     // ==================== PRODUCTS ====================
+    // NB (Grand boutique) : le paramètre `userId` des méthodes de lecture porte
+    // désormais l'ID DE BOUTIQUE (shop_id). Pour un compte solo, shop_id = user_id,
+    // donc le comportement est identique. Le repository passe `currentShopId`.
 
     private val _productsFlow = MutableStateFlow<List<Product>>(emptyList())
     val productsFlow: Flow<List<Product>> = _productsFlow.asStateFlow()
 
     suspend fun getAllProducts(userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND user_id = ?" else "WHERE deleted = 0"
+        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND shop_id = ?" else "WHERE deleted = 0"
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT * FROM products $where ORDER BY updated_at DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
@@ -204,7 +207,7 @@ class LissafiDatabase private constructor(context: Context) :
     /** Tous les produits, y compris supprimés — utilisé pour pousser l'état complet vers Supabase. */
     suspend fun getAllProductsIncludingDeleted(userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "WHERE shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT * FROM products $where ORDER BY updated_at DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
@@ -213,7 +216,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun getProduct(barcode: String, userId: String = ""): Product? = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) " AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(barcode, userId) else arrayOf(barcode)
         readableDatabase.rawQuery("SELECT * FROM products WHERE barcode = ? AND deleted = 0$where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.toProduct() else null
@@ -222,7 +225,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun searchProducts(query: String, userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf("%$query%", userId) else arrayOf("%$query%")
         readableDatabase.rawQuery("SELECT * FROM products WHERE name LIKE ? AND deleted = 0 $where ORDER BY name ASC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
@@ -231,7 +234,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun getProductCount(userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND user_id = ?" else "WHERE deleted = 0"
+        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND shop_id = ?" else "WHERE deleted = 0"
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT COUNT(*) FROM products $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -240,7 +243,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getRecentProducts(limit: Int = 8, userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND user_id = ?" else "WHERE deleted = 0"
+        val where = if (userId.isNotEmpty()) "WHERE deleted = 0 AND shop_id = ?" else "WHERE deleted = 0"
         val args = if (userId.isNotEmpty()) arrayOf(userId, limit.toString()) else arrayOf(limit.toString())
         readableDatabase.rawQuery("SELECT * FROM products $where ORDER BY updated_at DESC LIMIT ?", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toProduct())
@@ -251,7 +254,7 @@ class LissafiDatabase private constructor(context: Context) :
     /** Produits dont le stock est descendu au niveau ou en dessous du seuil d'alerte. */
     suspend fun getLowStockProducts(userId: String = ""): List<Product> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Product>()
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery(
             "SELECT * FROM products WHERE deleted = 0 AND stock <= min_stock $where ORDER BY stock ASC",
@@ -276,9 +279,10 @@ class LissafiDatabase private constructor(context: Context) :
             put("updated_at", product.updatedAt)
             put("user_id", product.userId)
             put("deleted", if (product.deleted) 1 else 0)
+            put("shop_id", product.shopId.ifBlank { product.userId })
         }
         writableDatabase.insertWithOnConflict("products", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
-        getAllProducts(product.userId)
+        getAllProducts(product.shopId.ifBlank { product.userId })
     }
 
     suspend fun deleteProduct(product: Product) = withContext(Dispatchers.IO) {
@@ -290,10 +294,10 @@ class LissafiDatabase private constructor(context: Context) :
         }
         writableDatabase.update(
             "products", cv,
-            "barcode = ? AND user_id = ?",
-            arrayOf(product.barcode, product.userId)
+            "barcode = ? AND shop_id = ?",
+            arrayOf(product.barcode, product.shopId.ifBlank { product.userId })
         )
-        getAllProducts(product.userId)
+        getAllProducts(product.shopId.ifBlank { product.userId })
     }
 
     // ==================== SALES ====================
@@ -314,6 +318,7 @@ class LissafiDatabase private constructor(context: Context) :
                 put("client_id", sale.clientId)
                 put("synced", if (sale.synced) 1 else 0)
                 put("user_id", sale.userId)
+                put("shop_id", sale.shopId.ifBlank { sale.userId })
             }
             val saleId = db.insert("sales", null, cv)
             for (item in items) {
@@ -324,6 +329,7 @@ class LissafiDatabase private constructor(context: Context) :
                     put("price", item.price)
                     put("quantity", item.quantity)
                     put("user_id", item.userId)
+                    put("shop_id", item.shopId.ifBlank { item.userId })
                 }
                 db.insert("sale_items", null, itemCv)
             }
@@ -336,7 +342,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getSalesBetween(start: Long, end: Long, userId: String = ""): List<Sale> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Sale>()
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
         readableDatabase.rawQuery("SELECT * FROM sales WHERE date >= ? AND date < ? $where ORDER BY date DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toSale())
@@ -356,7 +362,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getTopProducts(start: Long, end: Long, userId: String = ""): List<TopProduct> = withContext(Dispatchers.IO) {
         val list = mutableListOf<TopProduct>()
-        val where = if (userId.isNotEmpty()) "AND s.user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND s.shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
         readableDatabase.rawQuery("""
             SELECT si.name, SUM(si.quantity) as total_qty, COUNT(DISTINCT si.sale_id) as cnt
@@ -372,7 +378,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun countSalesBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
         readableDatabase.rawQuery("SELECT COUNT(*) FROM sales WHERE date >= ? AND date < ? $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -380,7 +386,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun sumTotalBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
         readableDatabase.rawQuery("SELECT COALESCE(SUM(total), 0) FROM sales WHERE date >= ? AND date < ? $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -388,7 +394,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun sumCreditBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())
         readableDatabase.rawQuery("SELECT COALESCE(SUM(total), 0) FROM sales WHERE date >= ? AND date < ? AND is_credit = 1 $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -402,7 +408,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getAllClients(userId: String = ""): List<Client> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Client>()
-        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "WHERE shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT * FROM clients $where ORDER BY total_debt DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toClient())
@@ -412,7 +418,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun getClient(id: String, userId: String = ""): Client? = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) " AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(id, userId) else arrayOf(id)
         readableDatabase.rawQuery("SELECT * FROM clients WHERE id = ?$where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.toClient() else null
@@ -421,7 +427,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun searchClients(query: String, userId: String = ""): List<Client> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Client>()
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf("%$query%", userId) else arrayOf("%$query%")
         readableDatabase.rawQuery("SELECT * FROM clients WHERE name LIKE ? $where ORDER BY name ASC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toClient())
@@ -430,7 +436,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun getClientCount(userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) "WHERE user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "WHERE shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT COUNT(*) FROM clients $where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -446,9 +452,10 @@ class LissafiDatabase private constructor(context: Context) :
             put("created_at", client.createdAt)
             put("updated_at", client.updatedAt)
             put("user_id", client.userId)
+            put("shop_id", client.shopId.ifBlank { client.userId })
         }
         writableDatabase.insertWithOnConflict("clients", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
-        getAllClients(client.userId)
+        getAllClients(client.shopId.ifBlank { client.userId })
     }
 
     suspend fun updateClient(client: Client) = withContext(Dispatchers.IO) {
@@ -458,16 +465,17 @@ class LissafiDatabase private constructor(context: Context) :
             put("total_debt", client.totalDebt)
             put("updated_at", client.updatedAt)
             put("user_id", client.userId)
+            put("shop_id", client.shopId.ifBlank { client.userId })
         }
         writableDatabase.update("clients", cv, "id = ?", arrayOf(client.id))
-        getAllClients(client.userId)
+        getAllClients(client.shopId.ifBlank { client.userId })
     }
 
     // ==================== DEBT TRANSACTIONS ====================
 
     suspend fun getDebtTransactions(clientId: String, userId: String = ""): List<DebtTransaction> = withContext(Dispatchers.IO) {
         val list = mutableListOf<DebtTransaction>()
-        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) " AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(clientId, userId) else arrayOf(clientId)
         readableDatabase.rawQuery("SELECT * FROM debt_transactions WHERE client_id = ?$where ORDER BY date DESC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toDebtTransaction())
@@ -481,6 +489,7 @@ class LissafiDatabase private constructor(context: Context) :
         // (deux appels concurrents ne peuvent pas écraser total_debt avec une somme partielle).
         db.beginTransaction()
         try {
+            val sid = transaction.shopId.ifBlank { transaction.userId }
             val cv = ContentValues().apply {
                 put("client_id", transaction.clientId)
                 if (transaction.saleId != null) put("sale_id", transaction.saleId)
@@ -488,11 +497,14 @@ class LissafiDatabase private constructor(context: Context) :
                 put("date", transaction.date)
                 put("note", transaction.note)
                 put("user_id", transaction.userId)
+                put("shop_id", sid)
             }
             db.insert("debt_transactions", null, cv)
 
-            val where = if (transaction.userId.isNotEmpty()) " AND user_id = ?" else ""
-            val args = if (transaction.userId.isNotEmpty()) arrayOf(transaction.clientId, transaction.userId) else arrayOf(transaction.clientId)
+            // Recalcul du total de la dette AU NIVEAU BOUTIQUE (toutes les caisses),
+            // pas seulement les transactions de l'auteur.
+            val where = if (sid.isNotEmpty()) " AND shop_id = ?" else ""
+            val args = if (sid.isNotEmpty()) arrayOf(transaction.clientId, sid) else arrayOf(transaction.clientId)
             db.rawQuery("SELECT COALESCE(SUM(amount), 0) FROM debt_transactions WHERE client_id = ?$where", args).use { cursor ->
                 if (cursor.moveToFirst()) {
                     val total = cursor.getInt(0)
@@ -507,13 +519,13 @@ class LissafiDatabase private constructor(context: Context) :
         } finally {
             db.endTransaction()
         }
-        getAllClients(transaction.userId)
+        getAllClients(transaction.shopId.ifBlank { transaction.userId })
     }
 
     /** Transactions de dette pas encore poussées vers Supabase (voir SYNC HELPERS pour les ventes). */
     suspend fun getUnsyncedDebtTransactions(userId: String = ""): List<DebtTransaction> = withContext(Dispatchers.IO) {
         val list = mutableListOf<DebtTransaction>()
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT * FROM debt_transactions WHERE synced = 0 $where ORDER BY date ASC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toDebtTransaction())
@@ -527,7 +539,7 @@ class LissafiDatabase private constructor(context: Context) :
     }
 
     suspend fun getTotalDebt(clientId: String, userId: String = ""): Int = withContext(Dispatchers.IO) {
-        val where = if (userId.isNotEmpty()) " AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) " AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(clientId, userId) else arrayOf(clientId)
         readableDatabase.rawQuery("SELECT COALESCE(SUM(amount), 0) FROM debt_transactions WHERE client_id = ?$where", args).use { cursor ->
             if (cursor.moveToFirst()) cursor.getInt(0) else 0
@@ -564,7 +576,7 @@ class LissafiDatabase private constructor(context: Context) :
 
     suspend fun getUnsyncedSales(userId: String = ""): List<Sale> = withContext(Dispatchers.IO) {
         val list = mutableListOf<Sale>()
-        val where = if (userId.isNotEmpty()) "AND user_id = ?" else ""
+        val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(userId) else null
         readableDatabase.rawQuery("SELECT * FROM sales WHERE synced = 0 $where ORDER BY date ASC", args).use { cursor ->
             while (cursor.moveToNext()) list.add(cursor.toSale())
@@ -659,6 +671,7 @@ class LissafiDatabase private constructor(context: Context) :
                 put("client_id", sale.clientId)
                 put("synced", 1)
                 put("user_id", sale.userId)
+                put("shop_id", sale.shopId.ifBlank { sale.userId })
             }
             writableDatabase.insert("sales", null, cv)
         }
@@ -675,6 +688,7 @@ class LissafiDatabase private constructor(context: Context) :
                     put("price", item.price)
                     put("quantity", item.quantity)
                     put("user_id", item.userId)
+                    put("shop_id", item.shopId.ifBlank { item.userId })
                 }
                 writableDatabase.insert("sale_items", null, cv)
             }
@@ -696,6 +710,7 @@ class LissafiDatabase private constructor(context: Context) :
                     put("date", txn.date)
                     put("note", txn.note)
                     put("user_id", txn.userId)
+                    put("shop_id", txn.shopId.ifBlank { txn.userId })
                     put("synced", 1) // vient du serveur, déjà synchronisée
                 }
                 writableDatabase.insert("debt_transactions", null, cv)
@@ -717,7 +732,8 @@ private fun Cursor.toProduct() = Product(
     createdAt = getLong(8),
     updatedAt = getLong(9),
     userId = if (columnCount > 10) getString(10) else "",
-    deleted = if (columnCount > 11) getInt(11) == 1 else false
+    deleted = if (columnCount > 11) getInt(11) == 1 else false,
+    shopId = if (columnCount > 12) getString(12) else ""
 )
 
 private fun Cursor.toSale() = Sale(
@@ -729,7 +745,8 @@ private fun Cursor.toSale() = Sale(
     isCredit = getInt(5) == 1,
     clientId = getString(6),
     synced = getInt(7) == 1,
-    userId = if (columnCount > 8) getString(8) else ""
+    userId = if (columnCount > 8) getString(8) else "",
+    shopId = if (columnCount > 9) getString(9) else ""
 )
 
 private fun Cursor.toSaleItem() = SaleItem(
@@ -739,7 +756,8 @@ private fun Cursor.toSaleItem() = SaleItem(
     name = getString(3),
     price = getInt(4),
     quantity = getDouble(5),
-    userId = if (columnCount > 6) getString(6) else ""
+    userId = if (columnCount > 6) getString(6) else "",
+    shopId = if (columnCount > 7) getString(7) else ""
 )
 
 private fun Cursor.toClient() = Client(
@@ -749,7 +767,8 @@ private fun Cursor.toClient() = Client(
     totalDebt = getInt(3),
     createdAt = getLong(4),
     updatedAt = getLong(5),
-    userId = if (columnCount > 6) getString(6) else ""
+    userId = if (columnCount > 6) getString(6) else "",
+    shopId = if (columnCount > 7) getString(7) else ""
 )
 
 private fun Cursor.toDebtTransaction() = DebtTransaction(
@@ -759,5 +778,7 @@ private fun Cursor.toDebtTransaction() = DebtTransaction(
     amount = getInt(3),
     date = getLong(4),
     note = getString(5),
-    userId = if (columnCount > 6) getString(6) else ""
+    userId = if (columnCount > 6) getString(6) else "",
+    // synced est en colonne 7 (non mappé) ; shop_id est la dernière colonne.
+    shopId = if (columnCount > 8) getString(8) else ""
 )
