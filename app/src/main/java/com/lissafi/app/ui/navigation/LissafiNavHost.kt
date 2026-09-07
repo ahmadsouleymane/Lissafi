@@ -57,6 +57,7 @@ object Routes {
     const val CLIENT_DETAIL = "client_detail/{clientId}"
     const val ACTIVITY      = "activity"
     const val SETTINGS      = "settings"
+    const val SHOP          = "shop"
     const val PAYWALL       = "paywall"
 
     fun clientDetail(id: String) = "client_detail/$id"
@@ -134,7 +135,10 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     LaunchedEffect(userId, isLoggedIn, currentRoute) {
         if (isLoggedIn) {
             premiumManager.startTrialIfNeeded()
-            isLocked = premiumManager.isLocked()
+            // Une caisse vendeur (Grand boutique) n'est jamais bloquée par le paywall :
+            // c'est l'abonnement du patron qui couvre la boutique.
+            val isVendeur = com.lissafi.app.data.remote.SupabaseManager.currentShopRole(app) == "vendeur"
+            isLocked = !isVendeur && premiumManager.isLocked()
             needsProfile = app.database.getSetting("shop_phone").isNullOrBlank()
         }
     }
@@ -184,6 +188,7 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     val clientViewModel: ClientViewModel = remember(userId) { ClientViewModel(repository, premiumManager) }
     val reportViewModel: ReportViewModel = remember(userId) { ReportViewModel(repository) }
     val settingsViewModel: SettingsViewModel = remember(userId) { SettingsViewModel(repository, premiumManager) }
+    val shopViewModel: ShopViewModel = remember(userId) { ShopViewModel(app) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
@@ -372,7 +377,15 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         authManager = authManager,
                         onBack = { navController.popBackStack() },
                         onSignOut = { authViewModel.signOut() },
-                        onNavigateToPaywall = { navController.navigate(Routes.PAYWALL) }
+                        onNavigateToPaywall = { navController.navigate(Routes.PAYWALL) },
+                        onNavigateToShop = { navController.navigate(Routes.SHOP) }
+                    )
+                }
+                composable(Routes.SHOP) {
+                    LaunchedEffect(Unit) { shopViewModel.refresh() }
+                    ShopCaissesScreen(
+                        viewModel = shopViewModel,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable(Routes.PAYWALL) {

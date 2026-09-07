@@ -56,7 +56,8 @@ fun SettingsScreen(
     authManager: AuthManager,
     onBack: () -> Unit,
     onSignOut: () -> Unit,
-    onNavigateToPaywall: () -> Unit
+    onNavigateToPaywall: () -> Unit,
+    onNavigateToShop: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
@@ -198,6 +199,49 @@ fun SettingsScreen(
                     Icon(
                         imageVector = LissafiIcons.Modifier,
                         contentDescription = "Modifier",
+                        tint = Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── GRAND BOUTIQUE (multi-caisses) ──
+            SectionHeader(
+                text = "CAISSES",
+                icon = LissafiIcons.Boutique,
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            )
+            LissafiCard(onClick = onNavigateToShop, cornerRadius = 20) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconCircle(
+                        icon = LissafiIcons.Boutique,
+                        size = 44,
+                        iconSize = 22
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Mes caisses",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = OnBackground
+                        )
+                        Text(
+                            text = "Plusieurs caisses sur une même boutique",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    Icon(
+                        imageVector = LissafiIcons.Modifier,
+                        contentDescription = null,
                         tint = Primary,
                         modifier = Modifier.size(20.dp)
                     )

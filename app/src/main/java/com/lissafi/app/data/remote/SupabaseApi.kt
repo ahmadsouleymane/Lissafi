@@ -66,6 +66,28 @@ data class RedeemPremiumResult(
 private class EmptyRpcBody
 
 @Serializable
+private data class JoinShopPayload(val p_code: String)
+
+@Serializable
+private data class RemoveMemberPayload(val p_user: String)
+
+/** Résultat de join_shop_with_code : boutique rejointe + rôle attribué. */
+@Serializable
+data class JoinShopResult(
+    @SerialName("shop_id") val shopId: String,
+    val role: String
+)
+
+/** Un membre (caisse) d'une boutique, tel que renvoyé par my_shop_members(). */
+@Serializable
+data class ShopMemberDto(
+    @SerialName("member_id") val memberId: String,
+    val role: String,
+    @SerialName("caisse_label") val caisseLabel: String = "",
+    @SerialName("joined_at") val joinedAt: Long = 0
+)
+
+@Serializable
 private data class PartnerNameRpcPayload(val p_code: String)
 
 @Serializable
@@ -462,6 +484,109 @@ class SupabaseApi(private val context: Context) {
             // PostgREST renvoie un scalaire JSON ("uuid" ou null).
             val text = response.bodyAsText().trim()
             if (text.isEmpty() || text == "null") null else text.removeSurrounding("\"")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Extrait le message d'erreur PostgREST (champ "message") d'un corps JSON, ou le brut. */
+    private fun parseServerMessage(body: String): String {
+        // Corps type : {"code":"P0001","message":"quota_caisses_atteint",...}
+        val m = Regex("\"message\"\\s*:\\s*\"([^\"]*)\"").find(body)
+        return m?.groupValues?.get(1)?.ifBlank { body } ?: body
+    }
+
+    /**
+     * Le patron génère un code d'appairage (RPC `create_pairing_code`). Lève
+     * [SupabaseException] avec le message serveur (ex. `quota_caisses_atteint`,
+     * `not_patron`) pour que l'UI l'affiche.
+     */
+    suspend fun createPairingCode(): String = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        ensureFreshSession()
+        val authToken = token ?: throw SupabaseException("Session invalide")
+        val response = http.post(restUrl("rpc/create_pairing_code")) {
+            header("apikey", anonKey)
+            header("Authorization", "Bearer $authToken")
+            contentType(ContentType.Application.Json)
+            setBody(EmptyRpcBody())
+        }
+        if (response.status.value !in 200..299) {
+            throw SupabaseException(parseServerMessage(response.bodyAsText()))
+        }
+        response.bodyAsText().trim().removeSurrounding("\"")
+    }
+
+    /**
+     * Un vendeur rejoint une boutique via un code (RPC `join_shop_with_code`).
+     * Lève [SupabaseException] avec le message serveur (`code_invalide`,
+     * `code_expire`, `code_deja_utilise`, `quota_caisses_atteint`).
+     */
+    suspend fun joinShopWithCode(code: String): JoinShopResult = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        ensureFreshSession()
+        val authToken = token ?: throw SupabaseException("Session invalide")
+        val response = http.post(restUrl("rpc/join_shop_with_code")) {
+            header("apikey", anonKey)
+            header("Authorization", "Bearer $authToken")
+            contentType(ContentType.Application.Json)
+            setBody(JoinShopPayload(p_code = code.trim()))
+        }
+        if (response.status.value !in 200..299) {
+            throw SupabaseException(parseServerMessage(response.bodyAsText()))
+        }
+        response.body<JoinShopResult>()
+    }
+
+    /** Liste des caisses/membres de ma boutique (patron). Vide si non patron ou hors ligne. */
+    suspend fun myShopMembers(): List<ShopMemberDto> = withContext(Dispatchers.IO) {
+        try {
+            if (!isConfigured || !hasValidSession) return@withContext emptyList()
+            ensureFreshSession()
+            val authToken = token ?: return@withContext emptyList()
+            val response = http.post(restUrl("rpc/my_shop_members")) {
+                header("apikey", anonKey)
+                header("Authorization", "Bearer $authToken")
+                contentType(ContentType.Application.Json)
+                setBody(EmptyRpcBody())
+            }
+            if (response.status.value !in 200..299) return@withContext emptyList()
+            response.body<List<ShopMemberDto>>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /** Le patron détache une caisse vendeur (RPC `remove_shop_member`). */
+    suspend fun removeShopMember(userId: String) = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        ensureFreshSession()
+        val authToken = token ?: throw SupabaseException("Session invalide")
+        val response = http.post(restUrl("rpc/remove_shop_member")) {
+            header("apikey", anonKey)
+            header("Authorization", "Bearer $authToken")
+            contentType(ContentType.Application.Json)
+            setBody(RemoveMemberPayload(p_user = userId))
+        }
+        if (response.status.value !in 200..299) {
+            throw SupabaseException(parseServerMessage(response.bodyAsText()))
+        }
+    }
+
+    /** Un vendeur quitte la boutique (RPC `leave_shop`) et retrouve sa boutique solo. */
+    suspend fun leaveShop(): String? = withContext(Dispatchers.IO) {
+        try {
+            ensureValidUser()
+            ensureFreshSession()
+            val authToken = token ?: return@withContext null
+            val response = http.post(restUrl("rpc/leave_shop")) {
+                header("apikey", anonKey)
+                header("Authorization", "Bearer $authToken")
+                contentType(ContentType.Application.Json)
+                setBody(EmptyRpcBody())
+            }
+            if (response.status.value !in 200..299) return@withContext null
+            response.bodyAsText().trim().removeSurrounding("\"").ifBlank { null }
         } catch (e: Exception) {
             null
         }
