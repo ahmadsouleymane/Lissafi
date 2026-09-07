@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "Corps JSON invalide" }, { status: 400, headers });
   }
 
-  const plan: Plan = body.plan === "business" ? "business" : "plus";
+  const plan: Plan =
+    body.plan === "business" ? "business" : body.plan === "grand_boutique" ? "grand_boutique" : "plus";
   const method: PaymentMethod = body.method === "card" ? "card" : "mobile_money";
   const country = (body.country || "").trim().toUpperCase();
   const name = (body.name || "").trim();

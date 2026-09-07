@@ -32,7 +32,12 @@ export async function POST(req: NextRequest) {
 
   const data = payload?.data ?? {};
   const email: string | undefined = data?.metadata?.email;
-  const plan: Plan = data?.metadata?.plan === "business" ? "business" : "plus";
+  const plan: Plan =
+    data?.metadata?.plan === "business"
+      ? "business"
+      : data?.metadata?.plan === "grand_boutique"
+        ? "grand_boutique"
+        : "plus";
   if (!email) {
     return Response.json({ ok: false, error: "metadata.email manquant" }, { status: 400 });
   }

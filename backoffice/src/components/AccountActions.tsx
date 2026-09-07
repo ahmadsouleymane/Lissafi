@@ -62,6 +62,7 @@ export function AccountActions({ userId }: { userId: string }) {
               <select name="plan" defaultValue="plus" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                 <option value="plus">Lissafi Plus</option>
                 <option value="business">Lissafi Business</option>
+                <option value="grand_boutique">Lissafi Grand boutique</option>
               </select>
               <Button type="submit" disabled={activatePending} size="sm">
                 {activatePending && <Spinner />} Activer

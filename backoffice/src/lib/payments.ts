@@ -17,17 +17,21 @@ const GENIUSPAY_BASE = "https://geniuspay.ci/api/v1/merchant";
 const DAY_MS = 86400000;
 const PREMIUM_DAYS = 365;
 
-export type Plan = "plus" | "business";
+export type Plan = "plus" | "business" | "grand_boutique";
 export type PaymentMethod = "mobile_money" | "card";
 
 // Paiement en ligne = abonnement ANNUEL (le seul supporté par le flux
 // carte/Mobile Money). Prix alignés sur PremiumManager.kt et la landing :
 // 24 000 F Petite boutique (plus) / 50 000 F Commerce (business).
 // Mensuel/trimestriel se règlent via WhatsApp (activation manuelle back-office).
-const PLAN_PRICES: Record<Plan, number> = { plus: 24000, business: 50000 };
+const PLAN_PRICES: Record<Plan, number> = { plus: 24000, business: 50000, grand_boutique: 90000 };
 
 export function planAmount(plan: Plan): number {
   return PLAN_PRICES[plan];
+}
+
+export function planLabel(plan: Plan): string {
+  return plan === "grand_boutique" ? "Grand boutique" : plan === "business" ? "Business" : "Plus";
 }
 
 // ------------------------------------------------------------
@@ -80,7 +84,10 @@ export function decodePaymentToken(token: string): { email: string; plan: Plan }
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString());
-    if (typeof parsed.email === "string" && (parsed.plan === "plus" || parsed.plan === "business")) {
+    if (
+      typeof parsed.email === "string" &&
+      (parsed.plan === "plus" || parsed.plan === "business" || parsed.plan === "grand_boutique")
+    ) {
       return { email: parsed.email, plan: parsed.plan };
     }
     return null;
@@ -126,7 +133,7 @@ export async function geniuspayCreatePayment(params: {
   const body: Record<string, unknown> = {
     amount: params.amount,
     currency: "XOF",
-    description: `Lissafi ${params.plan === "business" ? "Business" : "Plus"} — 1 an`,
+    description: `Lissafi ${planLabel(params.plan)} — 1 an`,
     customer: {
       name: params.name,
       email: params.email,
@@ -184,7 +191,14 @@ export async function geniuspayGetStatus(reference: string): Promise<{
   return {
     status: data.status,
     email: data.metadata?.email,
-    plan: data.metadata?.plan === "business" ? "business" : data.metadata?.plan === "plus" ? "plus" : undefined,
+    plan:
+      data.metadata?.plan === "business"
+        ? "business"
+        : data.metadata?.plan === "grand_boutique"
+          ? "grand_boutique"
+          : data.metadata?.plan === "plus"
+            ? "plus"
+            : undefined,
   };
 }
 
@@ -228,13 +242,17 @@ export async function activateAccountByEmail(email: string, plan: Plan): Promise
   }
 
   const expiry = Date.now() + PREMIUM_DAYS * DAY_MS;
-  const cleanPlan = plan === "business" ? "business" : "plus";
+  const cleanPlan: Plan =
+    plan === "grand_boutique" ? "grand_boutique" : plan === "business" ? "business" : "plus";
+  // Nombre de caisses inclus : 2 pour Grand boutique, 1 sinon (aligné sur redeem_premium_code).
+  const maxCaisses = cleanPlan === "grand_boutique" ? 2 : 1;
 
   const { error } = await supabaseAdmin().from("app_settings").upsert(
     [
       { key: "is_premium", value: "true", user_id: userId },
       { key: "plan", value: cleanPlan, user_id: userId },
       { key: "premium_expiry", value: String(expiry), user_id: userId },
+      { key: "max_caisses", value: String(maxCaisses), user_id: userId },
       { key: "demo_taken", value: "true", user_id: userId },
     ],
     { onConflict: "key,user_id" },
@@ -248,7 +266,9 @@ export async function activateAccountByEmail(email: string, plan: Plan): Promise
   try {
     await supabaseAdmin().rpc("attribute_partner_sale", {
       p_user_id: userId,
-      p_plan: cleanPlan,
+      // La table des commissions ne connaît pas encore 'grand_boutique' :
+      // on le traite comme 'business' pour la commission partenaire.
+      p_plan: cleanPlan === "grand_boutique" ? "business" : cleanPlan,
     });
   } catch (e) {
     console.error("[payments] attribute_partner_sale:", e);

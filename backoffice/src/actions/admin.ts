@@ -28,7 +28,8 @@ async function tryAttributePartnerSale(userId: string, plan: string): Promise<{ 
   try {
     const { data, error } = await supabaseAdmin().rpc("attribute_partner_sale", {
       p_user_id: userId,
-      p_plan: plan === "business" ? "business" : "plus",
+      // La table des commissions ne connaît pas 'grand_boutique' → traité comme 'business'.
+      p_plan: plan === "business" || plan === "grand_boutique" ? "business" : "plus",
     });
     if (error) {
       console.error("[admin] attribute_partner_sale:", error);
@@ -46,18 +47,21 @@ async function tryAttributePartnerSale(userId: string, plan: string): Promise<{ 
   }
 }
 
-/** Active le premium pour N jours (défaut 365) — plan "plus" (défaut) ou "business". */
+/** Active le premium pour N jours (défaut 365) — plan "plus" (défaut), "business" ou "grand_boutique". */
 export async function activatePremium(userId: string, days = 365, plan = "plus"): Promise<ActionResult> {
   await requireAdmin();
   const n = Math.max(1, Math.floor(days));
   const expiry = Date.now() + n * DAY_MS;
-  const cleanPlan = plan === "business" ? "business" : "plus";
+  const cleanPlan =
+    plan === "grand_boutique" ? "grand_boutique" : plan === "business" ? "business" : "plus";
+  const maxCaisses = cleanPlan === "grand_boutique" ? 2 : 1;
 
   const { error } = await supabaseAdmin().from("app_settings").upsert(
     [
       { key: "is_premium", value: "true", user_id: userId },
       { key: "plan", value: cleanPlan, user_id: userId },
       { key: "premium_expiry", value: String(expiry), user_id: userId },
+      { key: "max_caisses", value: String(maxCaisses), user_id: userId },
       { key: "activation_method", value: "admin", user_id: userId },
     ],
     { onConflict: "key,user_id" }
