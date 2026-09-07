@@ -1,5 +1,6 @@
 package com.lissafi.app.ui.screen
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +44,7 @@ import com.lissafi.app.ui.viewmodel.ReportPeriod
 import com.lissafi.app.ui.viewmodel.ReportState
 import com.lissafi.app.ui.viewmodel.ReportViewModel
 import com.lissafi.app.ui.viewmodel.RevenuePoint
+import com.lissafi.app.ui.viewmodel.SellerRow
 import com.lissafi.app.data.LissafiDatabase.TopProduct
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
@@ -63,6 +66,7 @@ fun ReportsScreen(
     onNavigateToProducts: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
 
     // Rafraîchit le rapport dès l'entrée sur l'écran, sans action de l'utilisateur.
     LaunchedEffect(Unit) {
@@ -187,6 +191,18 @@ fun ReportsScreen(
                     }
                 }
 
+                // ── CA PAR CAISSE (Grand boutique) — seulement si plusieurs caisses ──
+                if (state.sellerRows.size > 1) {
+                    item {
+                        SectionHeader(
+                            text = "Par caisse",
+                            icon = LissafiIcons.Boutique,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    items(state.sellerRows) { row -> SellerRowItem(row) }
+                }
+
                 // ── HEURES DE POINTE — peu lisible sur un mois entier ──
                 if (state.period != ReportPeriod.MONTH && state.hourlyBreakdown.any { it > 0 }) {
                     item {
@@ -251,6 +267,30 @@ fun ReportsScreen(
                                 )
                             }
                         }
+                    }
+                }
+
+                // ── EXPORT CSV (offre payante) ──
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.exportCsv { csv ->
+                                if (csv.isNotBlank()) {
+                                    val send = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_SUBJECT, "Ventes Lissafi")
+                                        putExtra(Intent.EXTRA_TEXT, csv)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(send, "Exporter les ventes (CSV)")
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Exporter en CSV")
                     }
                 }
 
@@ -498,6 +538,34 @@ private fun TopProductBar(product: TopProduct, maxCount: Int) {
                     .clip(RoundedCornerShape(3.dp))
                     .background(Primary)
             )
+        }
+    }
+}
+
+// Ligne « CA par caisse » (offre Grand boutique).
+@Composable
+private fun SellerRowItem(row: SellerRow) {
+    LissafiCard(cornerRadius = 16, elevation = 0, modifier = Modifier.padding(vertical = 4.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = row.label,
+                    fontWeight = if (row.isMe) FontWeight.Bold else FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = OnBackground
+                )
+                Text(
+                    text = "${row.count} vente${if (row.count > 1) "s" else ""}",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+            }
+            AmountText(amount = row.total, fontSize = 16, color = Primary)
         }
     }
 }

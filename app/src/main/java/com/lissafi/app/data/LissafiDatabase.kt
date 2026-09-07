@@ -377,6 +377,24 @@ class LissafiDatabase private constructor(context: Context) :
         list
     }
 
+    /** CA + nombre de ventes agrégés par caisse (auteur = user_id) sur la boutique. */
+    data class SellerTotal(val userId: String, val total: Int, val count: Int)
+
+    suspend fun getSellerTotals(start: Long, end: Long, shopId: String = ""): List<SellerTotal> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<SellerTotal>()
+        val where = if (shopId.isNotEmpty()) "AND shop_id = ?" else ""
+        val args = if (shopId.isNotEmpty()) arrayOf(start.toString(), end.toString(), shopId) else arrayOf(start.toString(), end.toString())
+        readableDatabase.rawQuery(
+            "SELECT user_id, COALESCE(SUM(total), 0) AS t, COUNT(*) AS c FROM sales WHERE date >= ? AND date < ? $where GROUP BY user_id ORDER BY t DESC",
+            args
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                list.add(SellerTotal(cursor.getString(0) ?: "", cursor.getInt(1), cursor.getInt(2)))
+            }
+        }
+        list
+    }
+
     suspend fun countSalesBetween(start: Long, end: Long, userId: String = ""): Int = withContext(Dispatchers.IO) {
         val where = if (userId.isNotEmpty()) "AND shop_id = ?" else ""
         val args = if (userId.isNotEmpty()) arrayOf(start.toString(), end.toString(), userId) else arrayOf(start.toString(), end.toString())

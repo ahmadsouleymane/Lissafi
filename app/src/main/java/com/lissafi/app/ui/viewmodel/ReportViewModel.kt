@@ -7,6 +7,7 @@ import com.lissafi.app.data.LissafiDatabase.TopProduct
 import com.lissafi.app.data.entity.Product
 import com.lissafi.app.data.entity.Sale
 import com.lissafi.app.data.repository.LissafiRepository
+import com.lissafi.app.service.FormatUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,14 @@ enum class ReportPeriod { TODAY, WEEK, MONTH }
 data class RevenuePoint(
     val date: Long,    // epoch millis du début du jour
     val amount: Int    // CA total ce jour-là
+)
+
+// Ligne « CA par caisse » (offre Grand boutique). `isMe` = cette caisse.
+data class SellerRow(
+    val label: String,
+    val total: Int,
+    val count: Int,
+    val isMe: Boolean
 )
 
 data class ReportState(
@@ -40,6 +49,7 @@ data class ReportState(
     val hourlyBreakdown: List<Int> = emptyList(),
     val lowStockProducts: List<Product> = emptyList(),
     val bestDay: RevenuePoint? = null,
+    val sellerRows: List<SellerRow> = emptyList(),
     val isLoading: Boolean = false
 )
 
@@ -105,6 +115,19 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
             val lowStock = repository.getLowStockProducts()
             val bestDay = revenueSeries.maxByOrNull { it.amount }
 
+            // CA par caisse/vendeur (Grand boutique) : n'affiché par l'UI que s'il y a
+            // plus d'une caisse. Chaque ligne porte l'auteur (user_id) des ventes.
+            val me = repository.myUserId()
+            val sellers = repository.getSellerTotals(start, end)
+            val sellerRows = sellers.mapIndexed { index, s ->
+                SellerRow(
+                    label = if (s.userId == me) "Cette caisse" else "Caisse ${index + 1}",
+                    total = s.total,
+                    count = s.count,
+                    isMe = s.userId == me
+                )
+            }
+
             _state.value = _state.value.copy(
                 totalVentes = total,
                 totalCredits = credit,
@@ -120,8 +143,32 @@ class ReportViewModel(private val repository: LissafiRepository) : ViewModel() {
                 hourlyBreakdown = hourly.toList(),
                 lowStockProducts = lowStock,
                 bestDay = bestDay,
+                sellerRows = sellerRows,
                 isLoading = false
             )
+    }
+
+    /**
+     * Construit un CSV (séparateur `;`, format FR) des ventes de la période courante
+     * et le remet via [onReady] pour partage (WhatsApp/e-mail). Offre payante.
+     */
+    fun exportCsv(onReady: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val (start, end) = getDateRange(_state.value.period)
+                val sales = repository.getSalesBetween(start, end)
+                val sb = StringBuilder("date;total;paye;credit;caisse\n")
+                for (s in sales) {
+                    val credit = if (s.isCredit) s.total else 0
+                    val caisse = if (s.userId == repository.myUserId()) "cette_caisse" else s.userId.take(8)
+                    sb.append("${FormatUtils.formatDate(s.date)};${s.total};${s.amountPaid};$credit;$caisse\n")
+                }
+                onReady(sb.toString())
+            } catch (e: Exception) {
+                Log.w(TAG, "Échec export CSV", e)
+                onReady("")
+            }
+        }
     }
 
     // Bénéfice estimé : somme des ventes - somme des prix d'achat. Toutes les

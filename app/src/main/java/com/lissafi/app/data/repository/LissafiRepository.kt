@@ -90,6 +90,13 @@ class LissafiRepository(
         return saleId
     }
 
+    /** Id de l'utilisateur courant (auteur des ventes de cette caisse). */
+    fun myUserId(): String = currentUserId
+
+    /** CA par caisse/vendeur de la boutique (offre Grand boutique). */
+    suspend fun getSellerTotals(start: Long, end: Long): List<LissafiDatabase.SellerTotal> =
+        db.getSellerTotals(start, end, currentShopId)
+
     suspend fun getSalesBetween(start: Long, end: Long): List<Sale> = db.getSalesBetween(start, end, currentShopId)
     suspend fun getSaleItems(saleId: Long): List<SaleItem> = db.getSaleItems(saleId)
     suspend fun getTopProducts(start: Long, end: Long) = db.getTopProducts(start, end, currentShopId)
