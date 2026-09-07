@@ -11,5 +11,7 @@ data class DebtTransaction(
     val amount: Int,
     val date: Long,
     val note: String = "",
-    @SerialName("user_id") val userId: String = ""
+    @SerialName("user_id") val userId: String = "",
+    // Boutique partagée (Grand boutique) : vide → omis au push, trigger serveur = user_id.
+    @SerialName("shop_id") val shopId: String = ""
 )

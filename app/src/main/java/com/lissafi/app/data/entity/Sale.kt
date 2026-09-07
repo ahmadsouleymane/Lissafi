@@ -13,5 +13,7 @@ data class Sale(
     @SerialName("is_credit") val isCredit: Boolean = false,
     @SerialName("client_id") val clientId: String? = null,
     val synced: Boolean = false,
-    @SerialName("user_id") val userId: String = ""
+    @SerialName("user_id") val userId: String = "",
+    // Boutique partagée (Grand boutique) : vide → omis au push, trigger serveur = user_id.
+    @SerialName("shop_id") val shopId: String = ""
 )

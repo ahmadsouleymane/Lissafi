@@ -16,5 +16,9 @@ data class Product(
     @SerialName("created_at") val createdAt: Long = System.currentTimeMillis(),
     @SerialName("updated_at") val updatedAt: Long = System.currentTimeMillis(),
     @SerialName("user_id") val userId: String = "",
+    // Boutique partagée (Grand boutique). Vide par défaut → omis au push
+    // (encodeDefaults=false) : le trigger serveur default_shop_id pose alors
+    // shop_id = user_id (boutique solo). Rempli explicitement pour une caisse rattachée.
+    @SerialName("shop_id") val shopId: String = "",
     @SerialName("deleted") val deleted: Boolean = false
 )

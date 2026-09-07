@@ -127,6 +127,18 @@ class SyncManager(
             AppLog.w(TAG, "Rafraîchissement de session échoué : ${e.message}")
         }
 
+        // Amorçage boutique (Grand boutique) : garantit que le compte possède une
+        // ligne shops + shop_members côté serveur — sans quoi la RLS is_shop_member
+        // rejetterait ses écritures (cas d'un compte créé après le déploiement du
+        // schéma multi-caisses). Best-effort, retenté à chaque cycle tant que non résolu.
+        if (SupabaseManager.storedShopId(context) == null) {
+            val shopId = api.getOrCreateMyShop()
+            if (shopId != null) {
+                SupabaseManager.setShop(context, shopId, "patron")
+                AppLog.d(TAG, "Boutique amorcée: $shopId")
+            }
+        }
+
         syncMutex.withLock {
             _status.value = SyncStatus.SYNCING
             try {

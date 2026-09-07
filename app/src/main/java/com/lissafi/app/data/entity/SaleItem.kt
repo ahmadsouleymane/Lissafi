@@ -11,5 +11,7 @@ data class SaleItem(
     val name: String,
     val price: Int,
     val quantity: Double = 1.0,
-    @SerialName("user_id") val userId: String = ""
+    @SerialName("user_id") val userId: String = "",
+    // Boutique partagée (Grand boutique) : vide → omis au push, trigger serveur = user_id.
+    @SerialName("shop_id") val shopId: String = ""
 )

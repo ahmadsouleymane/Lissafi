@@ -20,6 +20,9 @@ object SupabaseManager {
     private const val KEY_REFRESH_TOKEN = "supabase_refresh_token"
     private const val KEY_USER_ID = "supabase_user_id"
     private const val KEY_USER_EMAIL = "supabase_user_email"
+    // Boutique partagée (Grand boutique) : id de la boutique du compte + rôle du membre.
+    private const val KEY_SHOP_ID = "supabase_shop_id"
+    private const val KEY_SHOP_ROLE = "supabase_shop_role"
 
     /** Format UUID attendu par les colonnes user_id de Supabase. */
     private val UUID_REGEX = Regex(
@@ -142,6 +145,33 @@ object SupabaseManager {
             remove(KEY_REFRESH_TOKEN)
             remove(KEY_USER_ID)
             remove(KEY_USER_EMAIL)
+            remove(KEY_SHOP_ID)
+            remove(KEY_SHOP_ROLE)
+            apply()
+        }
+    }
+
+    /** Id de boutique stocké (null si non encore amorcé). Sans repli. */
+    fun storedShopId(context: Context): String? =
+        prefs(context).getString(KEY_SHOP_ID, null)?.takeIf { it.isNotBlank() }
+
+    /**
+     * Id de boutique effectif : la boutique amorcée si connue, sinon repli sur le
+     * user_id (boutique solo — shop_id = user_id par convention). Jamais null tant
+     * qu'une session valide existe.
+     */
+    fun currentShopId(context: Context): String =
+        storedShopId(context) ?: (currentUserId(context) ?: "")
+
+    /** Rôle du membre dans sa boutique : "patron" (défaut) ou "vendeur". */
+    fun currentShopRole(context: Context): String =
+        prefs(context).getString(KEY_SHOP_ROLE, null) ?: "patron"
+
+    /** Mémorise la boutique du compte (amorçage via get_or_create_my_shop / appairage). */
+    fun setShop(context: Context, shopId: String, role: String) {
+        prefs(context).edit().apply {
+            putString(KEY_SHOP_ID, shopId)
+            putString(KEY_SHOP_ROLE, role)
             apply()
         }
     }

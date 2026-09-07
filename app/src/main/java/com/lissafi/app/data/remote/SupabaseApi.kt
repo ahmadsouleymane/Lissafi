@@ -61,6 +61,10 @@ data class RedeemPremiumResult(
     val premium_expiry: Long? = null
 )
 
+/** Corps vide pour les RPC PostgREST sans paramètre (sérialisé en `{}`). */
+@Serializable
+private class EmptyRpcBody
+
 @Serializable
 private data class PartnerNameRpcPayload(val p_code: String)
 
@@ -434,6 +438,33 @@ class SupabaseApi(private val context: Context) {
             throw SupabaseException("redeem: HTTP ${response.status.value}: $body")
         }
         response.body<RedeemPremiumResult>()
+    }
+
+    /**
+     * Résout (et crée si besoin) la boutique de l'utilisateur connecté via la RPC
+     * SECURITY DEFINER `get_or_create_my_shop` (offre Grand boutique). Renvoie le
+     * shop_id (UUID) ou null si hors ligne / session invalide / schéma pas encore
+     * déployé. Best-effort : ne lève jamais — l'amorçage est retenté au prochain
+     * cycle de synchro tant qu'il n'a pas abouti.
+     */
+    suspend fun getOrCreateMyShop(): String? = withContext(Dispatchers.IO) {
+        try {
+            if (!isConfigured || !hasValidSession) return@withContext null
+            ensureFreshSession()
+            val authToken = token ?: return@withContext null
+            val response = http.post(restUrl("rpc/get_or_create_my_shop")) {
+                header("apikey", anonKey)
+                header("Authorization", "Bearer $authToken")
+                contentType(ContentType.Application.Json)
+                setBody(EmptyRpcBody())
+            }
+            if (response.status.value !in 200..299) return@withContext null
+            // PostgREST renvoie un scalaire JSON ("uuid" ou null).
+            val text = response.bodyAsText().trim()
+            if (text.isEmpty() || text == "null") null else text.removeSurrounding("\"")
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // ==================== PARTENAIRES ====================
