@@ -26,7 +26,24 @@ class LissafiDatabase private constructor(context: Context) :
         // v6 = colonne `shop_id` sur les 5 tables métier (offre Grand boutique, boutique
         // partagée). Additif : shop_id = user_id pour l'existant ; les lectures restent
         // filtrées par user_id dans ce lot (bascule sur shop_id au lot suivant).
-        const val DATABASE_VERSION = 6
+        // v7 = table `cash_closures` (clôture de caisse « Z », offre Grand boutique).
+        const val DATABASE_VERSION = 7
+
+        // Table locale de clôture de caisse (miroir de cash_closures côté Supabase),
+        // avec un flag `synced` local (comme debt_transactions) pour le push incrémental.
+        private const val CREATE_CASH_CLOSURES = """
+            CREATE TABLE IF NOT EXISTS cash_closures (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                closed_at INTEGER NOT NULL,
+                expected_total INTEGER NOT NULL DEFAULT 0,
+                counted_total INTEGER NOT NULL DEFAULT 0,
+                diff INTEGER NOT NULL DEFAULT 0,
+                note TEXT NOT NULL DEFAULT '',
+                user_id TEXT NOT NULL DEFAULT '',
+                shop_id TEXT NOT NULL DEFAULT '',
+                synced INTEGER NOT NULL DEFAULT 0
+            )
+        """
 
         @Volatile
         private var INSTANCE: LissafiDatabase? = null
@@ -116,6 +133,7 @@ class LissafiDatabase private constructor(context: Context) :
                 value TEXT NOT NULL
             )
         """)
+        db.execSQL(CREATE_CASH_CLOSURES)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -182,6 +200,11 @@ class LissafiDatabase private constructor(context: Context) :
                 try { db.execSQL("ALTER TABLE $t ADD COLUMN shop_id TEXT NOT NULL DEFAULT ''") } catch (_: Exception) {}
                 try { db.execSQL("UPDATE $t SET shop_id = user_id WHERE shop_id = ''") } catch (_: Exception) {}
             }
+        }
+
+        // V6 → V7 : table de clôture de caisse (offre Grand boutique).
+        if (oldVersion < 7) {
+            try { db.execSQL(CREATE_CASH_CLOSURES) } catch (_: Exception) {}
         }
     }
 
@@ -596,6 +619,85 @@ class LissafiDatabase private constructor(context: Context) :
         }
     }
 
+    // ==================== CASH CLOSURES (clôture « Z ») ====================
+
+    suspend fun insertCashClosure(c: CashClosure): Long = withContext(Dispatchers.IO) {
+        val cv = ContentValues().apply {
+            put("closed_at", c.closedAt)
+            put("expected_total", c.expectedTotal)
+            put("counted_total", c.countedTotal)
+            put("diff", c.diff)
+            put("note", c.note)
+            put("user_id", c.userId)
+            put("shop_id", c.shopId.ifBlank { c.userId })
+            put("synced", 0)
+        }
+        writableDatabase.insert("cash_closures", null, cv)
+    }
+
+    /** Date (epoch millis) de la dernière clôture de cette caisse, 0 si aucune. */
+    suspend fun getLastClosureAt(userId: String): Long = withContext(Dispatchers.IO) {
+        readableDatabase.rawQuery(
+            "SELECT COALESCE(MAX(closed_at), 0) FROM cash_closures WHERE user_id = ?",
+            arrayOf(userId)
+        ).use { if (it.moveToFirst()) it.getLong(0) else 0L }
+    }
+
+    /** Espèces attendues pour cette caisse depuis `since` : total des ventes comptant. */
+    suspend fun getExpectedCash(userId: String, since: Long): Int = withContext(Dispatchers.IO) {
+        readableDatabase.rawQuery(
+            "SELECT COALESCE(SUM(total), 0) FROM sales WHERE user_id = ? AND is_credit = 0 AND date > ?",
+            arrayOf(userId, since.toString())
+        ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
+    }
+
+    suspend fun getClosures(shopId: String = "", limit: Int = 30): List<CashClosure> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<CashClosure>()
+        val where = if (shopId.isNotEmpty()) "WHERE shop_id = ?" else ""
+        val args = if (shopId.isNotEmpty()) arrayOf(shopId, limit.toString()) else arrayOf(limit.toString())
+        readableDatabase.rawQuery("SELECT * FROM cash_closures $where ORDER BY closed_at DESC LIMIT ?", args).use { c ->
+            while (c.moveToNext()) list.add(c.toCashClosure())
+        }
+        list
+    }
+
+    suspend fun getUnsyncedClosures(shopId: String = ""): List<CashClosure> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<CashClosure>()
+        val where = if (shopId.isNotEmpty()) "AND shop_id = ?" else ""
+        val args = if (shopId.isNotEmpty()) arrayOf(shopId) else null
+        readableDatabase.rawQuery("SELECT * FROM cash_closures WHERE synced = 0 $where ORDER BY closed_at ASC", args).use { c ->
+            while (c.moveToNext()) list.add(c.toCashClosure())
+        }
+        list
+    }
+
+    suspend fun markClosureSynced(id: Long) = withContext(Dispatchers.IO) {
+        val cv = ContentValues().apply { put("synced", 1) }
+        writableDatabase.update("cash_closures", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    /** Insère une clôture reçue du serveur si absente (dédup par caisse + date). */
+    suspend fun insertClosureIfNotExists(c: CashClosure) = withContext(Dispatchers.IO) {
+        readableDatabase.rawQuery(
+            "SELECT 1 FROM cash_closures WHERE user_id = ? AND closed_at = ?",
+            arrayOf(c.userId, c.closedAt.toString())
+        ).use { cur ->
+            if (!cur.moveToFirst()) {
+                val cv = ContentValues().apply {
+                    put("closed_at", c.closedAt)
+                    put("expected_total", c.expectedTotal)
+                    put("counted_total", c.countedTotal)
+                    put("diff", c.diff)
+                    put("note", c.note)
+                    put("user_id", c.userId)
+                    put("shop_id", c.shopId.ifBlank { c.userId })
+                    put("synced", 1)
+                }
+                writableDatabase.insert("cash_closures", null, cv)
+            }
+        }
+    }
+
     // ==================== SETTINGS ====================
 
     suspend fun getSetting(key: String): String? = withContext(Dispatchers.IO) {
@@ -831,4 +933,15 @@ private fun Cursor.toDebtTransaction() = DebtTransaction(
     userId = if (columnCount > 6) getString(6) else "",
     // synced est en colonne 7 (non mappé) ; shop_id est la dernière colonne.
     shopId = if (columnCount > 8) getString(8) else ""
+)
+
+private fun Cursor.toCashClosure() = CashClosure(
+    id = getLong(0),
+    closedAt = getLong(1),
+    expectedTotal = getInt(2),
+    countedTotal = getInt(3),
+    diff = getInt(4),
+    note = getString(5),
+    userId = if (columnCount > 6) getString(6) else "",
+    shopId = if (columnCount > 7) getString(7) else ""
 )

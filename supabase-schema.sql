@@ -471,6 +471,26 @@ $func$;
 REVOKE EXECUTE ON FUNCTION public.leave_shop() FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.leave_shop() TO authenticated;
 
+-- Clôture de caisse « Z » (offre Grand boutique) : partagée par boutique.
+CREATE TABLE IF NOT EXISTS cash_closures (
+    id             BIGSERIAL PRIMARY KEY,
+    closed_at      BIGINT NOT NULL,
+    expected_total INTEGER NOT NULL DEFAULT 0,
+    counted_total  INTEGER NOT NULL DEFAULT 0,
+    diff           INTEGER NOT NULL DEFAULT 0,
+    note           TEXT NOT NULL DEFAULT '',
+    user_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    shop_id        UUID REFERENCES auth.users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_cash_closures_shop ON cash_closures(shop_id);
+ALTER TABLE cash_closures ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Shop sees cash_closures" ON cash_closures;
+CREATE POLICY "Shop sees cash_closures" ON cash_closures
+    FOR ALL USING (is_shop_member(shop_id)) WITH CHECK (is_shop_member(shop_id));
+DROP TRIGGER IF EXISTS trg_default_shop_id ON cash_closures;
+CREATE TRIGGER trg_default_shop_id BEFORE INSERT ON cash_closures
+    FOR EACH ROW EXECUTE FUNCTION public.default_shop_id();
+
 -- ============================================================
 -- 8. ACTIVATION PREMIUM CÔTÉ SERVEUR (les codes ne vivent plus dans l'APK)
 -- ============================================================

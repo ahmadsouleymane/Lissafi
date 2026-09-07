@@ -592,6 +592,31 @@ class SupabaseApi(private val context: Context) {
         }
     }
 
+    // ==================== CLÔTURE DE CAISSE (Grand boutique) ====================
+
+    suspend fun insertCashClosure(closure: CashClosure) = withContext(Dispatchers.IO) {
+        ensureValidUser()
+        val response = http.post(restUrl("cash_closures")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            header("Prefer", "return=minimal")
+            contentType(ContentType.Application.Json)
+            setBody(closure.copy(id = 0))
+        }
+        ensureSuccess(response, "insertCashClosure")
+    }
+
+    suspend fun getCashClosures(): List<CashClosure> = withContext(Dispatchers.IO) {
+        val response = http.get(restUrl("cash_closures")) {
+            header("apikey", anonKey)
+            token?.let { header("Authorization", "Bearer $it") }
+            parameter("select", "*")
+            parameter("order", "closed_at.desc")
+        }
+        ensureSuccess(response, "getCashClosures")
+        response.body<List<CashClosure>>()
+    }
+
     // ==================== PARTENAIRES ====================
 
     /**

@@ -148,6 +148,7 @@ class SyncManager(
                     runStep("pushClients") { pushClients() },
                     runStep("pushSales") { pushSales() },
                     runStep("pushDebtTransactions") { pushDebtTransactions() },
+                    runStep("pushClosures") { pushClosures() },
                     runStep("pushSettings") { pushSettings() }
                 ).all { it }
 
@@ -157,6 +158,7 @@ class SyncManager(
                     runStep("pullClients") { pullClients() },
                     runStep("pullSales") { pullSales() },
                     runStep("pullDebtTransactions") { pullDebtTransactions() },
+                    runStep("pullClosures") { pullClosures() },
                     runStep("pullSettings") { pullSettings() }
                 ).all { it }
 
@@ -236,6 +238,16 @@ class SyncManager(
             db.markDebtTransactionSynced(txn.id)
         }
         AppLog.d(TAG, "Push dettes: ${unsynced.size} envoyées")
+    }
+
+    private suspend fun pushClosures() {
+        val shopId = currentShopId
+        val unsynced = db.getUnsyncedClosures(shopId)
+        for (c in unsynced) {
+            api.insertCashClosure(c.copy(shopId = shopId))
+            db.markClosureSynced(c.id)
+        }
+        AppLog.d(TAG, "Push clôtures: ${unsynced.size} envoyées")
     }
 
     private suspend fun pushSettings() {
@@ -324,6 +336,17 @@ class SyncManager(
             }
         }
         AppLog.d(TAG, "Pull dettes terminé, $skipped ignorées")
+    }
+
+    private suspend fun pullClosures() {
+        val shopId = currentShopId
+        val remote = api.getCashClosures()
+        var skipped = 0
+        for (c in remote) {
+            if (!belongsToShop(c.shopId, c.userId, shopId)) { skipped++; continue }
+            db.insertClosureIfNotExists(c)
+        }
+        AppLog.d(TAG, "Pull clôtures: ${remote.size} reçues, $skipped ignorées")
     }
 
     private suspend fun pullSettings() {

@@ -46,6 +46,7 @@ fun ShopCaissesScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     var codeInput by remember { mutableStateOf("") }
+    var countedInput by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -181,6 +182,41 @@ fun ShopCaissesScreen(
                             containerColor = Error
                         )
                     }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // ── Clôture de caisse « Z » (chaque caisse clôture la sienne) ──
+            LissafiCard(cornerRadius = 20, elevation = 0) {
+                Column(Modifier.padding(4.dp)) {
+                    SectionHeader("Clôture de caisse")
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Espèces attendues depuis la dernière clôture :",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = FormatUtils.formatFCFA(state.expectedCash),
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OnBackground
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    CapsuleTextField(
+                        value = countedInput,
+                        onValueChange = { countedInput = it.filter { c -> c.isDigit() } },
+                        placeholder = "Montant compté (FCFA)"
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    PrimaryActionButton(
+                        text = "Clôturer la caisse",
+                        onClick = {
+                            viewModel.saveClosure(countedInput.toIntOrNull() ?: 0, "") { countedInput = "" }
+                        },
+                        enabled = countedInput.isNotBlank() && !state.loading
+                    )
                 }
             }
 

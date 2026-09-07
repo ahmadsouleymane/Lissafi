@@ -3,6 +3,7 @@ package com.lissafi.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lissafi.app.LissafiApp
+import com.lissafi.app.data.entity.CashClosure
 import com.lissafi.app.data.remote.ShopMemberDto
 import com.lissafi.app.data.remote.SupabaseManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ data class ShopUiState(
     val role: String = "patron",
     val members: List<ShopMemberDto> = emptyList(),
     val activity: List<ActivityRow> = emptyList(),
+    val expectedCash: Int = 0,
     val pairingCode: String? = null,
     val loading: Boolean = false,
     val error: String? = null,
@@ -50,7 +52,43 @@ class ShopViewModel(private val app: LissafiApp) : ViewModel() {
             _state.value = _state.value.copy(role = role, loading = true, error = null)
             val members = if (role == "patron") api.myShopMembers() else emptyList()
             val activity = if (role == "patron") loadActivity() else emptyList()
-            _state.value = _state.value.copy(members = members, activity = activity, loading = false)
+            val expected = computeExpectedCash()
+            _state.value = _state.value.copy(
+                members = members, activity = activity, expectedCash = expected, loading = false
+            )
+        }
+    }
+
+    /** Espèces attendues pour cette caisse depuis sa dernière clôture. */
+    private suspend fun computeExpectedCash(): Int {
+        val me = SupabaseManager.currentUserId(app) ?: return 0
+        val since = app.database.getLastClosureAt(me)
+        return app.database.getExpectedCash(me, since)
+    }
+
+    /** Enregistre une clôture de caisse (« Z ») pour cette caisse et la synchronise. */
+    fun saveClosure(counted: Int, note: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            val me = SupabaseManager.currentUserId(app) ?: ""
+            val shopId = SupabaseManager.currentShopId(app)
+            val since = app.database.getLastClosureAt(me)
+            val expected = app.database.getExpectedCash(me, since)
+            val closure = CashClosure(
+                closedAt = System.currentTimeMillis(),
+                expectedTotal = expected,
+                countedTotal = counted,
+                diff = counted - expected,
+                note = note,
+                userId = me,
+                shopId = shopId
+            )
+            app.database.insertCashClosure(closure)
+            app.syncManager.syncInBackground()
+            _state.value = _state.value.copy(
+                info = "Clôture enregistrée. Écart : ${counted - expected} FCFA",
+                expectedCash = 0
+            )
+            onDone()
         }
     }
 
