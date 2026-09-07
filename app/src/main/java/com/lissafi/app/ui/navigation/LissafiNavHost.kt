@@ -132,12 +132,17 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
     // (couvre le retour depuis la page de paiement web après abonnement).
     var isLocked by remember(userId) { mutableStateOf(false) }
     var needsProfile by remember(userId) { mutableStateOf(false) }
+    // Rôle dans la boutique (Grand boutique) : gouverne la navigation (un vendeur
+    // ne voit pas les rapports ni la gestion d'abonnement).
+    var shopRole by remember(userId) { mutableStateOf("patron") }
+    val isVendeurRole = shopRole == "vendeur"
     LaunchedEffect(userId, isLoggedIn, currentRoute) {
         if (isLoggedIn) {
             premiumManager.startTrialIfNeeded()
             // Une caisse vendeur (Grand boutique) n'est jamais bloquée par le paywall :
             // c'est l'abonnement du patron qui couvre la boutique.
-            val isVendeur = com.lissafi.app.data.remote.SupabaseManager.currentShopRole(app) == "vendeur"
+            shopRole = com.lissafi.app.data.remote.SupabaseManager.currentShopRole(app)
+            val isVendeur = shopRole == "vendeur"
             isLocked = !isVendeur && premiumManager.isLocked()
             needsProfile = app.database.getSetting("shop_phone").isNullOrBlank()
         }
@@ -226,7 +231,9 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                                     .padding(horizontal = 10.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                bottomNavItems.forEach { item ->
+                                bottomNavItems
+                                    .filter { it.route != Routes.ACTIVITY || !isVendeurRole }
+                                    .forEach { item ->
                                     val selected = currentRoute == item.route
                                     val bgColor by animateColorAsState(
                                         targetValue = if (selected) Primary else Color.Transparent,
@@ -378,7 +385,8 @@ fun LissafiNavHost(modifier: Modifier = Modifier) {
                         onBack = { navController.popBackStack() },
                         onSignOut = { authViewModel.signOut() },
                         onNavigateToPaywall = { navController.navigate(Routes.PAYWALL) },
-                        onNavigateToShop = { navController.navigate(Routes.SHOP) }
+                        onNavigateToShop = { navController.navigate(Routes.SHOP) },
+                        isVendeur = isVendeurRole
                     )
                 }
                 composable(Routes.SHOP) {

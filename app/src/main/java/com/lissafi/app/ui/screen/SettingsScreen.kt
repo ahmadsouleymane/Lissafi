@@ -57,7 +57,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSignOut: () -> Unit,
     onNavigateToPaywall: () -> Unit,
-    onNavigateToShop: () -> Unit = {}
+    onNavigateToShop: () -> Unit = {},
+    isVendeur: Boolean = false
 ) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
@@ -67,21 +68,25 @@ fun SettingsScreen(
     val app = remember { context.applicationContext as LissafiApp }
     val syncStatus by app.syncManager.status.collectAsState()
     val isDarkMode = ThemeManager.isDark
-    val isPaid = state.plan == "plus" || state.plan == "business" || state.plan == "grand_boutique"
-    val isTrial = state.plan == "trial"
-    val hasAccess = state.plan != "locked"
-    val planLabel = when (state.plan) {
-        "grand_boutique" -> "Grand boutique"
-        "business" -> "Commerce / Supermarché"
-        "plus" -> "Petite boutique"
-        "trial" -> "Essai gratuit"
+    // Une caisse vendeur (Grand boutique) n'a pas d'abonnement propre : c'est celui
+    // du patron qui couvre la boutique. On masque donc le statut/paywall pour elle.
+    val isPaid = isVendeur || state.plan == "plus" || state.plan == "business" || state.plan == "grand_boutique"
+    val isTrial = !isVendeur && state.plan == "trial"
+    val hasAccess = isVendeur || state.plan != "locked"
+    val planLabel = when {
+        isVendeur -> "Caisse rattachée"
+        state.plan == "grand_boutique" -> "Grand boutique"
+        state.plan == "business" -> "Commerce / Supermarché"
+        state.plan == "plus" -> "Petite boutique"
+        state.plan == "trial" -> "Essai gratuit"
         else -> null
     }
-    val planSubtitle = when (state.plan) {
-        "grand_boutique" -> "Multi-caisses · Expire le ${state.premiumExpiryText}"
-        "business" -> "Tout illimité · Expire le ${state.premiumExpiryText}"
-        "plus" -> "${PremiumManager.MAX_PLUS_PRODUCTS} produits · Expire le ${state.premiumExpiryText}"
-        "trial" -> "Il te reste ${state.trialDaysLeft} jour${if (state.trialDaysLeft > 1) "s" else ""} · tout est débloqué"
+    val planSubtitle = when {
+        isVendeur -> "Abonnement géré par le patron de la boutique"
+        state.plan == "grand_boutique" -> "Multi-caisses · Expire le ${state.premiumExpiryText}"
+        state.plan == "business" -> "Tout illimité · Expire le ${state.premiumExpiryText}"
+        state.plan == "plus" -> "${PremiumManager.MAX_PLUS_PRODUCTS} produits · Expire le ${state.premiumExpiryText}"
+        state.plan == "trial" -> "Il te reste ${state.trialDaysLeft} jour${if (state.trialDaysLeft > 1) "s" else ""} · tout est débloqué"
         else -> "Ton essai est terminé — choisis une formule"
     }
     val syncLabel = when (syncStatus) {
