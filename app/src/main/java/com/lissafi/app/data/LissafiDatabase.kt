@@ -377,6 +377,38 @@ class LissafiDatabase private constructor(context: Context) :
         list
     }
 
+    /** Élément du journal d'activité (Grand boutique) : vente ou mouvement de crédit. */
+    data class ActivityItem(val type: String, val amount: Int, val date: Long, val userId: String)
+
+    /**
+     * Journal d'activité de la boutique : ventes + mouvements de crédit, triés du plus
+     * récent au plus ancien. Lecture seule, construit à partir des données existantes
+     * (aucune table dédiée). Sert au patron pour suivre l'activité de chaque caisse.
+     */
+    suspend fun getActivityLog(start: Long, end: Long, shopId: String = "", limit: Int = 200): List<ActivityItem> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<ActivityItem>()
+        val shopFilter = if (shopId.isNotEmpty()) "AND shop_id = ?" else ""
+        val sql = """
+            SELECT type, amount, date, user_id FROM (
+                SELECT 'vente' AS type, total AS amount, date, user_id FROM sales
+                    WHERE date >= ? AND date < ? $shopFilter
+                UNION ALL
+                SELECT 'credit' AS type, amount, date, user_id FROM debt_transactions
+                    WHERE date >= ? AND date < ? $shopFilter
+            ) ORDER BY date DESC LIMIT ?
+        """
+        val args = if (shopId.isNotEmpty())
+            arrayOf(start.toString(), end.toString(), shopId, start.toString(), end.toString(), shopId, limit.toString())
+        else
+            arrayOf(start.toString(), end.toString(), start.toString(), end.toString(), limit.toString())
+        readableDatabase.rawQuery(sql, args).use { c ->
+            while (c.moveToNext()) {
+                list.add(ActivityItem(c.getString(0), c.getInt(1), c.getLong(2), c.getString(3) ?: ""))
+            }
+        }
+        list
+    }
+
     /** CA + nombre de ventes agrégés par caisse (auteur = user_id) sur la boutique. */
     data class SellerTotal(val userId: String, val total: Int, val count: Int)
 

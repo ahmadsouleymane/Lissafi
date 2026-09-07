@@ -16,9 +16,19 @@ import kotlinx.coroutines.launch
  * - `members`  : caisses de MA boutique (visible pour le patron uniquement)
  * - `pairingCode` : dernier code d'appairage généré, à montrer/partager
  */
+// Ligne du journal d'activité des caisses (offre Grand boutique).
+data class ActivityRow(
+    val label: String,
+    val type: String,   // "vente" | "credit"
+    val amount: Int,
+    val date: Long,
+    val isMe: Boolean
+)
+
 data class ShopUiState(
     val role: String = "patron",
     val members: List<ShopMemberDto> = emptyList(),
+    val activity: List<ActivityRow> = emptyList(),
     val pairingCode: String? = null,
     val loading: Boolean = false,
     val error: String? = null,
@@ -39,7 +49,29 @@ class ShopViewModel(private val app: LissafiApp) : ViewModel() {
             val role = SupabaseManager.currentShopRole(app)
             _state.value = _state.value.copy(role = role, loading = true, error = null)
             val members = if (role == "patron") api.myShopMembers() else emptyList()
-            _state.value = _state.value.copy(members = members, loading = false)
+            val activity = if (role == "patron") loadActivity() else emptyList()
+            _state.value = _state.value.copy(members = members, activity = activity, loading = false)
+        }
+    }
+
+    /** Journal d'activité des 30 derniers jours, étiqueté par caisse. Patron uniquement. */
+    private suspend fun loadActivity(): List<ActivityRow> {
+        val shopId = SupabaseManager.currentShopId(app)
+        val me = SupabaseManager.currentUserId(app) ?: ""
+        val now = System.currentTimeMillis()
+        val start = now - 30L * 24 * 60 * 60 * 1000
+        val items = app.database.getActivityLog(start, now + 1, shopId, 100)
+        // Étiquette stable par caisse : "Cette caisse" pour l'auteur courant, sinon
+        // "Caisse N" (numérotation par ordre d'apparition).
+        val otherIds = items.map { it.userId }.filter { it != me }.distinct()
+        return items.map { item ->
+            ActivityRow(
+                label = if (item.userId == me) "Cette caisse" else "Caisse ${otherIds.indexOf(item.userId) + 2}",
+                type = item.type,
+                amount = item.amount,
+                date = item.date,
+                isMe = item.userId == me
+            )
         }
     }
 

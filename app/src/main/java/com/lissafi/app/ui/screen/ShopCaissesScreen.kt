@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lissafi.app.data.remote.ShopMemberDto
+import com.lissafi.app.service.FormatUtils
 import com.lissafi.app.ui.components.CapsuleTextField
 import com.lissafi.app.ui.components.LissafiCard
 import com.lissafi.app.ui.components.LissafiHeader
@@ -29,6 +30,7 @@ import com.lissafi.app.ui.theme.OnBackground
 import com.lissafi.app.ui.theme.Primary
 import com.lissafi.app.ui.theme.PrimaryContainer
 import com.lissafi.app.ui.theme.TextSecondary
+import com.lissafi.app.ui.viewmodel.ActivityRow
 import com.lissafi.app.ui.viewmodel.ShopViewModel
 
 /**
@@ -141,6 +143,25 @@ fun ShopCaissesScreen(
                         }
                     }
                 }
+
+                Spacer(Modifier.height(14.dp))
+
+                // ── Journal d'activité des caisses (30 derniers jours) ──
+                LissafiCard(cornerRadius = 20, elevation = 0) {
+                    Column(Modifier.padding(4.dp)) {
+                        SectionHeader("Activité récente")
+                        Spacer(Modifier.height(8.dp))
+                        if (state.activity.isEmpty()) {
+                            Text(
+                                "Aucune activité sur les 30 derniers jours.",
+                                fontSize = 13.sp,
+                                color = TextSecondary
+                            )
+                        } else {
+                            state.activity.take(40).forEach { row -> ActivityRowItem(row) }
+                        }
+                    }
+                }
             } else {
                 // ── Caisse vendeur rattachée ──
                 LissafiCard(cornerRadius = 20, elevation = 0) {
@@ -236,4 +257,35 @@ private fun Banner(message: String, color: androidx.compose.ui.graphics.Color) {
         Text(message, fontSize = 13.sp, color = color, fontWeight = FontWeight.Medium)
     }
     Spacer(Modifier.height(4.dp))
+}
+
+// Ligne du journal d'activité (offre Grand boutique).
+@Composable
+private fun ActivityRowItem(row: ActivityRow) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = (if (row.type == "vente") "Vente" else "Crédit") + " · " + row.label,
+                fontSize = 14.sp,
+                fontWeight = if (row.isMe) FontWeight.SemiBold else FontWeight.Normal,
+                color = OnBackground
+            )
+            Text(
+                text = FormatUtils.formatDate(row.date),
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
+        }
+        Text(
+            text = FormatUtils.formatFCFA(row.amount),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Primary
+        )
+    }
 }
