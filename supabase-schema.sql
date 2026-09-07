@@ -317,6 +317,161 @@ CREATE TRIGGER trg_default_shop_id BEFORE INSERT ON debt_transactions
     FOR EACH ROW EXECUTE FUNCTION public.default_shop_id();
 
 -- ============================================================
+-- GRAND BOUTIQUE — Appairage des caisses (patron ↔ vendeurs)
+-- ============================================================
+-- Codes d'appairage à usage unique, gérés uniquement via fonctions SECURITY
+-- DEFINER (comme premium_codes) : ni lisibles ni modifiables par les clients.
+CREATE TABLE IF NOT EXISTS shop_pairing_codes (
+    code       TEXT PRIMARY KEY,
+    shop_id    UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+    created_at BIGINT NOT NULL,
+    expires_at BIGINT NOT NULL,
+    used_by    UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    used_at    BIGINT
+);
+ALTER TABLE shop_pairing_codes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON shop_pairing_codes FROM anon, authenticated;
+
+-- Suis-je patron de cette boutique ?
+CREATE OR REPLACE FUNCTION public.is_shop_patron(p_shop uuid)
+RETURNS boolean
+LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE
+AS $func$
+    SELECT EXISTS (
+        SELECT 1 FROM shop_members
+        WHERE shop_id = p_shop AND user_id = auth.uid() AND role = 'patron'
+    );
+$func$;
+REVOKE EXECUTE ON FUNCTION public.is_shop_patron(uuid) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.is_shop_patron(uuid) TO authenticated;
+
+-- Nombre de caisses autorisé pour la boutique du patron (app_settings.max_caisses,
+-- clé server-managed posée par redeem_premium_code au Lot 5). Défaut 1 (mono-caisse) :
+-- sans l'offre Grand boutique, on ne peut pas rattacher de 2e caisse.
+CREATE OR REPLACE FUNCTION public.shop_max_caisses(p_shop uuid)
+RETURNS int
+LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE
+AS $func$
+    SELECT COALESCE(
+        (SELECT NULLIF(value, '')::int FROM app_settings WHERE user_id = p_shop AND key = 'max_caisses'),
+        1
+    );
+$func$;
+
+-- Le patron génère un code d'appairage (valable 15 min). Refuse si le quota de
+-- caisses est déjà atteint.
+CREATE OR REPLACE FUNCTION public.create_pairing_code()
+RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE
+    v_shop uuid;
+    v_code text;
+    v_now  bigint := (extract(epoch FROM now()) * 1000)::bigint;
+    v_max  int;
+    v_count int;
+BEGIN
+    IF auth.uid() IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+    SELECT shop_id INTO v_shop FROM shop_members
+        WHERE user_id = auth.uid() AND role = 'patron' LIMIT 1;
+    IF v_shop IS NULL THEN RAISE EXCEPTION 'not_patron'; END IF;
+
+    v_max := shop_max_caisses(v_shop);
+    SELECT count(*) INTO v_count FROM shop_members WHERE shop_id = v_shop;
+    IF v_count >= v_max THEN RAISE EXCEPTION 'quota_caisses_atteint'; END IF;
+
+    v_code := 'LSF-' || upper(substr(md5(random()::text || gen_random_uuid()::text), 1, 6));
+    INSERT INTO shop_pairing_codes (code, shop_id, created_at, expires_at)
+        VALUES (v_code, v_shop, v_now, v_now + 15 * 60 * 1000);
+    RETURN v_code;
+END;
+$func$;
+REVOKE EXECUTE ON FUNCTION public.create_pairing_code() FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.create_pairing_code() TO authenticated;
+
+-- Un vendeur rejoint une boutique via un code. Valide expiration/unicité/quota,
+-- détache l'utilisateur de son éventuelle boutique précédente (1 boutique active),
+-- puis l'inscrit comme vendeur. Renvoie {shop_id, role}.
+CREATE OR REPLACE FUNCTION public.join_shop_with_code(p_code text)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE
+    v_shop uuid; v_exp bigint; v_used uuid;
+    v_now bigint := (extract(epoch FROM now()) * 1000)::bigint;
+    v_max int; v_count int;
+BEGIN
+    IF auth.uid() IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+    SELECT shop_id, expires_at, used_by INTO v_shop, v_exp, v_used
+        FROM shop_pairing_codes WHERE code = p_code FOR UPDATE;
+    IF v_shop IS NULL THEN RAISE EXCEPTION 'code_invalide'; END IF;
+    IF v_used IS NOT NULL THEN RAISE EXCEPTION 'code_deja_utilise'; END IF;
+    IF v_now > v_exp THEN RAISE EXCEPTION 'code_expire'; END IF;
+
+    v_max := shop_max_caisses(v_shop);
+    SELECT count(*) INTO v_count FROM shop_members WHERE shop_id = v_shop;
+    IF v_count >= v_max THEN RAISE EXCEPTION 'quota_caisses_atteint'; END IF;
+
+    -- Une seule boutique active par utilisateur : quitte l'ancienne appartenance.
+    -- (Les données de son ancienne boutique solo restent sous son propre shop_id,
+    -- simplement plus visibles tant qu'il est rattaché — acceptable en v1.)
+    DELETE FROM shop_members WHERE user_id = auth.uid();
+    INSERT INTO shop_members (shop_id, user_id, role, caisse_label, joined_at)
+        VALUES (v_shop, auth.uid(), 'vendeur', '', v_now);
+    UPDATE shop_pairing_codes SET used_by = auth.uid(), used_at = v_now WHERE code = p_code;
+
+    RETURN jsonb_build_object('shop_id', v_shop, 'role', 'vendeur');
+END;
+$func$;
+REVOKE EXECUTE ON FUNCTION public.join_shop_with_code(text) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.join_shop_with_code(text) TO authenticated;
+
+-- Liste des membres de MA boutique (patron uniquement ; vide sinon).
+CREATE OR REPLACE FUNCTION public.my_shop_members()
+RETURNS TABLE(member_id uuid, role text, caisse_label text, joined_at bigint)
+LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE
+AS $func$
+    SELECT m.user_id, m.role, m.caisse_label, m.joined_at
+    FROM shop_members m
+    WHERE m.shop_id IN (
+        SELECT shop_id FROM shop_members WHERE user_id = auth.uid() AND role = 'patron'
+    )
+    ORDER BY m.joined_at ASC;
+$func$;
+REVOKE EXECUTE ON FUNCTION public.my_shop_members() FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.my_shop_members() TO authenticated;
+
+-- Le patron détache une caisse vendeur.
+CREATE OR REPLACE FUNCTION public.remove_shop_member(p_user uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+DECLARE v_shop uuid;
+BEGIN
+    SELECT shop_id INTO v_shop FROM shop_members
+        WHERE user_id = auth.uid() AND role = 'patron' LIMIT 1;
+    IF v_shop IS NULL THEN RAISE EXCEPTION 'not_patron'; END IF;
+    IF p_user = auth.uid() THEN RAISE EXCEPTION 'cannot_remove_self'; END IF;
+    DELETE FROM shop_members WHERE shop_id = v_shop AND user_id = p_user AND role = 'vendeur';
+END;
+$func$;
+REVOKE EXECUTE ON FUNCTION public.remove_shop_member(uuid) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.remove_shop_member(uuid) TO authenticated;
+
+-- Un vendeur quitte la boutique et retrouve sa boutique solo.
+CREATE OR REPLACE FUNCTION public.leave_shop()
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $func$
+BEGIN
+    DELETE FROM shop_members WHERE user_id = auth.uid() AND role = 'vendeur';
+    RETURN get_or_create_my_shop();
+END;
+$func$;
+REVOKE EXECUTE ON FUNCTION public.leave_shop() FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.leave_shop() TO authenticated;
+
+-- ============================================================
 -- 8. ACTIVATION PREMIUM CÔTÉ SERVEUR (les codes ne vivent plus dans l'APK)
 -- ============================================================
 -- Les codes sont ici, à usage unique, validés côté serveur. L'app appelle
