@@ -2,16 +2,10 @@
 
 Caisse enregistreuse Android pour petits commerces (Niamey) — local-first SQLite + Supabase, back-office web.
 
-## 🛠 Stack
+## Stack
 
 - Kotlin
 - Jetpack Compose
 - SQLite
 - Supabase
 - Next.js
-
----
-
-## 👤 Auteur
-
-**Ahmad Souleymane** — [@ahmadsouleymane](https://github.com/ahmadsouleymane)
